@@ -1,0 +1,176 @@
+@charset "utf-8";
+*[class|=webapp] {
+  margin: 0;
+  padding: 0;
+}
+*[class|=webapp][class*=-m1] {
+  margin: 0.3rem;
+}
+*[class|=webapp][class*=-m2] {
+  margin: 0.6rem;
+}
+*[class|=webapp][class*=-p1] {
+  padding: 0.3rem;
+}
+*[class|=webapp][class*=-p2] {
+  padding: 0.6rem;
+}
+*[class|=webapp][class*=-bl], table[class|=webapp][class*=-grid] th, table[class|=webapp][class*=-grid] td {
+  border: 0.09rem solid black;
+}
+*[class|=webapp][class*=-br] {
+  border-radius: 0.3rem;
+}
+*[class|=webapp][class*=-bs] {
+  box-shadow: 0 0.5em 2em rgba(27, 31, 35, 0.175);
+}
+*[class|=webapp][class*=-left] {
+  text-align: left;
+}
+*[class|=webapp][class*=-center] {
+  text-align: center;
+}
+*[class|=webapp][class*=-right] {
+  text-align: right;
+}
+*[class|=webapp][class*=-dialog], details[class|=webapp][class*=-menu] ul {
+  border: 0.09rem solid black;
+  border-radius: 0.3rem;
+  background-color: white;
+  border: 1px solid rgba(27, 31, 35, 0.23);
+  border-radius: 0.5em;
+  box-shadow: 0 0.5em 2em rgba(27, 31, 35, 0.175);
+}
+body.webapp {
+  font: 1rem sans-serif, simhei;
+  color: black;
+}
+body.webapp a {
+  color: #0366d6;
+  text-decoration: none;
+}
+body.webapp a:hover {
+  text-decoration: underline;
+}
+body.webapp a.danger {
+  color: #cb2431;
+}
+nav[class|=webapp] ul {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+nav[class|=webapp][class*=-inline] > ul > li {
+  display: inline-block;
+}
+nav[class|=webapp] a {
+  padding: 8px 16px;
+  display: block;
+}
+form[class|=webapp] {
+  padding: 0.3rem;
+  display: inline-block;
+}
+form[class|=webapp] > fieldset {
+  border: none;
+  white-space: nowrap;
+}
+table[class|=webapp] {
+  border-collapse: collapse;
+  border-spacing: 0;
+  empty-cells: show;
+}
+table[class|=webapp][class*=-scan] > tbody > tr:nth-of-type(even) {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+table[class|=webapp] > tfoot {
+  background-color: #f3f8ff;
+}
+table[class|=webapp][class*=-classic] {
+  border: 0.09rem solid black;
+  border-collapse: separate;
+  border-spacing: 0.1rem;
+}
+table[class|=webapp][class*=-classic] > thead {
+  background-image: linear-gradient(-180deg, #a7a7a7 0%, #fff 90%);
+}
+table[class|=webapp][class*=-classic] > thead > tr:first-child {
+  background-image: linear-gradient(-180deg, #0b7cfc 0%, #0364d1 90%);
+  color: white;
+}
+table[class|=webapp][class*=-classic] > tbody > tr:hover {
+  background-color: #c0c0c0;
+}
+details[class|=webapp] summary {
+  cursor: pointer;
+}
+details[class|=webapp][class*=-menu] {
+  position: relative;
+  display: inline-block;
+}
+details[class|=webapp][class*=-menu] ul {
+  padding: 0.6rem 0;
+  position: absolute;
+}
+details[class|=webapp][class*=-menu] ul > li {
+  white-space: nowrap;
+  padding: 0 1rem;
+  list-style: none;
+}
+details[class|=webapp][class*=-menu] ul > li > details {
+  display: inline-block;
+  position: relative;
+}
+details[class|=webapp][class*=-menu] ul > li > details, details[class|=webapp][class*=-menu] ul > li > a {
+  color: black;
+  display: block;
+  padding: 0.3rem 0;
+  text-decoration: none;
+}
+details[class|=webapp][class*=-menu] ul > li:hover {
+  background-color: #f3f3f3;
+}
+ul[class|=webapp] {
+  position: relative;
+  margin-left: 4px;
+}
+ul[class|=webapp]:before {
+  content: "";
+  width: 0;
+  border-left: 1px solid;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+}
+ul[class|=webapp] ul {
+  position: relative;
+  margin-left: 4px;
+}
+ul[class|=webapp] ul:before {
+  content: "";
+  width: 0;
+  border-left: 1px solid;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+}
+ul[class|=webapp] li {
+  position: relative;
+  padding-left: 24px;
+  line-height: 24px;
+  list-style: none;
+}
+ul[class|=webapp] li:before {
+  content: "";
+  width: 18px;
+  border-top: 1px solid;
+  position: absolute;
+  top: 12px;
+  left: 0;
+}
+ul[class|=webapp] li:last-child:before {
+  background-color: white;
+  bottom: 0;
+}

@@ -1,0 +1,249 @@
+@charset "utf-8";
+//基础颜色
+$foreground: black;
+$background: white;
+$link: rgb(3, 102, 214);
+$hint: rgb(192, 192, 192);
+$button: rgb(239, 243, 246);
+$border: rgb(27, 31, 35);
+$primary: rgb(40, 167, 69);
+$danger: rgb(203, 36, 49);
+//定义方法
+@mixin font($size:1rem){
+	font: $size sans-serif, simhei;
+}
+@mixin appearance($type:none){
+	appearance: $type;
+	-moz-appearance: $type;
+	-webkit-appearance: $type;
+}
+@mixin margin($size:1){
+	margin: 0.3rem * $size;
+}
+@mixin padding($size:1){
+	padding: 0.3rem * $size;
+}
+@mixin borderliner($color:$foreground){
+	border: 0.09rem solid $color;
+}
+@mixin borderradius($size:1){
+	border-radius: 0.3rem * $size;
+}
+@mixin textalign($position){
+	text-align: $position;
+}
+*[class|=webapp]{
+	margin: 0;
+	padding: 0;
+	&[class*=-m1]{
+		@include margin(1);
+	}
+	&[class*=-m2]{
+		@include margin(2);
+	}
+	&[class*=-p1]{
+		@include padding(1);
+	}
+	&[class*=-p2]{
+		@include padding(2);
+	}
+	&[class*=-bl]{
+		@include borderliner;
+	}
+	&[class*=-br]{
+		@include borderradius;
+	}
+	&[class*=-bs]{
+		box-shadow: 0 0.5em 2em rgba($border, 0.175);
+	}
+	&[class*=-left]{
+		@include textalign(left);
+	}
+	&[class*=-center]{
+		@include textalign(center);
+	}
+	&[class*=-right]{
+		@include textalign(right);
+	}
+
+	&[class*=-dialog]{
+		
+		@include borderliner;
+		@include borderradius;
+		background-color: $background;
+		
+		border: 1px solid rgba($border, 0.23);
+		border-radius: 0.5em;
+		box-shadow: 0 0.5em 2em rgba($border, 0.175);
+	}
+
+	//borderliner
+}
+body.webapp
+{
+	@include font;
+	color: $foreground;
+	// &,dl,ul,pre,input,textarea,fieldset{
+	// 	margin: 0;
+	// 	padding: 0;
+	// }
+	//超连接
+	a{
+		color: $link;
+		text-decoration: none;
+		&:hover{
+			text-decoration: underline;
+		}
+		&.danger{
+			color: $danger;
+		}
+	}
+}
+nav[class|=webapp]{
+	ul{
+		padding: 0;
+		margin: 0;
+		list-style: none;
+	}
+	&[class*=-inline]{
+		>ul>li{
+			display: inline-block;
+		}
+	}
+	a{
+		padding: 8px 16px;
+		display: block;
+	}
+}
+form[class|=webapp]{
+	@include padding;
+	display: inline-block;
+	>fieldset{
+		border: none;
+		white-space: nowrap;
+	}
+}
+table[class|=webapp]{
+	border-collapse: collapse;
+	border-spacing: 0;
+	empty-cells: show;
+	&[class*=-grid] th,
+	&[class*=-grid] td{
+		@extend *[class|=webapp][class*=-bl];
+	}
+	&[class*=-scan]>tbody>tr:nth-of-type(even){
+		background-color: rgba($foreground, 0.04);
+	}
+	>tfoot{
+		background-color: lighten($link, 55%);
+	}
+	&[class*=-classic]{
+		
+		@include borderliner;
+		border-collapse: separate;
+		border-spacing: 0.1rem;
+		
+		>thead{
+			background-image: linear-gradient(-180deg, darken($hint, 10%) 0%, lighten($hint, 40%) 90%);
+			>tr:first-child{
+				//background-color: $link;
+				background-image: linear-gradient(-180deg, lighten($link, 9%) 0%, darken($link, 1%) 90%);
+				color: $background;
+			}
+			// >tr:last-child{
+			// 	background-image: linear-gradient(-180deg, $hint 0%, lighten($hint, 40%) 100%);
+			// }
+		}
+		>tbody>tr:hover{
+			background-color: $hint;
+		}
+
+
+
+	}
+}
+
+details[class|=webapp]{
+	summary{
+		cursor: pointer;
+	}
+	&[class*=-menu]{
+		position: relative;
+		display: inline-block;
+		ul{
+			
+			@extend *[class|=webapp][class*=-dialog];
+			padding: 0.6rem 0;
+			position: absolute;
+			>li{
+				
+				white-space: nowrap;
+				>details{
+					display: inline-block;
+					position: relative;
+		
+				}
+				>details,>a{
+					color: $foreground;
+					display: block;
+					padding: 0.3rem 0;
+					text-decoration: none;
+				}
+				&:hover{
+					background-color: lighten($hint, 20%);
+				}
+				padding: 0 1rem;
+				list-style: none;
+			}
+		}
+	}
+	
+}
+
+
+ul[class|=webapp]
+{
+	position: relative;
+		margin-left: 4px;
+		&:before{
+			content: "";
+			width: 0;
+			border-left: 1px solid;
+			position: absolute;
+			top: 0;
+			bottom: 0;
+			left: 0;
+		}
+	
+	ul{
+		position: relative;
+		margin-left: 4px;
+		&:before{
+			content: "";
+			width: 0;
+			border-left: 1px solid;
+			position: absolute;
+			top: 0;
+			bottom: 0;
+			left: 0;
+		}
+	}
+	li{
+		position: relative;
+		padding-left: 24px;
+		line-height: 24px;
+		list-style: none;
+		&:before{
+			content: "";
+			width: 18px;
+			border-top: 1px solid;
+			position: absolute;
+			top: 12px;
+			left: 0;
+		}
+		&:last-child:before{
+			background-color: $background;
+			bottom: 0;
+		}
+	}
+}
