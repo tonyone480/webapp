@@ -19,7 +19,7 @@ class webapp_connect_debug extends php_user_filter
 }
 class webapp_connect
 {
-	public $errors = [], $url, $path;
+	public $errors = [], $path;
 	private $cookies = [], $headers = [
 		'Host' => '*',
 		'Connection' => 'keep-alive',
@@ -28,9 +28,9 @@ class webapp_connect
 		'Accept-Encoding' => 'gzip, deflate',
 		'Accept-Language' => 'en'
 	], $length = 0, $buffer, $remote, $stream, $referers;
-	function __construct(string $url, ?array &$referers = [])
+	function __construct(public string $url, ?array &$referers = [])
 	{
-		[$this->headers['Host'], $this->remote, $this->path] = static::parseurl($this->url = $url);
+		[$this->headers['Host'], $this->remote, $this->path] = static::parseurl($url);
 		$this->buffer = fopen('php://memory', 'w+');
 		$this->referers = &$referers;
 		$this->referers[$this->remote] = $this;
@@ -42,17 +42,17 @@ class webapp_connect
 	}
 	function __get(string $name)
 	{
-		switch ($name)
+		return match($name)
 		{
-			case 'cookies':			return $this->cookies;
-			case 'headers':			return $this->headers;
-			case 'metadata':		return stream_get_meta_data($this->stream);
-			// case 'remote_name':		return stream_socket_get_name($this->stream, TRUE);
-			// case 'local_name':		return stream_socket_get_name($this->stream, FALSE);
-			case 'is_lockable':		return stream_supports_lock($this->stream);
-			case 'is_local':		return stream_is_local($this->stream);
-			case 'is_tty':			return stream_isatty($this->stream);
-		}
+			'cookies' =>		$this->cookies,
+			'headers' =>		$this->headers,
+			'metadata' =>		stream_get_meta_data($this->stream),
+			// 'remote_name' =>	stream_socket_get_name($this->stream, TRUE),
+			// 'local_name' =>		stream_socket_get_name($this->stream, FALSE),
+			'is_lockable' =>	stream_supports_lock($this->stream),
+			'is_local' =>		stream_is_local($this->stream),
+			'is_tty' =>			stream_isatty($this->stream)
+		};
 	}
 	static function parseurl(string $url):array
 	{
@@ -194,7 +194,7 @@ class webapp_connect
 		return @fwrite($this->stream, $data) === strlen($data);
 	}
 	//HTTP
-	private function multipart(string $contents, string $filename, $data, string $name = NULL):void
+	private function multipart(string $contents, string $filename, mixed $data, string $name = NULL):void
 	{
 		//get_debug_type
 		switch (TRUE)
@@ -238,7 +238,7 @@ class webapp_connect
 		}
 		return $this;
 	}
-	function request(string $method, string $path, $data = NULL, bool $multipart = FALSE):array
+	function request(string $method, string $path, mixed $data = NULL, bool $multipart = FALSE):array
 	{
 		$headers = ["{$method} {$path} HTTP/1.1"];
 		foreach ($this->headers as $name => $value)
@@ -384,13 +384,13 @@ class webapp_connect
 	}
 	function content(string $method, string $path, $data = NULL, bool $multipart = FALSE)
 	{
-		switch (static::mimetype($this->request($method, $path, $data, $multipart))[1])
+		return match(static::mimetype($this->request($method, $path, $data, $multipart))[1])
 		{
-			case 'xml':		return new webapp_xml($this->bufferdata());
-			case 'html':	return webapp_dom::html($this->bufferdata());
-			case 'json':	return json_decode($this->bufferdata(), TRUE);
-			default:		return $this->bufferdata();
-		}
+			'xml' => new webapp_xml($this->bufferdata()),
+			'html' => webapp_dom::html($this->bufferdata()),
+			'json' => json_decode($this->bufferdata(), TRUE),
+			default => $this->bufferdata()
+		};
 	}
 	function http(string $method, string $url, /*Closure|int*/$detect = 4, $data = NULL, bool $multipart = FALSE)
 	{

@@ -169,7 +169,7 @@ abstract class webapp implements ArrayAccess
 			}
 		}
 	}
-	function __get(string $name)
+	function __get(string $name):mixed
 	{
 		if ($this->offsetExists($name))
 		{
@@ -218,24 +218,24 @@ abstract class webapp implements ArrayAccess
 		}
 		return $object;
 	}
-	final function offsetExists($key):bool
+	final function offsetExists(mixed $key):bool
 	{
 		return array_key_exists($key, $this->configs);
 	}
-	final function offsetGet($key)
+	final function offsetGet(mixed $key)
 	{
 		return $this->configs[$key] ?? NULL;
 	}
-	final function offsetSet($key, $value):void
+	final function offsetSet(mixed $key, mixed $value):void
 	{
 		$this->configs[$key] = $value;
 	}
-	final function offsetUnset($key):void
+	final function offsetUnset(mixed $key):void
 	{
 		unset($this->configs[$key]);
 	}
 	//function void():void{}
-	function printf(string $format, ...$params):int
+	function printf(string $format, string ...$params):int
 	{
 		return fprintf($this->io, $format, ...$params);
 	}
@@ -345,7 +345,7 @@ abstract class webapp implements ArrayAccess
 				&& $password === $this['admin_password'];
 		}, func_num_args() ? $signature : $this->request_cookie_decrypt($this['admin_cookie']));
 	}
-	function xml(...$params):webapp_xml
+	function xml(mixed ...$params):webapp_xml
 	{
 		if ($params)
 		{
@@ -618,7 +618,7 @@ abstract class webapp implements ArrayAccess
 	{
 		$this->cookies[] = func_get_args();
 	}
-	function response_cookie_encrypt(string $name, string $value = NULL, ...$params):void
+	function response_cookie_encrypt(string $name, string $value = NULL, mixed ...$params):void
 	{
 		$this->response_cookie($name, $value === NULL ? NULL : $this->encrypt($value), ...$params);
 	}
@@ -647,7 +647,7 @@ abstract class webapp implements ArrayAccess
 	{
 		$this->response_header('Refresh', strlen($url) ? "{$second}; url={$url}" : $second);
 	}
-	function response_content($echo, ...$params):void
+	function response_content(mixed $echo, mixed ...$params):void
 	{
 		if (is_scalar($echo))
 		{
