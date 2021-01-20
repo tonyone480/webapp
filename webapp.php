@@ -49,8 +49,7 @@ abstract class webapp implements ArrayAccess
 			'mysql_password'	=> '',
 			'mysql_database'	=> 'webapp',
 			'mysql_maptable'	=> 'webapp_maptable_',
-			// 'mysql_charset'		=> 'latin1',
-			'mysql_charset'		=> 'utf8mb4',
+			'mysql_charset'		=> 'utf8mb4',//latin1
 			//Captcha
 			'captcha_echo'		=> TRUE,
 			'captcha_unit'		=> 4,
