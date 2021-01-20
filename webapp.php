@@ -83,7 +83,7 @@ abstract class webapp implements ArrayAccess
 			}
 			return;
 		}
-		return $this->response_content("{$this['request_method']}_{$this['app_method']}");
+		$this->response_content("{$this['request_method']}_{$this['app_method']}");
 		//以下是演示继承webapp全局admin登录验证代码，方法有很多种根据自己实际需求不同而调整
 		// if (in_array($this['app_module'], ['captcha', 'qrcode', 'scss'])) return;
 		// if ($this->admin === FALSE)
@@ -202,7 +202,7 @@ abstract class webapp implements ArrayAccess
 	{
 		return fwrite($this->io, $data) === strlen($data);
 	}
-	final function io()
+	final function io():mixed
 	{
 		return $this->io ?? fopen('php://memory', 'r+');
 	}
@@ -222,7 +222,7 @@ abstract class webapp implements ArrayAccess
 	{
 		return array_key_exists($key, $this->configs);
 	}
-	final function offsetGet(mixed $key)
+	final function offsetGet(mixed $key):mixed
 	{
 		return $this->configs[$key] ?? NULL;
 	}
