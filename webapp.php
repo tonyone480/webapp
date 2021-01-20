@@ -337,12 +337,11 @@ abstract class webapp implements ArrayAccess
 	}
 	function admin(string $signature = NULL):bool
 	{
-		return $this->authorize(function(string $username, string $password, int $signtime):bool
-		{
-			return $signtime + $this['admin_expire'] > time()
-				&& $username === $this['admin_username']
-				&& $password === $this['admin_password'];
-		}, func_num_args() ? $signature : $this->request_cookie_decrypt($this['admin_cookie']));
+		return $this->authorize(fn(string $username, string $password, int $signtime):bool =>
+			$signtime + $this['admin_expire'] > time()
+			&& $username === $this['admin_username']
+			&& $password === $this['admin_password']
+		, func_num_args() ? $signature : $this->request_cookie_decrypt($this['admin_cookie']));
 	}
 	function xml(mixed ...$params):webapp_xml
 	{
