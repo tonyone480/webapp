@@ -222,7 +222,7 @@ class webapp_connect
 			// 	return;
 		}
 	}
-	function headers(array $replace):self
+	function headers(array $replace):static
 	{
 		foreach ($replace as $name => $value)
 		{
@@ -230,7 +230,7 @@ class webapp_connect
 		}
 		return $this;
 	}
-	function cookies($replace):self
+	function cookies($replace):static
 	{
 		foreach (is_string($replace) && preg_match_all('/(\w+)\=([^;]+)/', $replace, $cookies, PREG_SET_ORDER)
 			? array_map('urldecode', array_column($cookies, 2, 1)) : $replace as $name => $value) {

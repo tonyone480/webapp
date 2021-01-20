@@ -151,7 +151,7 @@ abstract class webapp_mysql_table implements IteratorAggregate, Countable
 			case 'create': return $this->mysql->row('SHOW CREATE TABLE ?a', $this->tablename)['Create Table'];
 		}
 	}
-	function __invoke(...$cond):self
+	function __invoke(...$cond):static
 	{
 		return [$this, $this->cond = $this->mysql->sprintf(...$cond)][0];
 	}
@@ -213,11 +213,11 @@ abstract class webapp_mysql_table implements IteratorAggregate, Countable
 	{
 		return $this->mysql('UPDATE ?a SET ????', $this->tablename, $this->mysql->sprintf(...is_array($data) ? ['?v', $data] : func_get_args()), (string)$this) ? intval(substr($this->mysql->info, 14)) : -1;
 	}
-	function select($fields):self
+	function select($fields):static
 	{
 		return [$this, $this->fields = $this->mysql->sprintf('?A', $fields)][0];
 	}
-	function paging(int $index, int $rows = 21):self
+	function paging(int $index, int $rows = 21):static
 	{
 		$this->paging['count'] = $this->count($this->paging['cond']);
 		$this->paging['max'] = ceil($this->paging['count'] / $rows);

@@ -8,7 +8,7 @@ class webapp_image
 	$color = 0,
 	$width,
 	$height;
-	// static function from(string $filename):self
+	// static function from(string $filename):static
 	// {
 	// 	if (is_file($filename))
 	// 	{
@@ -66,7 +66,7 @@ class webapp_image
 	{
 
 	}
-	function colorat(int $x, int $y, string $name = NULL):self
+	function colorat(int $x, int $y, string $name = NULL):static
 	{
 		$this->color = imagecolorat($this->image, $x, $y);
 		if ($name)
@@ -75,7 +75,7 @@ class webapp_image
 		}
 		return $this;
 	}
-	function color(string $name, int $red = 0, int $green = 0, int $blue = 0, float $alpha = 0):self
+	function color(string $name, int $red = 0, int $green = 0, int $blue = 0, float $alpha = 0):static
 	{
 		if (func_num_args() > 4)
 		{
@@ -92,46 +92,46 @@ class webapp_image
 		}
 		return $this;
 	}
-	function fill(int $x, int $y):self
+	function fill(int $x, int $y):static
 	{
 		imagefill($this->image, $x, $y, $this->color);
 		return $this;
 	}
-	function line(int $x0, int $y0, int $x1, int $y1):self
+	function line(int $x0, int $y0, int $x1, int $y1):static
 	{
 		imageline($this->image, $x0, $y0, $x1, $y1, $this->color);
 		return $this;
 	}
-	function pixel(int $x, int $y):self
+	function pixel(int $x, int $y):static
 	{
 		imagesetpixel($this->image, $x, $y, $this->color);
 		return $this;
 	}
-	function polygon(array $points, bool $filled = FALSE, bool $open = FALSE):self
+	function polygon(array $points, bool $filled = FALSE, bool $open = FALSE):static
 	{
 		($filled ? 'imagefilledpolygon' : ($open ? 'imageopenpolygon' : 'imagepolygon'))($this->image, $points, count($points), $this->color);
 		return $this;
 	}
-	function rectangle(int $x0, int $y0, int $x1, int $y1, bool $filled = FALSE):self
+	function rectangle(int $x0, int $y0, int $x1, int $y1, bool $filled = FALSE):static
 	{
 		($filled ? 'imagefilledrectangle' : 'imagerectangle')($this->image, $x0, $y0, $x1, $y1, $this->color);
 		return $this;
 	}
-	function square(int $x, int $y, int $size, bool $filled = FALSE):self
+	function square(int $x, int $y, int $size, bool $filled = FALSE):static
 	{
 		return $this->rectangle($x, $y, $x + $size, $y + $size, $filled);
 	}
-	function string(int $x, int $y, string $word, int $font = 4):self
+	function string(int $x, int $y, string $word, int $font = 4):static
 	{
 		imagestring($this->image, $font, $x, $y, $word, $this->color);
 		return $this;
 	}
-	function text(int $x, int $y, string $word, string $font, int $size = 24, int $angle = 0):self
+	function text(int $x, int $y, string $word, string $font, int $size = 24, int $angle = 0):static
 	{
 		imagettftext($this->image, $size, $angle, $x, $y, $this->color, $font, $word);
 		return $this;
 	}
-	function resize(int $width, int $height):self
+	function resize(int $width, int $height):static
 	{
 		$image = imagecreate($width, $height);
 		imagecopyresized($image, $this->image, 0, 0, 0, 0, $width, $height, $this->width, $this->height);
@@ -140,61 +140,61 @@ class webapp_image
 		return $this;
 	}
 	//将真彩色图像转换为调色板图像
-	function palette(int $color = 255, bool $dithered = TRUE):self
+	function palette(int $color = 255, bool $dithered = TRUE):static
 	{
 		imagetruecolortopalette($this->image, $dithered, $color);
 		return $this;
 	}
 	//反转图像的所有颜色
-	function negate():self
+	function negate():static
 	{
 		imagefilter($this->image, IMG_FILTER_NEGATE);
 		return $this;
 	}
 	//将图像转换为灰度
-	function grayscale():self
+	function grayscale():static
 	{
 		imagefilter($this->image, IMG_FILTER_GRAYSCALE);
 		return $this;
 	}
 	//改变图像的亮度
-	function brightness(int $level):self
+	function brightness(int $level):static
 	{
 		imagefilter($this->image, IMG_FILTER_BRIGHTNESS, $level);
 		return $this;
 	}
 	//改变图像的对比度
-	function contrast(int $level):self
+	function contrast(int $level):static
 	{
 		imagefilter($this->image, IMG_FILTER_CONTRAST, $level);
 		return $this;
 	}
 	//使用边缘检测来突出显示图像中的边缘
-	function edgedetect():self
+	function edgedetect():static
 	{
 		imagefilter($this->image, IMG_FILTER_EDGEDETECT);
 		return $this;
 	}
 	//压花图像
-	function emboss():self
+	function emboss():static
 	{
 		imagefilter($this->image, IMG_FILTER_EMBOSS);
 		return $this;
 	}
 	//模糊图像
-	function blur(int $type = IMG_FILTER_GAUSSIAN_BLUR):self
+	function blur(int $type = IMG_FILTER_GAUSSIAN_BLUR):static
 	{
 		imagefilter($this->image, $type);
 		return $this;
 	}
 	//使图像更平滑
-	function smooth(int $level = 1):self
+	function smooth(int $level = 1):static
 	{
 		imagefilter($this->image, IMG_FILTER_SMOOTH, $level);
 		return $this;
 	}
 	//将像素化效果应用于图像
-	function pixelate(int $block = 2, bool $advanced = FALSE):self
+	function pixelate(int $block = 2, bool $advanced = FALSE):static
 	{
 		imagefilter($this->image, IMG_FILTER_PIXELATE, $block, $advanced);
 		return $this;
@@ -226,7 +226,7 @@ class webapp_image
 	{
 		return imagepng($this->image, $output);
 	}
-	function captcha(array $format, string $font, int $size):self
+	function captcha(array $format, string $font, int $size):static
 	{
 		$width = 0;
 		$writing = [];
@@ -263,7 +263,7 @@ class webapp_image
 		}
 		return $this;
 	}
-	static function qrcode(string $data, int $ecclevel = 0, int $pixel = 4, int $margin = 2):self
+	static function qrcode(string $data, int $ecclevel = 0, int $pixel = 4, int $margin = 2):static
 	{
 		include 'qrcode/phpqrcode.php';
 		// switch (1)

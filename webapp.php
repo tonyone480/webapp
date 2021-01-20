@@ -583,7 +583,7 @@ abstract class webapp implements ArrayAccess
 					}
 					return TRUE;
 				}
-				// function map(callable $callback):self
+				// function map(callable $callback):static
 				// {
 				// 	$this->exchangeArray(array_map($callback, (array)$this));
 				// 	return $this;

@@ -43,7 +43,7 @@ class webapp_xml extends SimpleXMLElement
 		}
 		return $xml;
 	}
-	function append(string $name, $mixed = NULL):self
+	function append(string $name, $mixed = NULL):static
 	{
 		if (is_array($mixed))
 		{
@@ -83,7 +83,7 @@ class webapp_xml extends SimpleXMLElement
 	{
 		unset($this[0]);
 	}
-	function parent():self
+	function parent():static
 	{
 		return $this[0]->xpath('..')[0] ?? $this[0];
 	}
@@ -185,7 +185,7 @@ class webapp_xml extends SimpleXMLElement
 		return $this[0]->xpath(join($query));
 	}
 	//以数组递归方式导入当前节点下所有内容
-	function import(array $values):self
+	function import(array $values):static
 	{
 		foreach ($values as $key => $value)
 		{
@@ -295,7 +295,7 @@ class webapp_dom extends DOMDocument
 		$fragment->appendXML($data);
 		return $fragment;
 	}
-	static function html(string $data):self
+	static function html(string $data):static
 	{
 		$dom = new static;
 		$dom->loadHTML($data);

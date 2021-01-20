@@ -1,7 +1,7 @@
 <?php
 class webapp_html_xml extends webapp_xml
 {
-	function fieldset(string $legend = NULL):self
+	function fieldset(string $legend = NULL):static
 	{
 		//An optional <legend> element, followed by flow content.
 		$node = &$this[0]->fieldset[];
@@ -11,7 +11,7 @@ class webapp_html_xml extends webapp_xml
 		}
 		return $node;
 	}
-	function details(string $summary = NULL):self
+	function details(string $summary = NULL):static
 	{
 		//One <summary> element followed by flow content.
 		$node = &$this[0]->details[];
@@ -21,14 +21,14 @@ class webapp_html_xml extends webapp_xml
 		}
 		return $node;
 	}
-	function labelinput(string $name, string $type, string $value, string $comment):self
+	function labelinput(string $name, string $type, string $value, string $comment):static
 	{
 		$node = &$this[0]->label[];
 		$node->append('input', ['type' => $type, 'name' => $name, 'value' => $value]);
 		$node->text($comment);
 		return $node;
 	}
-	function options(array $values):self
+	function options(array $values):static
 	{
 		foreach ($values as $value => $content)
 		{
@@ -36,7 +36,7 @@ class webapp_html_xml extends webapp_xml
 		}
 		return $this[0];
 	}
-	function optgroup(array $values):self
+	function optgroup(array $values):static
 	{
 		foreach ($values as $label => $values)
 		{
@@ -46,14 +46,14 @@ class webapp_html_xml extends webapp_xml
 		}
 		return $this[0];
 	}
-	function progress(float $value = 0, float $max = 1):self
+	function progress(float $value = 0, float $max = 1):static
 	{
 		$node = &$this[0]->progress[];
 		$node['value'] = $value;
 		$node['max'] = $max;
 		return $node;
 	}
-	function ultree(iterable $list):self
+	function ultree(iterable $list):static
 	{
 		$node = &$this[0]->ul[];
 		foreach ($list as $item)
@@ -67,7 +67,7 @@ class webapp_html_xml extends webapp_xml
 		}
 		return $node;
 	}
-	function atree(iterable $anchors):self
+	function atree(iterable $anchors):static
 	{
 		$node = &$this[0]->ul[];
 		foreach ($anchors as $attributes)
@@ -92,7 +92,7 @@ class webapp_html_xml extends webapp_xml
 		}
 		return $node;
 	}
-	function foldtree(string $summary, iterable $details):self
+	function foldtree(string $summary, iterable $details):static
 	{
 		$node = $this[0]->details($summary);
 		$ul = &$node->ul;
@@ -108,7 +108,7 @@ class webapp_html_xml extends webapp_xml
 		}
 		return $node;
 	}
-	function navbar(iterable $links):self
+	function navbar(iterable $links):static
 	{
 		$node = &$this[0]->nav[];
 		$ul = &$node->ul;
@@ -162,7 +162,7 @@ class webapp_html_form
 	{
 		return $this->fieldset->append('button', [$name, 'type' => $type] + $attributes);
 	}
-	function captcha(string $name):self
+	function captcha(string $name):static
 	{
 		$this->fieldset($name);
 		$this->field('captcha_encrypt')['value'] = $random = $this->webapp->captcha_random();
@@ -223,7 +223,7 @@ class webapp_html_form
 				return $this->{$typename === 'file' ? 'files' : 'fields'}[$rename] = $this->fieldset->append('input', ['type' => $typename, 'name' => $alias] + $attributes);
 		}
 	}
-	function value(array $default):self
+	function value(array $default):static
 	{
 		foreach ($this->fields as $name => $node)
 		{
@@ -474,7 +474,7 @@ class webapp_html_table
 			case 'tfoot': return $this->tfoot = $this->tbody->insert('tfoot', 'after');
 		}
 	}
-	function paging(string $url, int $max = 9):self
+	function paging(string $url, int $max = 9):static
 	{
 		if ($this->paging && $this->paging['max'] > 1)
 		{

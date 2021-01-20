@@ -85,7 +85,7 @@ class webapp_echo_xls extends webapp_dom
 		}
 		return $row;
 	}
-	function import(iterable $data):self
+	function import(iterable $data):static
 	{
 		foreach ($data as $values)
 		{
