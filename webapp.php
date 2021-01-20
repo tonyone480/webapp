@@ -83,7 +83,7 @@ abstract class webapp implements ArrayAccess
 			}
 			return;
 		}
-		return $this->response_content("{$this['request_method']}_{$this['app_module']}");
+		return $this->response_content("{$this['request_method']}_{$this['app_method']}");
 		//以下是演示继承webapp全局admin登录验证代码，方法有很多种根据自己实际需求不同而调整
 		// if (in_array($this['app_module'], ['captcha', 'qrcode', 'scss'])) return;
 		// if ($this->admin === FALSE)
