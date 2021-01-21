@@ -27,12 +27,11 @@ class webapp_connect
 		'Accept' => '*/*',
 		'Accept-Encoding' => 'gzip, deflate',
 		'Accept-Language' => 'en'
-	], $length = 0, $buffer, $remote, $stream, $referers;
-	function __construct(public string $url, ?array &$referers = [])
+	], $length = 0, $buffer, $remote, $stream;
+	function __construct(public string $url, private ?array &$referers = [])
 	{
 		[$this->headers['Host'], $this->remote, $this->path] = static::parseurl($url);
 		$this->buffer = fopen('php://memory', 'w+');
-		$this->referers = &$referers;
 		$this->referers[$this->remote] = $this;
 		$this->reconnect();
 	}
@@ -40,7 +39,7 @@ class webapp_connect
 	{
 		fclose($this->buffer);
 	}
-	function __get(string $name)
+	function __get(string $name):mixed
 	{
 		return match($name)
 		{
