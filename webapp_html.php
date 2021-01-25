@@ -129,18 +129,17 @@ class webapp_html_xml extends webapp_xml
 	{
 		return new webapp_html_form($this->webapp(), $this[0], $action);
 	}
-	function table(iterable $data, closure $output = NULL, ...$params):webapp_html_table
+	function table(iterable $data, closure $output = NULL, mixed ...$params):webapp_html_table
 	{
 		return new webapp_html_table($this->webapp(), $this[0], $data, $output, ...$params);
 	}
 }
 class webapp_html_form
 {
-	public $webapp, $xml, $fieldset;
+	public $xml, $fieldset;
 	private $files = [], $fields = [], $index = 0;
-	function __construct(webapp $webapp, webapp_html_xml $node = NULL, string $action = NULL)
+	function __construct(public webapp $webapp, webapp_html_xml $node = NULL, string $action = NULL)
 	{
-		$this->webapp = $webapp;
 		$this->xml = ($node ?? new webapp_html_xml('<html/>'))->append('form', [
 			'autocomplete' => 'off',
 			'enctype' => 'multipart/form-data',
@@ -430,10 +429,9 @@ class webapp_html_form
 }
 class webapp_html_table
 {
-	public $webapp, $xml, $tbody, $paging;
-	function __construct(webapp $webapp, webapp_html_xml $node, iterable $data, closure $output = NULL, ...$params)
+	public $xml, $tbody, $paging;
+	function __construct(public webapp $webapp, webapp_html_xml $node, iterable $data, closure $output = NULL, ...$params)
 	{
-		$this->webapp = $webapp;
 		$this->xml = &$node->table[];
 		$this->tbody = &$this->xml->tbody;
 		if ($output)
@@ -515,7 +513,7 @@ class webapp_html_table
 		return $node;
 	}
 }
-class webapp_html_echo extends webapp_dom implements  Stringable
+class webapp_html_echo extends webapp_dom implements Stringable
 {
 	use webapp_echo;
 	function __construct(webapp $webapp)

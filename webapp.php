@@ -107,27 +107,26 @@ abstract class webapp implements ArrayAccess, Stringable
 		// {
 		// 	if ($this['request_method'] === 'post')
 		// 	{
-		// 		$data = $this->errors(new webapp_echo_json($this, ['signature' => NULL]));
-		// 		if ($form = webapp_html_echo::form_sign_in($this)->fetch($this['captcha_echo']))
+		// 		$this->errors($this('webapp_echo_json', ['signature' => NULL]));
+		// 		if ($input = webapp_html_echo::form_sign_in($this)->fetch($this['captcha_echo']))
 		// 		{
-		// 			if ($this->admin($signature = $this->signature($form['username'], $form['password'])))
+		// 			if ($this->admin($signature = $this->signature($input['username'], $input['password'])))
 		// 			{
 		// 				$this->response_refresh(0);
-		// 				$this->response_cookie_encrypt($this['admin_cookie'], $data['signature'] = $signature);
+		// 				$this->response_cookie($this['admin_cookie'], $this->app_mapping['signature'] = $signature);
 		// 			}
 		// 			else
 		// 			{
-		// 				$data['errors'][] = 'Sign in failed';
+		// 				$this->app_mapping['errors'][] = 'Sign in failed';
 		// 			}
 		// 		}
 		// 	}
 		// 	else
 		// 	{
-		// 		$data = new webapp_html_echo($this);
-		// 		$data->title('Sign In Admin');
-		// 		$form = webapp_html_echo::form_sign_in($this, $data->xml->body);
+		// 		webapp_html_echo::form_sign_in($this, $this('webapp_html_echo')->xml->body);
+		// 		$this->title('Sign In Admin');
 		// 	}
-		// 	return $this->response_content($data);
+		// 	return $this['app_module'] = fn() => 200;
 		// }
 	}
 	function __destruct()
