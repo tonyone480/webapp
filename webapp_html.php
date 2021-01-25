@@ -515,7 +515,7 @@ class webapp_html_table
 		return $node;
 	}
 }
-class webapp_html_echo extends webapp_dom
+class webapp_html_echo extends webapp_dom implements  Stringable
 {
 	use webapp_echo;
 	function __construct(webapp $webapp)
@@ -524,7 +524,7 @@ class webapp_html_echo extends webapp_dom
 		$this->loadHTML("<!doctype html><html><head><meta charset='{$webapp['app_charset']}'><meta name='viewport' content='width=device-width, initial-scale=1.0'/></head><body class='webapp'/></html>");
 		$this->xml->head->append('link', ['rel' => 'stylesheet', 'type' => 'text/css', 'href' => '?scss/webapp']);
 		// $this->xml->head->append('link', ['rel' => 'stylesheet', 'type' => 'text/css', 'href' => 'webflock/core/files/ps/font-awesome.css']);
-		$this->xml->head->append('script', ['type' => 'javascript/module', 'src' => 'core/files/js/webapp.js']);
+		$this->xml->head->append('script', ['type' => 'javascript/module', 'src' => 'webapp/files/js/webapp.js']);
 	}
 	function __toString():string
 	{

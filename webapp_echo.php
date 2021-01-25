@@ -3,7 +3,7 @@ trait webapp_echo
 {
 	private $webapp;
 	abstract function __toString():string;
-	function __invoke(webapp $webapp, bool $initialize = FALSE, ...$params):webapp
+	function __invoke(webapp $webapp, bool $initialize = FALSE, mixed ...$params):webapp
 	{
 		if ($this->webapp === NULL)
 		{
@@ -15,16 +15,16 @@ trait webapp_echo
 		}
 		return $this->webapp;
 	}
-	function __get(string $name)
+	function __get(string $name):mixed
 	{
 		return $this->webapp->{$name};
 	}
-	function __call(string $name, $params)
+	function __call(string $name, $params):mixed
 	{
 		return $this->webapp->{$name}(...$params);
 	}
 }
-class webapp_echo_json extends ArrayObject
+class webapp_echo_json extends ArrayObject implements Stringable
 {
 	use webapp_echo;
 	function __construct(webapp $webapp, array $data = [])

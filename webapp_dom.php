@@ -241,13 +241,11 @@ class webapp_xml extends SimpleXMLElement
 		return preg_replace('/[\x00-\x08\x0b-\x0c\x0e-\x1f]/', '', $content);
 	}
 }
-class webapp_dom extends DOMDocument
+class webapp_dom extends DOMDocument implements Stringable
 {
 	public $xml;
-	private $xmlname;
-	function __construct(string $xmlname = 'webapp_xml')
+	function __construct(private string $xmlname = 'webapp_xml')
 	{
-		$this->xmlname = $xmlname;
 	}
 	function __toString():string
 	{

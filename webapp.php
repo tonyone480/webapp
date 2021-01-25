@@ -20,7 +20,7 @@ interface webapp_sapi
 	function response_cookie(string ...$values):void;
 	function response_content(string $data):void;
 }
-abstract class webapp implements ArrayAccess
+abstract class webapp implements ArrayAccess, Stringable
 {
 	const version = '4.0a', key = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz-';
 	private $errors = [], $headers = [], $cookies = [], $configs, $uploadedfiles;
@@ -29,8 +29,7 @@ abstract class webapp implements ArrayAccess
 		$this->webapp = $this;
 		$this->configs = $config + [
 			//Request
-			'request_allow'		=> ['get', 'post', 'put', 'delete'],
-			'request_method'	=> strtolower($sapi->request_method()),
+			'request_method'	=> in_array($method = strtolower($sapi->request_method()), ['get', 'post', 'put', 'delete']) ? $method : 'get',
 			'request_query'		=> $sapi->request_query(),
 			//Application
 			'app_charset'		=> 'utf-8',
@@ -65,12 +64,31 @@ abstract class webapp implements ArrayAccess
 			'copy_webapp'		=> 'Web Application v' . self::version,
 			'gzip_level'		=> -1
 		];
-		if (in_array($this['request_method'], $this['request_allow'], TRUE) === FALSE)
-		{
-			$this['request_method'] = 'get';
-		}
 		if (preg_match('/^\w+(?=\/([\-\w]*))?/', $this['request_query'], $reflex))
 		{
+			list($this['app_module'], $this['app_method']) = [...$reflex, $this['app_method']];
+		}
+		if (method_exists($this, $module = "{$this['request_method']}_{$this['app_module']}"))
+		{
+			$this['app_mapping'] = $this;
+			$this['app_module'] = [$this, $module];
+			$this['app_method'] = isset($reflex[1]) ? [$reflex[1]] : [];
+		}
+		else
+		{
+			$this['app_mapping'] .= $this['app_module'];
+			$this['app_module'] = [$this['app_mapping'], strtr("{$this['request_method']}_{$this['app_method']}", '-', '_')];
+			$this['app_method'] = [];
+		}
+		return $this['app_module'][1];
+
+
+		if (preg_match('/^\w+(?=\/([\-\w]*))?/', $this['request_query'], $reflex))
+		{
+			$this['app_mapping'] = [$this['app_mapping'] . $reflex[0], "{$this['request_method']}_{$this['app_module']}"];
+
+
+
 			$this['app_module'] = $reflex[0];
 			if (method_exists($this, $method = "{$this['request_method']}_{$this['app_module']}"))
 			{
@@ -84,7 +102,7 @@ abstract class webapp implements ArrayAccess
 		}
 		$this->response_content("{$this['request_method']}_{$this['app_method']}");
 		//以下是演示继承webapp全局admin登录验证代码，方法有很多种根据自己实际需求不同而调整
-		// if (in_array($this['app_module'], ['captcha', 'qrcode', 'scss'])) return;
+		// if (in_array(parent::__construct(new sapi), ['get_captcha', 'get_qrcode', 'get_scss'])) return;
 		// if ($this->admin === FALSE)
 		// {
 		// 	if ($this['request_method'] === 'post')
@@ -114,34 +132,33 @@ abstract class webapp implements ArrayAccess
 	}
 	function __destruct()
 	{
-		do
+		$retval = 404;
+		if (is_object($this['app_mapping']))
 		{
-			if (is_scalar($this['app_mapping']) === FALSE)
+			if (is_callable($this['app_module']))
 			{
-				$retval = is_callable($this['app_mapping']) ? $this['app_mapping'](...$this['app_method']) : 404;
-				// if (property_exists($this, 'echo') && method_exists($this->echo, '__toString'))
-				// {
-				// 	$this($this->echo);
-				// }
-				break;
+				$retval = $this['app_module'](...$this['app_method']);
+				if (method_exists($this['app_mapping'], '__toString'))
+				{
+					$this->print($this['app_mapping']);
+				}
 			}
-			if (method_exists($module = $this['app_mapping'] . $this['app_module'], $method = strtr("{$this['request_method']}_{$this['app_method']}", '-', '_')))
+		}
+		else
+		{
+			if (method_exists(...$this['app_module']))
 			{
-				$reflex = new ReflectionMethod($module, $method);
+				$reflex = new ReflectionMethod(...$this['app_module']);
 				if ($reflex->isPublic() && $reflex->getNumberOfRequiredParameters() === 0 && $reflex->getDeclaringClass()->isUserDefined())
 				{
-					$retval = $reflex->invoke($mapping = new $module($this));
+					$retval = $reflex->invoke($mapping = new $this['app_mapping']($this));
 					if (method_exists($mapping, '__toString'))
 					{
-						$this($mapping);
+						$this->print($mapping);
 					}
-					break;
 				}
-				$retval = 403;
-				break;
 			}
-			$retval = 404;
-		} while (0);
+		}
 		if ($this->sapi->response_sent() === FALSE)
 		{
 			if (is_int($retval))
@@ -182,12 +199,16 @@ abstract class webapp implements ArrayAccess
 				return $this->{$name} = $method->invoke($this);
 			}
 		}
-		//return $this->mysql->{$name};
+		return $this['app_mapping']->{$name};
 	}
-	// function __call(string $tablename, $query):webapp_mysql_table
-	// {
-	// 	return ($this->mysql->{$tablename})(...$query);
-	// }
+	function __call(string $method, array $params):mixed
+	{
+		return $this['app_mapping']->{$method}(...$params);
+	}
+	final function __invoke(string $classname, mixed ...$params):object
+	{
+		return $this['app_mapping'] = new $classname($this, ...$params);
+	}
 	function __toString():string
 	{
 		rewind($this->io);
@@ -197,10 +218,6 @@ abstract class webapp implements ArrayAccess
 	// {
 	// 	return $this->errors;
 	// }
-	final function __invoke(string $data):bool
-	{
-		return fwrite($this->io, $data) === strlen($data);
-	}
 	final function io():mixed
 	{
 		return $this->io ?? fopen('php://memory', 'r+');
@@ -233,10 +250,18 @@ abstract class webapp implements ArrayAccess
 	{
 		unset($this->configs[$key]);
 	}
-	//function void():void{}
+	function void():void{}
+	function print(string $data):int
+	{
+		return fwrite($this->io, $data);
+	}
 	function printf(string $format, string ...$params):int
 	{
 		return fprintf($this->io, $format, ...$params);
+	}
+	function println(string $data):int
+	{
+		return $this->printf("%s\n", $data);
 	}
 	function putcsv(array $values, string $delimiter = ',', string $enclosure = '"'):int
 	{
@@ -341,7 +366,7 @@ abstract class webapp implements ArrayAccess
 			$signtime + $this['admin_expire'] > time()
 			&& $username === $this['admin_username']
 			&& $password === $this['admin_password']
-		, func_num_args() ? $signature : $this->request_cookie_decrypt($this['admin_cookie']));
+		, func_num_args() ? $signature : $this->request_cookie($this['admin_cookie']));
 	}
 	function xml(mixed ...$params):webapp_xml
 	{
@@ -391,92 +416,9 @@ abstract class webapp implements ArrayAccess
 	{
 		return $time = microtime(TRUE) - $time;
 	}
-
-
-
 	function charsplit(string $content):array
 	{
 		return preg_match_all('/[\x01-\x7f]|[\xc2-\xdf][\x80-\xbf]|\xe0[\xa0-\xbf][\x80-\xbf]|[\xe1-\xef][\x80-\xbf][\x80-\xbf]|\xf0[\x90-\xbf][\x80-\xbf][\x80-\xbf]|[\xf1-\xf7][\x80-\xbf][\x80-\xbf][\x80-\xbf]/', $content, $pattern) === FALSE ? [] : $pattern[0];
-	}
-	function captcha_random():?string
-	{
-		$random = $this->random($this['captcha_unit'] * 3);
-		for ($i = 0; $i < $this['captcha_unit']; ++$i)
-		{
-			$random[$i] = chr((ord($random[$i]) % 26) + 65);
-		}
-		return $this->encrypt(pack('Va*', time(), $random));
-	}
-	function captcha_format(string $random):array
-	{
-		if (strlen($binary = $this->decrypt($random)) === $this['captcha_unit'] * 3 + 4)
-		{
-			$format = unpack('Vtime/a4code/c4rotate/c4size', $binary);
-			$result = [$format['time']];
-			for ($i = 0; $i < $this['captcha_unit'];)
-			{
-				$result[1][] = [$format['code'][$i++], $format['rotate' . $i], $format['size' . $i]];
-			}
-			return $result;
-		}
-		return [];
-	}
-	function captcha_verify(string $random, string $answer):bool
-	{
-		return ($format = $this->captcha_format($random))
-			&& $format[0] + $this['captcha_expire'] > time()
-			&& join(array_column($format[1], 0)) === strtoupper($answer);
-	}
-	function get_captcha(string $random = NULL)
-	{
-		if ($this['captcha_echo'])
-		{
-			if (is_string($random) && ($format = $this->captcha_format($random)))
-			{
-				$this->response_content_type('image/jpeg');
-				$this->image(...$this['captcha_size'])->captcha($format[1], ...$this['captcha_params'])->jpeg($this->io);
-				return;
-			}
-			if ($random = $this->captcha_random())
-			{
-				$this->response_content_type("text/plain; charset={$this['app_charset']}");
-				$this($random);
-				return;
-			}
-			return 500;
-		}
-		return 404;
-	}
-	function get_qrcode(string $encode = NULL)
-	{
-		if ($this['qrcode_echo'])
-		{
-			if (is_string($encode) && is_string($decode = $this->url64_decode($encode)) && strlen($decode) < $this['qrcode_maxdata'])
-			{
-				$this->response_content_type('image/png');
-				webapp_image::qrcode($decode, $this['qrcode_ecc'], $this['qrcode_size'])->png($this->io);
-				return;
-			}
-			return 400;
-		}
-		return 404;
-	}
-	function get_scss(string $filename = NULL)
-	{
-		$this->response_content_type('text/css');
-		$this->response_cache_control('no-cache');
-		if (preg_match('/^\w+/', $filename) && file_exists($infile = "work/core/files/ps/{$filename}.scss"))
-		{
-			if (filemtime($infile) > filemtime($outfile = "work/core/files/ps/{$filename}.css"))
-			{
-				include 'scss/scss.php';
-				$scss = new Leafo\ScssPhp\Compiler;
-				$scss->setFormatter('Leafo\ScssPhp\Formatter\Expanded');
-				file_put_contents($outfile, $scss->compile(file_get_contents($infile)));
-			}
-			$this->response_content_sendfile("core/files/ps/{$filename}.css");
-			return;
-		}
 	}
 	//这里函数名可能需要更改 mapinstance tryinstance breakinstance
 	function rewrite(string $classname, string $prefix):?object
@@ -489,7 +431,7 @@ abstract class webapp implements ArrayAccess
 				$retval = $callback($object);
 				if (method_exists($object, '__toString'))
 				{
-					$this($object);
+					$this->print($object);
 				}
 				return $retval;
 			}, $object = new $classname($this), $callback);
@@ -664,6 +606,87 @@ abstract class webapp implements ArrayAccess
 				$this['app_mapping'] = $echo;
 				$this['app_method'] = $params;
 			}
+		}
+	}
+	//append function
+	function captcha_random():?string
+	{
+		$random = $this->random($this['captcha_unit'] * 3);
+		for ($i = 0; $i < $this['captcha_unit']; ++$i)
+		{
+			$random[$i] = chr((ord($random[$i]) % 26) + 65);
+		}
+		return $this->encrypt(pack('Va*', time(), $random));
+	}
+	function captcha_format(string $random):array
+	{
+		if (strlen($binary = $this->decrypt($random)) === $this['captcha_unit'] * 3 + 4)
+		{
+			$format = unpack('Vtime/a4code/c4rotate/c4size', $binary);
+			$result = [$format['time']];
+			for ($i = 0; $i < $this['captcha_unit'];)
+			{
+				$result[1][] = [$format['code'][$i++], $format['rotate' . $i], $format['size' . $i]];
+			}
+			return $result;
+		}
+		return [];
+	}
+	function captcha_verify(string $random, string $answer):bool
+	{
+		return ($format = $this->captcha_format($random))
+			&& $format[0] + $this['captcha_expire'] > time()
+			&& join(array_column($format[1], 0)) === strtoupper($answer);
+	}
+	function get_captcha(string $random = NULL)
+	{
+		if ($this['captcha_echo'])
+		{
+			if (is_string($random) && ($format = $this->captcha_format($random)))
+			{
+				$this->response_content_type('image/jpeg');
+				$this->image(...$this['captcha_size'])->captcha($format[1], ...$this['captcha_params'])->jpeg($this->io);
+				return;
+			}
+			if ($random = $this->captcha_random())
+			{
+				$this->response_content_type("text/plain; charset={$this['app_charset']}");
+				$this->print($random);
+				return;
+			}
+			return 500;
+		}
+		return 404;
+	}
+	function get_qrcode(string $encode = NULL)
+	{
+		if ($this['qrcode_echo'])
+		{
+			if (is_string($encode) && is_string($decode = $this->url64_decode($encode)) && strlen($decode) < $this['qrcode_maxdata'])
+			{
+				$this->response_content_type('image/png');
+				webapp_image::qrcode($decode, $this['qrcode_ecc'], $this['qrcode_size'])->png($this->io);
+				return;
+			}
+			return 400;
+		}
+		return 404;
+	}
+	function get_scss(string $filename = NULL)
+	{
+		$this->response_content_type('text/css');
+		$this->response_cache_control('no-cache');
+		if (preg_match('/^\w+/', $filename) && file_exists($infile = "work/webapp/files/ps/{$filename}.scss"))
+		{
+			if (filemtime($infile) > filemtime($outfile = "work/webapp/files/ps/{$filename}.css"))
+			{
+				include 'scss/scss.php';
+				$scss = new Leafo\ScssPhp\Compiler;
+				$scss->setFormatter('Leafo\ScssPhp\Formatter\Expanded');
+				file_put_contents($outfile, $scss->compile(file_get_contents($infile)));
+			}
+			$this->response_content_sendfile("webapp/files/ps/{$filename}.css");
+			return;
 		}
 	}
 }
