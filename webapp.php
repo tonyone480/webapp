@@ -66,41 +66,21 @@ abstract class webapp implements ArrayAccess, Stringable
 		];
 		if (preg_match('/^\w+(?=\/([\-\w]*))?/', $this['request_query'], $reflex))
 		{
-			list($this['app_module'], $this['app_method']) = [...$reflex, $this['app_method']];
+			[$this['app_module'], $this['app_method']] = [...$reflex, $this['app_method']];
 		}
-		if (method_exists($this, $module = "{$this['request_method']}_{$this['app_module']}"))
-		{
-			$this['app_mapping'] = $this;
-			$this['app_module'] = [$this, $module];
-			$this['app_method'] = isset($reflex[1]) ? [$reflex[1]] : [];
-		}
-		else
-		{
-			$this['app_mapping'] .= $this['app_module'];
-			$this['app_module'] = [$this['app_mapping'], strtr("{$this['request_method']}_{$this['app_method']}", '-', '_')];
-			$this['app_method'] = [];
-		}
+		$this->callback(...method_exists($this, $module = "{$this['request_method']}_{$this['app_module']}")
+			? [[$this['app_mapping'] = $this, $module], $reflex[1] ?? NULL]
+			: [[$this['app_mapping'] .= $this['app_module'], strtr("{$this['request_method']}_{$this['app_method']}", '-', '_')]]);
+
+		// if (method_exists($this, $module = "{$this['request_method']}_{$this['app_module']}"))
+		// {
+		// 	$this->callback([$this['app_mapping'] = $this, $module], $reflex[1] ?? NULL);
+		// }
+		// else
+		// {
+		// 	$this->callback([$this['app_mapping'] .= $this['app_module'], strtr("{$this['request_method']}_{$this['app_method']}", '-', '_')]);
+		// }
 		return $this['app_module'][1];
-
-
-		if (preg_match('/^\w+(?=\/([\-\w]*))?/', $this['request_query'], $reflex))
-		{
-			$this['app_mapping'] = [$this['app_mapping'] . $reflex[0], "{$this['request_method']}_{$this['app_module']}"];
-
-
-
-			$this['app_module'] = $reflex[0];
-			if (method_exists($this, $method = "{$this['request_method']}_{$this['app_module']}"))
-			{
-				return $this->response_content($method, $reflex[1] ?? NULL);
-			}
-			if (isset($reflex[1]))
-			{
-				$this['app_method'] = $reflex[1];
-			}
-			return;
-		}
-		$this->response_content("{$this['request_method']}_{$this['app_method']}");
 		//以下是演示继承webapp全局admin登录验证代码，方法有很多种根据自己实际需求不同而调整
 		// if (in_array(parent::__construct(new sapi), ['get_captcha', 'get_qrcode', 'get_scss'])) return;
 		// if ($this->admin === FALSE)
@@ -137,7 +117,7 @@ abstract class webapp implements ArrayAccess, Stringable
 			if (is_callable($this['app_module']))
 			{
 				$retval = $this['app_module'](...$this['app_method']);
-				if (method_exists($this['app_mapping'], '__toString'))
+				if ($this['app_mapping'] !== $this && method_exists($this['app_mapping'], '__toString'))
 				{
 					$this->print($this['app_mapping']);
 				}
@@ -204,9 +184,10 @@ abstract class webapp implements ArrayAccess, Stringable
 	{
 		return $this['app_mapping']->{$method}(...$params);
 	}
-	final function __invoke(string $classname, mixed ...$params):object
+	function __invoke(string $classname, mixed ...$params):object
 	{
-		return $this['app_mapping'] = new $classname($this, ...$params);
+		//print_r($this->app_module);
+		return $this->configs['app_module'][0] = $this['app_mapping'] = new $classname($this, ...$params);
 	}
 	function __toString():string
 	{
@@ -419,6 +400,11 @@ abstract class webapp implements ArrayAccess, Stringable
 	{
 		return preg_match_all('/[\x01-\x7f]|[\xc2-\xdf][\x80-\xbf]|\xe0[\xa0-\xbf][\x80-\xbf]|[\xe1-\xef][\x80-\xbf][\x80-\xbf]|\xf0[\x90-\xbf][\x80-\xbf][\x80-\xbf]|[\xf1-\xf7][\x80-\xbf][\x80-\xbf][\x80-\xbf]/', $content, $pattern) === FALSE ? [] : $pattern[0];
 	}
+	function callback(array|callable $output, mixed ...$params):void
+	{
+		$this['app_module'] = $output;
+		$this['app_method'] = $params;
+	}
 	//这里函数名可能需要更改 mapinstance tryinstance breakinstance
 	function rewrite(string $classname, string $prefix):?object
 	{
@@ -544,10 +530,6 @@ abstract class webapp implements ArrayAccess, Stringable
 		return $this->uploadedfiles[$name];
 	}
 	//response
-	function response_status(int $code):void
-	{
-		$this->response_content([$this->sapi, 'response_status'], $code);
-	}
 	function response_header(string $name, string $value):void
 	{
 		//$this->headers[ucwords($name, '-')] = $value;
@@ -585,27 +567,6 @@ abstract class webapp implements ArrayAccess, Stringable
 	function response_refresh(int $second = 0, string $url = NULL):void
 	{
 		$this->response_header('Refresh', strlen($url) ? "{$second}; url={$url}" : $second);
-	}
-	function response_content(mixed $echo, mixed ...$params):void
-	{
-		if (is_scalar($echo))
-		{
-			$this['app_mapping'] = [$this, $echo];
-			$this['app_method'] = $params;
-		}
-		else
-		{
-			if (method_exists($echo, '__toString') && empty($params))
-			{
-				$this['app_mapping'] = $this;
-				$this['app_method'] = [$echo];
-			}
-			else
-			{
-				$this['app_mapping'] = $echo;
-				$this['app_method'] = $params;
-			}
-		}
 	}
 	//append function
 	function captcha_random():?string
