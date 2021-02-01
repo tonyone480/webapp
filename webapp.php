@@ -599,20 +599,17 @@ abstract class webapp implements ArrayAccess, Stringable
 		}
 		return 404;
 	}
-	function get_qrcode(string $encode = NULL)
+	function get_qrcode(string $encode)
 	{
-		if ($this['qrcode_echo'])
+		if ($this['qrcode_echo'] && is_string($decode = $this->url64_decode($encode)) && strlen($decode) < $this['qrcode_maxdata'])
 		{
-			if (is_string($encode) && is_string($decode = $this->url64_decode($encode)) && strlen($decode) < $this['qrcode_maxdata'])
-			{
-				$this->response_content_type('image/png');
-				webapp_image::qrcode($decode, $this['qrcode_ecc'], $this['qrcode_size'])->png($this->io);
-				return;
-			}
-			return 400;
+			$this->response_content_type('image/png');
+			webapp_image::qrcode($decode, $this['qrcode_ecc'], $this['qrcode_size'])->png($this->io);
+			return;
 		}
 		return 404;
 	}
+	//这个函数在不久的将来会被移除
 	function get_scss(string $filename = NULL)
 	{
 		$this->response_content_type('text/css');
