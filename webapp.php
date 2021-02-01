@@ -22,8 +22,8 @@ interface webapp_sapi
 }
 abstract class webapp implements ArrayAccess, Stringable
 {
-	const version = '4.0a', key = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz-';
-	private $errors = [], $headers = [], $cookies = [], $configs, $uploadedfiles;
+	const version = '4.1a', key = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz-';
+	private array $errors = [], $headers = [], $cookies = [], $configs, $uploadedfiles;
 	function __construct(private webapp_sapi $sapi, array $config = [])
 	{
 		$this->webapp = $this;
@@ -34,8 +34,8 @@ abstract class webapp implements ArrayAccess, Stringable
 			//Application
 			'app_charset'		=> 'utf-8',
 			'app_mapping'		=> 'webapp_mapping_',
-			'app_module'		=> 'home',
-			'app_method'		=> 'index',
+			'app_index'			=> 'home',
+			'app_entry'			=> 'index',
 			//Admin
 			'admin_username'	=> 'admin',
 			'admin_password'	=> 'nimda',
@@ -64,23 +64,15 @@ abstract class webapp implements ArrayAccess, Stringable
 			'copy_webapp'		=> 'Web Application v' . self::version,
 			'gzip_level'		=> -1
 		];
-		if (preg_match('/^\w+(?=\/([\-\w]*))?/', $this['request_query'], $reflex))
+		if (preg_match('/^\w+(?=\/([\-\w]*))?/', $this['request_query'], $entry))
 		{
-			[$this['app_module'], $this['app_method']] = [...$reflex, $this['app_method']];
+			[$this['app_index'], $this['app_entry']] = [...$entry, $this['app_entry']];
 		}
-		$this->callback(...method_exists($this, $module = "{$this['request_method']}_{$this['app_module']}")
-			? [[$this['app_mapping'] = $this, $module], $reflex[1] ?? NULL]
-			: [[$this['app_mapping'] .= $this['app_module'], strtr("{$this['request_method']}_{$this['app_method']}", '-', '_')]]);
-
-		// if (method_exists($this, $module = "{$this['request_method']}_{$this['app_module']}"))
-		// {
-		// 	$this->callback([$this['app_mapping'] = $this, $module], $reflex[1] ?? NULL);
-		// }
-		// else
-		// {
-		// 	$this->callback([$this['app_mapping'] .= $this['app_module'], strtr("{$this['request_method']}_{$this['app_method']}", '-', '_')]);
-		// }
-		return $this['app_module'][1];
+		[$this['app_mapping'], $this['app_index'], $this['app_entry']]
+			= method_exists($this, $index = "{$this['request_method']}_{$this['app_index']}")
+			? [$this, $index, array_slice($entry, 1)]
+			: [$this['app_mapping'] . $this['app_index'], strtr("{$this['request_method']}_{$this['app_entry']}", '-', '_'), []];
+		return $this;
 		//以下是演示继承webapp全局admin登录验证代码，方法有很多种根据自己实际需求不同而调整
 		// if (in_array(parent::__construct(new sapi), ['get_captcha', 'get_qrcode', 'get_scss'])) return;
 		// if ($this->admin === FALSE)
@@ -111,38 +103,29 @@ abstract class webapp implements ArrayAccess, Stringable
 	}
 	function __destruct()
 	{
-		$retval = 404;
-		if (is_object($this['app_mapping']))
+		do
 		{
-			if (is_callable($this['app_module']))
+			if (method_exists($this['app_mapping'], $this['app_index']))
 			{
-				$retval = $this['app_module'](...$this['app_method']);
-				if ($this['app_mapping'] !== $this && method_exists($this['app_mapping'], '__toString'))
+				$method = new ReflectionMethod($this['app_mapping'], $this['app_index']);
+				if ($method->isPublic() && $method->isUserDefined() && $method->getNumberOfRequiredParameters() <= count($this['app_entry']))
 				{
-					$this->print($this['app_mapping']);
-				}
-			}
-		}
-		else
-		{
-			if (method_exists(...$this['app_module']))
-			{
-				$reflex = new ReflectionMethod(...$this['app_module']);
-				if ($reflex->isPublic() && $reflex->getNumberOfRequiredParameters() === 0 && $reflex->getDeclaringClass()->isUserDefined())
-				{
-					$retval = $reflex->invoke($mapping = new $this['app_mapping']($this));
-					if (method_exists($mapping, '__toString'))
+					$status = $method->invoke($reflex = $this->app(), ...$this['app_entry']);
+					$object = property_exists($this, 'app') ? $this->app : $reflex;
+					if ($object !== $this && method_exists($object, '__toString'))
 					{
-						$this->print($mapping);
+						$this->print($object);
 					}
+					break;
 				}
 			}
-		}
+			$status = 404;
+		} while (FALSE);
 		if ($this->sapi->response_sent() === FALSE)
 		{
-			if (is_int($retval))
+			if (is_int($status))
 			{
-				$this->sapi->response_status($retval);
+				$this->sapi->response_status($status);
 			}
 			foreach ($this->cookies as $values)
 			{
@@ -164,6 +147,18 @@ abstract class webapp implements ArrayAccess, Stringable
 			}
 		}
 	}
+	function __toString():string
+	{
+		return rewind($this->io) ? stream_get_contents($this->io) : join(PHP_EOL, $this->errors);
+	}
+	// function __debugInfo():array
+	// {
+	// 	return $this->errors;
+	// }
+	function __call(string $name, array $params):mixed
+	{
+		return $this->app->{$name}(...$params);
+	}
 	function __get(string $name):mixed
 	{
 		if ($this->offsetExists($name))
@@ -178,41 +173,7 @@ abstract class webapp implements ArrayAccess, Stringable
 				return $this->{$name} = $method->invoke($this);
 			}
 		}
-		return $this['app_mapping']->{$name};
-	}
-	function __call(string $method, array $params):mixed
-	{
-		return $this['app_mapping']->{$method}(...$params);
-	}
-	function __invoke(string $classname, mixed ...$params):object
-	{
-		//print_r($this->app_module);
-		return $this->configs['app_module'][0] = $this['app_mapping'] = new $classname($this, ...$params);
-	}
-	function __toString():string
-	{
-		rewind($this->io);
-		return stream_get_contents($this->io);
-	}
-	// final function __debugInfo():array
-	// {
-	// 	return $this->errors;
-	// }
-	final function io():mixed
-	{
-		return $this->io ?? fopen('php://memory', 'r+');
-	}
-	final function errors(object $object):object
-	{
-		if ($object instanceof ArrayAccess)
-		{
-			$object['errors'] = &$this->errors;
-		}
-		else
-		{
-			$object->errors = &$this->errors;
-		}
-		return $object;
+		return $this->app->{$name};
 	}
 	final function offsetExists(mixed $key):bool
 	{
@@ -230,7 +191,30 @@ abstract class webapp implements ArrayAccess, Stringable
 	{
 		unset($this->configs[$key]);
 	}
-	function void():void{}
+	final function errors(object $object):object
+	{
+		if ($object instanceof ArrayAccess)
+		{
+			$object['errors'] = &$this->errors;
+		}
+		else
+		{
+			$object->errors = &$this->errors;
+		}
+		return $object;
+	}
+	function app(string $classname = NULL, mixed ...$params):object
+	{
+		if (is_string($classname))
+		{
+			return $this->app = new $classname($this, ...$params);
+		}
+		return is_object($this['app_mapping']) ? $this['app_mapping'] : $this['app_mapping'] = new $this['app_mapping']($this);
+	}
+	function io():mixed
+	{
+		return fopen('php://memory', 'r+');
+	}
 	function print(string $data):int
 	{
 		return fwrite($this->io, $data);
@@ -246,20 +230,6 @@ abstract class webapp implements ArrayAccess, Stringable
 	function putcsv(array $values, string $delimiter = ',', string $enclosure = '"'):int
 	{
 		return fputcsv($this->io, $values, $delimiter, $enclosure);
-	}
-	function random(int $length):string
-	{
-		return random_bytes($length);
-	}
-	function encrypt(string $data):?string
-	{
-		return is_string($binary = openssl_encrypt($data, 'aes-128-gcm', static::key, OPENSSL_RAW_DATA, md5(static::key, TRUE), $tag)) ? $this->url64_encode($tag . $binary) : NULL;
-	}
-	function decrypt(string $data):?string
-	{
-		return strlen($data) > 20
-			&& is_string($binary = $this->url64_decode($data))
-			&& is_string($result = openssl_decrypt(substr($binary, 16), 'aes-128-gcm', static::key, OPENSSL_RAW_DATA, md5(static::key, TRUE), substr($binary, 0, 16))) ? $result : NULL;
 	}
 	function hash_time33(string $data, bool $care = FALSE):string
 	{
@@ -316,21 +286,21 @@ abstract class webapp implements ArrayAccess, Stringable
 		} while (0);
 		return NULL;
 	}
-	function iphex(string $ip):string
+	function encrypt(string $data):?string
 	{
-		return str_pad(bin2hex(inet_pton($ip)), 32, 0, STR_PAD_LEFT);
+		return is_string($binary = openssl_encrypt($data, 'aes-128-gcm', static::key, OPENSSL_RAW_DATA, md5(static::key, TRUE), $tag)) ? $this->url64_encode($tag . $binary) : NULL;
 	}
-	function hexip(string $hex):string
+	function decrypt(string $data):?string
 	{
-		return inet_ntop(hex2bin($hex));
+		return strlen($data) > 20
+			&& is_string($binary = $this->url64_decode($data))
+			&& is_string($result = openssl_decrypt(substr($binary, 16), 'aes-128-gcm', static::key, OPENSSL_RAW_DATA, md5(static::key, TRUE), substr($binary, 0, 16))) ? $result : NULL;
 	}
-
-	
-	final function signature(string $username, string $password, string $additional = NULL):?string
+	function signature(string $username, string $password, string $additional = NULL):?string
 	{
 		return $this->encrypt(pack('VCCa*', time(), strlen($username), strlen($password), $username . $password . $additional));
 	}
-	final function authorize(closure $authenticate, string $signature = NULL):bool
+	function authorize(closure $authenticate, string $signature = NULL):bool
 	{
 		if (is_string($signature) && strlen($data = $this->decrypt($signature)) > 5)
 		{
@@ -348,6 +318,21 @@ abstract class webapp implements ArrayAccess, Stringable
 			&& $password === $this['admin_password']
 		, func_num_args() ? $signature : $this->request_cookie($this['admin_cookie']));
 	}
+	function random(int $length):string
+	{
+		return random_bytes($length);
+	}
+	function iphex(string $ip):string
+	{
+		return str_pad(bin2hex(inet_pton($ip)), 32, 0, STR_PAD_LEFT);
+	}
+	function hexip(string $hex):string
+	{
+		return inet_ntop(hex2bin($hex));
+	}
+
+	
+
 	function xml(mixed ...$params):webapp_xml
 	{
 		if ($params)
@@ -400,30 +385,6 @@ abstract class webapp implements ArrayAccess, Stringable
 	{
 		return preg_match_all('/[\x01-\x7f]|[\xc2-\xdf][\x80-\xbf]|\xe0[\xa0-\xbf][\x80-\xbf]|[\xe1-\xef][\x80-\xbf][\x80-\xbf]|\xf0[\x90-\xbf][\x80-\xbf][\x80-\xbf]|[\xf1-\xf7][\x80-\xbf][\x80-\xbf][\x80-\xbf]/', $content, $pattern) === FALSE ? [] : $pattern[0];
 	}
-	function callback(array|callable $output, mixed ...$params):void
-	{
-		$this['app_module'] = $output;
-		$this['app_method'] = $params;
-	}
-	//这里函数名可能需要更改 mapinstance tryinstance breakinstance
-	function rewrite(string $classname, string $prefix):?object
-	{
-		if (is_callable($callback = [$this, "{$prefix}_{$this['request_method']}_{$this['app_module']}"]))
-		{
-			//$this->response_content($callback, $this->echo = new $classname($this));
-			$this->response_content(function($object, $callback)
-			{
-				$retval = $callback($object);
-				if (method_exists($object, '__toString'))
-				{
-					$this->print($object);
-				}
-				return $retval;
-			}, $object = new $classname($this), $callback);
-			return $object;
-		}
-		return NULL;
-	}
 	function cond(string $name = 'cond'):array
 	{
 		$cond = [];
@@ -437,6 +398,22 @@ abstract class webapp implements ArrayAccess, Stringable
 	function page(string $name = 'page'):int
 	{
 		return intval($this->request_query($name));
+	}
+	function callback(closure $callable, mixed ...$params):void
+	{
+		$this['app_mapping'] = new class($callable)
+		{
+			function __construct(private closure $callable)
+			{
+				//毫无卵用
+			}
+			function __invoke(mixed ...$params):mixed
+			{
+				return ($this->callable)(...$params);
+			}
+		};
+		$this['app_index'] = '__invoke';
+		$this['app_entry'] = $params;
 	}
 	//request
 	function request_ip():string
@@ -530,6 +507,10 @@ abstract class webapp implements ArrayAccess, Stringable
 		return $this->uploadedfiles[$name];
 	}
 	//response
+	function response_status(int $code, string $data = NULL):void
+	{
+		$this->callback(fn():int => [$code, $data === NULL || $this->print($data)][0]);
+	}
 	function response_header(string $name, string $value):void
 	{
 		//$this->headers[ucwords($name, '-')] = $value;
