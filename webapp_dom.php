@@ -243,35 +243,32 @@ class webapp_xml extends SimpleXMLElement
 }
 class webapp_dom extends DOMDocument implements Stringable
 {
-	public $xml;
-	function __construct(private string $xmlname = 'webapp_xml')
-	{
-	}
+	const appxml = 'webapp_xml';
 	function __toString():string
 	{
 		return $this->saveXML();
 	}
 	private function xml(bool $loaded):bool
 	{
-		return $loaded && ($this->xml = simplexml_import_dom($this, $this->xmlname)) !== FALSE;
+		return $loaded && ($this->xml = simplexml_import_dom($this, static::appxml)) !== FALSE;
 	}
-	function load($source, $options = NULL):bool
+	function load(string $source, int $options = NULL):bool
 	{
 		return $this->loadXMLFile($source, $options);
 	}
-	function loadXML($source, $options = NULL):bool
+	function loadXML(string $source, int $options = NULL):bool
 	{
 		return $this->xml(parent::loadXML($source, $options));
 	}
-	function loadXMLFile($source, $options = NULL):bool
+	function loadXMLFile(string $source, int $options = NULL):bool
 	{
 		return $this->xml(parent::load($source, $options));
 	}
-	function loadHTML($source, $options = NULL):bool
+	function loadHTML(string $source, int $options = NULL):bool
 	{
 		return $this->xml(parent::loadHTML($source, $options | LIBXML_NOWARNING | LIBXML_NOERROR));
 	}
-	function loadHTMLFile($source, $options = NULL):bool
+	function loadHTMLFile(string $source, int $options = NULL):bool
 	{
 		return $this->xml(parent::loadHTMLFile($source, $options | LIBXML_NOWARNING | LIBXML_NOERROR));
 	}

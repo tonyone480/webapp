@@ -31,32 +31,36 @@ final class sapi implements webapp_sapi
 	{
 		return file_get_contents('php://input');
 	}
-	function request_formdata(?array &$uploadedfiles):array
+	function request_formdata(bool $uploadedfile):array
 	{
-		$uploadedfiles = [];
-		foreach ($_FILES as $name => $info)
+		if ($uploadedfile)
 		{
-			$files = [];
-			foreach ($info as $type => $values)
+			$uploadedfiles = [];
+			foreach ($_FILES as $name => $info)
 			{
-				if (is_array($values))
+				$files = [];
+				foreach ($info as $type => $values)
 				{
-					foreach ($values as $index => $value)
+					if (is_array($values))
 					{
-						$files[$index][$type] = $value;
+						foreach ($values as $index => $value)
+						{
+							$files[$index][$type] = $value;
+						}
+						continue;
 					}
-					continue;
+					$files[0][$type] = $values;
 				}
-				$files[0][$type] = $values;
-			}
-			$uploadedfiles[$name] = [];
-			foreach ($files as $file)
-			{
-				if ($file['error'] === UPLOAD_ERR_OK)
+				$uploadedfiles[$name] = [];
+				foreach ($files as $file)
 				{
-					$uploadedfiles[$name][] = $file;
+					if ($file['error'] === UPLOAD_ERR_OK)
+					{
+						$uploadedfiles[$name][] = $file;
+					}
 				}
 			}
+			return $uploadedfiles;
 		}
 		return $_POST;
 	}

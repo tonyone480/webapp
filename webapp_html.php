@@ -115,12 +115,12 @@ class webapp_html_xml extends webapp_xml
 		foreach ($links as $link)
 		{
 			$li = &$ul->li[];
-			if (isset($link[1]))
+			if (is_array($link[1]))
 			{
 				$li->foldtree(...$link);
 				continue;
 			}
-			$li->append('a', $link);
+			$li->append('a', $link[0])['href'] = $link[1];
 		}
 		$node['class'] = 'webapp-inline';
 		return $node;
@@ -513,16 +513,21 @@ class webapp_html_table
 		return $node;
 	}
 }
-class webapp_html_echo extends webapp_dom implements Stringable
+class webapp_html_echo extends webapp_dom
 {
 	use webapp_echo;
+	const appxml = 'webapp_html_xml';
 	function __construct(webapp $webapp)
 	{
-		$this($webapp, TRUE, 'webapp_html_xml')->response_content_type("text/html; charset={$webapp['app_charset']}");
-		$this->loadHTML("<!doctype html><html><head><meta charset='{$webapp['app_charset']}'><meta name='viewport' content='width=device-width, initial-scale=1.0'/></head><body class='webapp'/></html>");
+		$this($webapp)->response_content_type("text/html; charset={$webapp['app_charset']}");
+		$this->loadHTML("<!doctype html><html><head><meta charset='{$webapp['app_charset']}'><meta name='viewport' content='width=device-width, initial-scale=1.0'/></head><body/></html>");
 		$this->xml->head->append('link', ['rel' => 'stylesheet', 'type' => 'text/css', 'href' => '?scss/webapp']);
 		// $this->xml->head->append('link', ['rel' => 'stylesheet', 'type' => 'text/css', 'href' => 'webflock/core/files/ps/font-awesome.css']);
 		$this->xml->head->append('script', ['type' => 'javascript/module', 'src' => 'webapp/files/js/webapp.js']);
+		$this->article = $this->xml->body->append('article', ['class' => 'webapp']);
+		$this->header = $this->article->append('header');
+		$this->section = $this->article->append('section');
+		$this->footer = $this->article->append('footer', $this->webapp['copy_webapp']);
 	}
 	function __toString():string
 	{
@@ -535,6 +540,13 @@ class webapp_html_echo extends webapp_dom implements Stringable
 	function title(string $title):void
 	{
 		$this->xml->head->title = $title;
+	}
+	function aside(array $links, bool $before = FALSE):webapp_html_xml
+	{
+		$this->aside = $this->article->section->append('aside');
+		$this->section = $this->aside->insert('section', $before ? 'before' : 'after');
+		$this->aside->navbar($links);
+		return $this->aside;
 	}
 
 

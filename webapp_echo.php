@@ -19,7 +19,7 @@ trait webapp_echo
 	{
 		return $this->webapp->{$name};
 	}
-	function __call(string $name, $params):mixed
+	function __call(string $name, array $params):mixed
 	{
 		return $this->webapp->{$name}(...$params);
 	}
@@ -33,7 +33,7 @@ class webapp_echo_json extends ArrayObject implements Stringable
 	}
 	function __toString():string
 	{
-		return json_encode((array)$this, JSON_UNESCAPED_UNICODE);
+		return json_encode($this->getArrayCopy(), JSON_UNESCAPED_UNICODE);
 	}
 }
 class webapp_echo_dom extends webapp_dom

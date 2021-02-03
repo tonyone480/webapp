@@ -13,7 +13,7 @@ interface webapp_sapi
 	function request_query():string;
 	function request_cookie(string $name):?string;
 	function request_content():string;
-	function request_formdata(?array &$uploadedfiles):array;
+	function request_formdata(bool $uploadedfile):array;
 	function response_sent():bool;
 	function response_status(int $code):void;
 	function response_header(string $value):void;
@@ -33,6 +33,7 @@ abstract class webapp implements ArrayAccess, Stringable
 			'request_query'		=> $sapi->request_query(),
 			//Application
 			'app_charset'		=> 'utf-8',
+			//'app_locales'		=> __DIR__ . '/local/en.php',
 			'app_mapping'		=> 'webapp_mapping_',
 			'app_index'			=> 'home',
 			'app_entry'			=> 'index',
@@ -73,33 +74,6 @@ abstract class webapp implements ArrayAccess, Stringable
 			? [$this, $index, array_slice($entry, 1)]
 			: [$this['app_mapping'] . $this['app_index'], strtr("{$this['request_method']}_{$this['app_entry']}", '-', '_'), []];
 		return $this;
-		//以下是演示继承webapp全局admin登录验证代码，方法有很多种根据自己实际需求不同而调整
-		// if (in_array(parent::__construct(new sapi), ['get_captcha', 'get_qrcode', 'get_scss'])) return;
-		// if ($this->admin === FALSE)
-		// {
-		// 	if ($this['request_method'] === 'post')
-		// 	{
-		// 		$this->errors($this('webapp_echo_json', ['signature' => NULL]));
-		// 		if ($input = webapp_html_echo::form_sign_in($this)->fetch($this['captcha_echo']))
-		// 		{
-		// 			if ($this->admin($signature = $this->signature($input['username'], $input['password'])))
-		// 			{
-		// 				$this->response_refresh(0);
-		// 				$this->response_cookie($this['admin_cookie'], $this->app_mapping['signature'] = $signature);
-		// 			}
-		// 			else
-		// 			{
-		// 				$this->app_mapping['errors'][] = 'Sign in failed';
-		// 			}
-		// 		}
-		// 	}
-		// 	else
-		// 	{
-		// 		webapp_html_echo::form_sign_in($this, $this('webapp_html_echo')->xml->body);
-		// 		$this->title('Sign In Admin');
-		// 	}
-		// 	return $this['app_module'] = fn() => 200;
-		// }
 	}
 	function __destruct()
 	{
@@ -157,7 +131,7 @@ abstract class webapp implements ArrayAccess, Stringable
 	// }
 	function __call(string $name, array $params):mixed
 	{
-		return $this->app->{$name}(...$params);
+		return method_exists($this->app, $name) ? $this->app->{$name}(...$params) : throw new error;
 	}
 	function __get(string $name):mixed
 	{
@@ -173,7 +147,7 @@ abstract class webapp implements ArrayAccess, Stringable
 				return $this->{$name} = $method->invoke($this);
 			}
 		}
-		return $this->app->{$name};
+		return property_exists($this->app, $name) ? $this->app->{$name} : throw new error;
 	}
 	final function offsetExists(mixed $key):bool
 	{
@@ -330,7 +304,10 @@ abstract class webapp implements ArrayAccess, Stringable
 	{
 		return inet_ntop(hex2bin($hex));
 	}
-
+	function callable(string|object $mapping, string ...$index):bool
+	{
+		return $this['app_mapping'] === $mapping && in_array($this['app_index'], $index, TRUE);
+	}
 	
 
 	function xml(mixed ...$params):webapp_xml
@@ -348,7 +325,7 @@ abstract class webapp implements ArrayAccess, Stringable
 				libxml_use_internal_errors(FALSE);
 			}
 		}
-		return new webapp_xml('<webapp/>');
+		return new webapp_xml("<?xml version='1.0' encoding='{$this->webapp['app_charset']}'?><webapp/>");
 	}
 	function connect(string $url):webapp_connect
 	{
@@ -448,30 +425,26 @@ abstract class webapp implements ArrayAccess, Stringable
 	{
 		return $this->request_header('Referer');
 	}
-	function request_content(string $format = NULL):string|array|webapp_xml
+	function request_content(string $format = NULL):array|string|webapp_xml
 	{
 		return match($format ?? strtolower(strpos($type = $this->request_header('Content-Type'), ';') === FALSE ? $type : strstr($type, ';', TRUE)))
 		{
-			'application' => $this->xml($this->sapi->request_content()),
-			'application/json' => json_decode($this->sapi->request_content(), TRUE),
 			'multipart/form-data',
-			'application/x-www-form-urlencoded' => $this->sapi->request_formdata($this->uploadedfiles),
+			'application/x-www-form-urlencoded' => $this->sapi->request_formdata(FALSE),
+			'application/json' => json_decode($this->sapi->request_content(), TRUE),
+			'application/xml' => $this->xml($this->sapi->request_content()),
 			default => $this->sapi->request_content()
 		};
 	}
 	function request_uploadedfile(string $name):ArrayObject
 	{
-		if ($this->uploadedfiles === NULL)
-		{
-			$this->sapi->request_formdata($this->uploadedfiles);
-		}
-		if (array_key_exists($name, $this->uploadedfiles) === FALSE || is_array($this->uploadedfiles[$name]))
+		if (array_key_exists($name, $this->uploadedfiles ??= $this->sapi->request_formdata(TRUE)) === FALSE || is_array($this->uploadedfiles[$name]))
 		{
 			$this->uploadedfiles[$name] = new class($this->uploadedfiles[$name] ?? []) extends ArrayObject
 			{
 				function size():int
 				{
-					return array_sum(array_column((array)$this, 'size'));
+					return array_sum(array_column($this->getArrayCopy(), 'size'));
 				}
 				function detect(string $mime):bool
 				{
@@ -550,6 +523,35 @@ abstract class webapp implements ArrayAccess, Stringable
 		$this->response_header('Refresh', strlen($url) ? "{$second}; url={$url}" : $second);
 	}
 	//append function
+	function no_sign_in_admin(webapp_sapi $sapi, array $config = []):bool
+	{
+		self::__construct($sapi, $config);
+		if ($this['app_mapping'] === $this && in_array($this['app_index'], ['get_captcha', 'get_scss'], TRUE)) return TRUE;
+		if ($this->admin) return FALSE;
+		if ($this['request_method'] === 'post')
+		{
+			$this->errors($this->app('webapp_echo_json', ['signature' => NULL]));
+			if ($input = webapp_html_echo::form_sign_in($this)->fetch($this['captcha_echo']))
+			{
+				if ($this->admin($signature = $this->signature($input['username'], $input['password'])))
+				{
+					$this->response_refresh(0);
+					$this->response_cookie($this['admin_cookie'], $this->app['signature'] = $signature);
+				}
+				else
+				{
+					$this->app['errors'][] = 'Sign in failed';
+				}
+			}
+		}
+		else
+		{
+			webapp_html_echo::form_sign_in($this, $this->app('webapp_html_echo')->xml->body->article->section);
+			$this->title('Sign In Admin');
+		}
+		$this->response_status(200);
+		return TRUE;
+	}
 	function captcha_random():?string
 	{
 		$random = $this->random($this['captcha_unit'] * 3);
