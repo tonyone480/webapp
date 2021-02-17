@@ -28,23 +28,32 @@ class webapp_html_xml extends webapp_xml
 		$node->text($comment);
 		return $node;
 	}
-	function options(array $values):static
+	function options(iterable $values, string ...$default):static
 	{
 		foreach ($values as $value => $content)
 		{
-			$this[0]->append('option', [$content, 'value' => $value]);
+			if (is_array($content))
+			{
+				$this[0]->append('optgroup', ['label' => $value])->options($content, ...$default);
+				continue;
+			}
+			$this[0]->append('option', in_array($value, $default, TRUE) ? [$content, 'value' => $value, 'selected' => NULL] : [$content, 'value' => $value]);
 		}
 		return $this[0];
 	}
-	function optgroup(array $values):static
+	// function optgroup(array $values):static
+	// {
+	// 	foreach ($values as $label => $values)
+	// 	{
+	// 		$node = &$this[0]->optgroup[];
+	// 		$node['label'] = $label;
+	// 		$node->options($values);
+	// 	}
+	// 	return $this[0];
+	// }
+	function select(iterable $values, string ...$default):static
 	{
-		foreach ($values as $label => $values)
-		{
-			$node = &$this[0]->optgroup[];
-			$node['label'] = $label;
-			$node->options($values);
-		}
-		return $this[0];
+		return $this->append('select')->options($values, ...$default);
 	}
 	function progress(float $value = 0, float $max = 1):static
 	{
@@ -115,19 +124,19 @@ class webapp_html_xml extends webapp_xml
 		foreach ($links as $link)
 		{
 			$li = &$ul->li[];
-			if (is_array($link[1]))
+			if (isset($link[1]))
 			{
 				$li->foldtree(...$link);
 				continue;
 			}
-			$li->append('a', $link[0])['href'] = $link[1];
+			$li->append('a', $link);
 		}
-		$node['class'] = 'webapp-inline';
+		$node['class'] = 'webapp';
 		return $node;
 	}
 	function form(string $action):webapp_html_form
 	{
-		return new webapp_html_form($this->webapp(), $this[0], $action);
+		return $this->webapp()->formdata($this[0], $action);
 	}
 	function table(iterable $data, closure $output = NULL, mixed ...$params):webapp_html_table
 	{
@@ -136,13 +145,13 @@ class webapp_html_xml extends webapp_xml
 }
 class webapp_html_form
 {
-	public $xml, $fieldset;
+	public webapp_html_xml $xml, $fieldset;
 	private $files = [], $fields = [], $index = 0;
 	function __construct(public webapp $webapp, webapp_html_xml $node = NULL, string $action = NULL)
 	{
 		$this->xml = ($node ?? new webapp_html_xml('<html/>'))->append('form', [
 			'autocomplete' => 'off',
-			'enctype' => 'multipart/form-data',
+			'enctype' => 'application/x-www-form-urlencoded',
 			'method' => 'post',
 			'action' => $action,
 			'class' => 'webapp'
@@ -196,8 +205,9 @@ class webapp_html_form
 			// case 'enuminput':
 			case 'textarea':
 				return $this->fields[$rename] = $this->fieldset->append('textarea', ['name' => $alias] + $attributes);
-			case 'select':
 			case 'file':
+				$this->xml['enctype'] = 'multipart/form-data';
+			case 'select':
 				if (array_key_exists('multiple', $attributes))
 				{
 					$alias .= '[]';
@@ -520,11 +530,11 @@ class webapp_html_echo extends webapp_dom
 	function __construct(webapp $webapp)
 	{
 		$this($webapp)->response_content_type("text/html; charset={$webapp['app_charset']}");
-		$this->loadHTML("<!doctype html><html><head><meta charset='{$webapp['app_charset']}'><meta name='viewport' content='width=device-width, initial-scale=1.0'/></head><body/></html>");
+		$this->loadHTML("<!doctype html><html><head><meta charset='{$webapp['app_charset']}'><meta name='viewport' content='width=device-width, initial-scale=1.0'/></head><body class='webapp'/></html>");
 		$this->xml->head->append('link', ['rel' => 'stylesheet', 'type' => 'text/css', 'href' => '?scss/webapp']);
 		// $this->xml->head->append('link', ['rel' => 'stylesheet', 'type' => 'text/css', 'href' => 'webflock/core/files/ps/font-awesome.css']);
-		$this->xml->head->append('script', ['type' => 'javascript/module', 'src' => 'webapp/files/js/webapp.js']);
-		$this->article = $this->xml->body->append('article', ['class' => 'webapp']);
+		//$this->xml->head->append('script', ['type' => 'javascript/module', 'src' => 'webapp/files/js/webapp.js']);
+		$this->article = $this->xml->body->append('article');
 		$this->header = $this->article->append('header');
 		$this->section = $this->article->append('section');
 		$this->footer = $this->article->append('footer', $this->webapp['copy_webapp']);
@@ -541,27 +551,18 @@ class webapp_html_echo extends webapp_dom
 	{
 		$this->xml->head->title = $title;
 	}
-	function aside(array $links, bool $before = FALSE):webapp_html_xml
+	function aside(bool $after = FALSE):webapp_html_xml
 	{
 		$this->aside = $this->article->section->append('aside');
-		$this->section = $this->aside->insert('section', $before ? 'before' : 'after');
-		$this->aside->navbar($links);
+		$this->section = $this->aside->insert('section', $after ? 'before' : 'after');
 		return $this->aside;
 	}
 
 
 
-	function article(webapp_html_xml $node):webapp_html_xml
-	{
-		$article = &$node->article[];
-		$article->footer = $article->section = $article->header = NULL;
-		return $article;
-	}
-
-
 	static function form_sign_in(webapp $webapp, webapp_html_xml $node = NULL, string $authurl = NULL):webapp_html_form
 	{
-		$form = new webapp_html_form($webapp, $node, $authurl);
+		$form = $webapp->formdata($node, $authurl);
 		$form->fieldset('Username');
 		$form->field('username', 'text', ['placeholder' => 'Type username', 'required' => NULL, 'autofocus' => NULL]);
 		$form->fieldset('Password');

@@ -310,6 +310,17 @@ abstract class webapp implements ArrayAccess, Stringable
 	}
 	
 
+
+	function connect(string $url):webapp_connect
+	{
+		$connect = new webapp_connect($url);
+		if ($connect->errors)
+		{
+			array_push($this->errors, ...$connect->errors);
+		}
+		$connect->headers(['User-Agent' => 'WebApp/' . self::version]);
+		return $this->errors($connect);
+	}
 	function xml(mixed ...$params):webapp_xml
 	{
 		if ($params)
@@ -327,15 +338,9 @@ abstract class webapp implements ArrayAccess, Stringable
 		}
 		return new webapp_xml("<?xml version='1.0' encoding='{$this->webapp['app_charset']}'?><webapp/>");
 	}
-	function connect(string $url):webapp_connect
+	function formdata(webapp_html_xml $node = NULL, $action = NULL):webapp_html_form
 	{
-		$connect = new webapp_connect($url);
-		if ($connect->errors)
-		{
-			array_push($this->errors, ...$connect->errors);
-		}
-		$connect->headers(['User-Agent' => 'WebApp/' . self::version]);
-		return $this->errors($connect);
+		return new webapp_html_form($this, $node, $action);
 	}
 	function image(int $width, int $height):webapp_image
 	{

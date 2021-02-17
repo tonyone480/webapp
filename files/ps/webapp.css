@@ -15,7 +15,7 @@
 *[class|=webapp][class*=-p2] {
   padding: 0.6rem;
 }
-*[class|=webapp][class*=-bl], table[class|=webapp][class*=-grid] th, table[class|=webapp][class*=-grid] td {
+*[class|=webapp][class*=-bl] {
   border: 0.09rem solid black;
 }
 *[class|=webapp][class*=-br] {
@@ -33,7 +33,7 @@
 *[class|=webapp][class*=-right] {
   text-align: right;
 }
-*[class|=webapp][class*=-dialog], details[class|=webapp][class*=-menu] ul {
+*[class|=webapp][class*=-dialog] {
   border: 0.09rem solid black;
   border-radius: 0.3rem;
   background-color: white;
@@ -41,136 +41,86 @@
   border-radius: 0.5em;
   box-shadow: 0 0.5em 2em rgba(27, 31, 35, 0.175);
 }
-body.webapp {
-  font: 1rem sans-serif, simhei;
-  color: black;
-}
-body.webapp a {
-  color: #0366d6;
-  text-decoration: none;
-}
-body.webapp a:hover {
-  text-decoration: underline;
-}
-body.webapp a.danger {
-  color: #cb2431;
-}
 nav[class|=webapp] ul {
-  padding: 0;
-  margin: 0;
   list-style: none;
 }
-nav[class|=webapp][class*=-inline] > ul > li {
-  display: inline-block;
+nav[class|=webapp] li {
+  white-space: nowrap;
 }
 nav[class|=webapp] a {
   padding: 8px 16px;
   display: block;
 }
-form[class|=webapp] {
-  padding: 0.3rem;
+nav[class|=webapp] details {
+  position: relative;
   display: inline-block;
 }
-form[class|=webapp] > fieldset {
-  border: none;
-  white-space: nowrap;
-}
-table[class|=webapp] {
-  border-collapse: collapse;
-  border-spacing: 0;
-  empty-cells: show;
-}
-table[class|=webapp][class*=-scan] > tbody > tr:nth-of-type(even) {
-  background-color: rgba(0, 0, 0, 0.04);
-}
-table[class|=webapp] > tfoot {
-  background-color: #f3f8ff;
-}
-table[class|=webapp][class*=-classic] {
-  border: 0.09rem solid black;
-  border-collapse: separate;
-  border-spacing: 0.1rem;
-}
-table[class|=webapp][class*=-classic] > thead {
-  background-image: linear-gradient(-180deg, #a7a7a7 0%, #fff 90%);
-}
-table[class|=webapp][class*=-classic] > thead > tr:first-child {
-  background-image: linear-gradient(-180deg, #0b7cfc 0%, #0364d1 90%);
-  color: white;
-}
-table[class|=webapp][class*=-classic] > tbody > tr:hover {
-  background-color: #c0c0c0;
-}
-details[class|=webapp] summary {
+nav[class|=webapp] details summary {
+  padding: 8px 16px;
   cursor: pointer;
 }
-details[class|=webapp][class*=-menu] {
-  position: relative;
-  display: inline-block;
-}
-details[class|=webapp][class*=-menu] ul {
-  padding: 0.6rem 0;
+nav[class|=webapp] details > ul {
   position: absolute;
+  top: 0;
+  left: 100%;
+  background-color: white;
+  border: 0.09rem solid black;
+  border-radius: 0.3rem;
+  background-color: white;
+  border: 1px solid rgba(27, 31, 35, 0.23);
+  border-radius: 0.5em;
+  box-shadow: 0 0.5em 2em rgba(27, 31, 35, 0.175);
 }
-details[class|=webapp][class*=-menu] ul > li {
+form.webapp {
+  padding: 0.6rem;
+}
+form.webapp > fieldset {
+  border: none;
+}
+table.webapp {
+  border-collapse: collapse;
+  border-spacing: 0.1rem;
+  empty-cells: show;
+}
+table.webapp, table.webapp th, table.webapp td {
+  border: 0.09rem solid black;
   white-space: nowrap;
-  padding: 0 1rem;
-  list-style: none;
 }
-details[class|=webapp][class*=-menu] ul > li > details {
-  display: inline-block;
-  position: relative;
-}
-details[class|=webapp][class*=-menu] ul > li > details, details[class|=webapp][class*=-menu] ul > li > a {
+body.webapp {
+  font: 1rem sans-serif, simhei;
   color: black;
-  display: block;
-  padding: 0.3rem 0;
+}
+body.webapp, body.webapp dl, body.webapp ul, body.webapp pre, body.webapp input, body.webapp textarea, body.webapp fieldset {
+  margin: 0;
+  padding: 0;
+}
+body.webapp summary, body.webapp summary::-webkit-details-marker {
+  color: black;
+}
+body.webapp a, body.webapp summary {
+  color: #0366d6;
+  outline: none;
   text-decoration: none;
 }
-details[class|=webapp][class*=-menu] ul > li:hover {
-  background-color: #f3f3f3;
+body.webapp a:hover, body.webapp summary:hover {
+  text-decoration: underline;
 }
-ul[class|=webapp] {
-  position: relative;
-  margin-left: 4px;
+body.webapp a.danger, body.webapp summary.danger {
+  color: #cb2431;
 }
-ul[class|=webapp]:before {
-  content: "";
-  width: 0;
-  border-left: 1px solid;
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
+body.webapp > article > header > nav > ul > li {
+  display: inline-block;
 }
-ul[class|=webapp] ul {
-  position: relative;
-  margin-left: 4px;
+body.webapp > article > section {
+  display: table-row;
 }
-ul[class|=webapp] ul:before {
-  content: "";
-  width: 0;
-  border-left: 1px solid;
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
+body.webapp > article > section > aside, body.webapp > article > section > section {
+  vertical-align: top;
+  display: table-cell;
 }
-ul[class|=webapp] li {
-  position: relative;
-  padding-left: 24px;
-  line-height: 24px;
-  list-style: none;
+body.webapp > article > section > section {
+  padding: 1.2rem;
 }
-ul[class|=webapp] li:before {
-  content: "";
-  width: 18px;
-  border-top: 1px solid;
-  position: absolute;
-  top: 12px;
-  left: 0;
-}
-ul[class|=webapp] li:last-child:before {
-  background-color: white;
-  bottom: 0;
+body.webapp > article > footer {
+  padding: 0.6rem;
 }

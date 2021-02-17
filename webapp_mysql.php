@@ -171,7 +171,7 @@ abstract class webapp_mysql_table implements IteratorAggregate, Countable
 	{
 		return $this->tablename;
 	}
-	function &primary()
+	function &primary():string
 	{
 		if (property_exists($this, 'primary') === FALSE)
 		{
@@ -255,14 +255,13 @@ abstract class webapp_mysql_table implements IteratorAggregate, Countable
 }
 class webapp_mysql extends mysqli
 {
-	public $errors = [];
-	private $maptable, $conninfo, $host, $user;
-	function __construct(string $host = 'p:127.0.0.1:3306', string $user = 'root', string $password = '', string $database = 'mysql', string $maptable = 'webapp_maptable_')
+	public array $errors = [];
+	//private $conninfo, $host, $user;
+	function __construct(string $host = 'p:127.0.0.1:3306', string $user = 'root', string $password = '', string $database = 'mysql', private string $maptable = 'webapp_maptable_')
 	{
 		$this->init();
 		//$this->options(MYSQLI_OPT_CONNECT_TIMEOUT, 1);
 		$this->real_connect($host, $user, $password, $database);
-		$this->maptable = $maptable;
 	}
 	function __destruct()
 	{
@@ -272,7 +271,7 @@ class webapp_mysql extends mysqli
 	{
 		return $this->{$name} = class_exists($tablename = $this->maptable . $name, FALSE) ? new $tablename($this) : $this->table($name);
 	}
-	function __call(string $tablename, $cond):webapp_mysql_table
+	function __call(string $tablename, array $cond):webapp_mysql_table
 	{
 		return ($this->{$tablename})(...$cond);
 	}

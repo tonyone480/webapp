@@ -17,12 +17,16 @@ trait webapp_echo
 	}
 	function __get(string $name):mixed
 	{
-		return $this->webapp->{$name};
+		return $this->{$name} = &$this->webapp->{$name};
 	}
 	function __call(string $name, array $params):mixed
 	{
 		return $this->webapp->{$name}(...$params);
 	}
+	// static function callable(webapp $webapp):bool
+	// {
+	// 	return TRUE;
+	// }
 }
 class webapp_echo_json extends ArrayObject implements Stringable
 {
