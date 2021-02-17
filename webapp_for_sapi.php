@@ -84,4 +84,8 @@ final class sapi implements webapp_sapi
 	{
 		file_put_contents('php://output', $data);
 	}
+	function response_sendfile(string $filename):bool
+	{
+		return !$this->response_header("X-Sendfile: {$filename}");
+	}
 }

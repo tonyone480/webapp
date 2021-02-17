@@ -19,6 +19,7 @@ interface webapp_sapi
 	function response_header(string $value):void;
 	function response_cookie(string ...$values):void;
 	function response_content(string $data):void;
+	function response_sendfile(string $filename):bool;
 }
 abstract class webapp implements ArrayAccess, Stringable
 {
@@ -336,7 +337,7 @@ abstract class webapp implements ArrayAccess, Stringable
 				libxml_use_internal_errors(FALSE);
 			}
 		}
-		return new webapp_xml("<?xml version='1.0' encoding='{$this->webapp['app_charset']}'?><webapp/>");
+		return new webapp_xml("<?xml version='1.0' encoding='{$this['app_charset']}'?><webapp/>");
 	}
 	function formdata(webapp_html_xml $node = NULL, $action = NULL):webapp_html_form
 	{
@@ -359,6 +360,8 @@ abstract class webapp implements ArrayAccess, Stringable
 		}
 		return $this->errors($mysql);
 	}
+	function sqlite():webapp_sqlite{}
+	function redis():webapp_redis{}
 	function debugtime(?float &$time = 0):float
 	{
 		return $time = microtime(TRUE) - $time;
@@ -485,6 +488,10 @@ abstract class webapp implements ArrayAccess, Stringable
 		return $this->uploadedfiles[$name];
 	}
 	//response
+	function response_sendfile(string $filename):bool
+	{
+		return $this->sapi->response_sendfile($filename);
+	}
 	function response_status(int $code, string $data = NULL):void
 	{
 		$this->callback(fn():int => [$code, $data === NULL || $this->print($data)][0]);
@@ -493,6 +500,14 @@ abstract class webapp implements ArrayAccess, Stringable
 	{
 		//$this->headers[ucwords($name, '-')] = $value;
 		$this->headers[$name] = $value;
+	}
+	function response_location(string $url):void
+	{
+		$this->response_header('Location', $url);
+	}
+	function response_refresh(int $second = 0, string $url = NULL):void
+	{
+		$this->response_header('Refresh', strlen($url) ? "{$second}; url={$url}" : $second);
 	}
 	function response_cookie(string $name, string $value = NULL, int $expire = 0, string $path = NULL, string $domain = NULL, bool $secure = FALSE, bool $httponly = FALSE):void
 	{
@@ -515,20 +530,8 @@ abstract class webapp implements ArrayAccess, Stringable
 		$this->response_content_type('application/force-download');
 		$this->response_header('Content-Disposition', 'attachment; filename=' . urlencode($basename));
 	}
-	function response_content_sendfile(string $filename):void
-	{
-		$this->response_header('X-Sendfile', $filename);
-	}
-	function response_location(string $url):void
-	{
-		$this->response_header('Location', $url);
-	}
-	function response_refresh(int $second = 0, string $url = NULL):void
-	{
-		$this->response_header('Refresh', strlen($url) ? "{$second}; url={$url}" : $second);
-	}
 	//append function
-	function no_sign_in_admin(webapp_sapi $sapi, array $config = []):bool
+	final function no_sign_in_admin(webapp_sapi $sapi, array $config = []):bool
 	{
 		self::__construct($sapi, $config);
 		if ($this['app_mapping'] === $this && in_array($this['app_index'], ['get_captcha', 'get_scss'], TRUE)) return TRUE;
