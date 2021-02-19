@@ -400,6 +400,14 @@ abstract class webapp implements ArrayAccess, Stringable
 		$this['app_index'] = '__invoke';
 		$this['app_entry'] = $params;
 	}
+	function uploadfile_rename(array $fileinfo):string
+	{
+		return $this->hash_time33(hash_file('haval160,4', $fileinfo['tmp_name'], TRUE));
+	}
+	function uploadfile_moveto(array $fileinfo):bool
+	{
+
+	}
 	//request
 	function request_ip():string
 	{
@@ -444,15 +452,61 @@ abstract class webapp implements ArrayAccess, Stringable
 			default => $this->sapi->request_content()
 		};
 	}
-	function request_uploadedfile(string $name):ArrayObject
+	function request_uploadedfile(string $name, int $maximum = 1):ArrayObject
 	{
 		if (array_key_exists($name, $this->uploadedfiles ??= $this->sapi->request_formdata(TRUE)) === FALSE || is_array($this->uploadedfiles[$name]))
 		{
-			$this->uploadedfiles[$name] = new class($this->uploadedfiles[$name] ?? []) extends ArrayObject
+			$uploadedfiles = [];
+			if (array_key_exists($name, $this->uploadedfiles))
 			{
+				foreach ($this->uploadedfiles[$name] as $uploadedfile)
+				{
+					$uploadedfiles[$this->hash_time33(hash_file('haval160,4', $uploadedfile['file'], TRUE))] = $uploadedfile;
+					if (count($uploadedfiles) === $maximum)
+					{
+						break;
+					}
+				}
+			}
+			$this->uploadedfiles[$name] = new class($uploadedfiles) extends ArrayObject implements Stringable
+			{
+				function __toString():string
+				{
+					return join(',', $this->column('file'));
+				}
+				function column(string $key):array
+				{
+					return array_column($this->getArrayCopy(), $key);
+				}
 				function size():int
 				{
-					return array_sum(array_column($this->getArrayCopy(), 'size'));
+					return array_sum($this->column('size'));
+				}
+				// function open(string $hash = NULL):mixed
+				// {
+				// 	return fopen($hash === NULL ? $this : $this[$hash]['tmp_name'], 'r');
+				// }
+				// function content(string $hash = NULL):string
+				// {
+				// 	return file_get_contents($hash === NULL ? $this : $this[$hash]['tmp_name']);
+				// }
+				function move(string $hash, string $rootdir):bool
+				{
+					return move_uploaded_file($this[$hash]['file'], "{$rootdir}/{$hash}");
+				}
+				function moveto(string $rootdir):array
+				{
+					$success = [];
+					foreach ($this as $hash => $file)
+					{
+						if ($this->move($hash, $rootdir))
+						{
+							$success[$hash] = $file;
+						}
+					}
+					echo $this;
+					print_r($this);
+					return $success;
 				}
 				function detect(string $mime):bool
 				{
@@ -466,23 +520,6 @@ abstract class webapp implements ArrayAccess, Stringable
 					}
 					return TRUE;
 				}
-				// function map(callable $callback):static
-				// {
-				// 	$this->exchangeArray(array_map($callback, (array)$this));
-				// 	return $this;
-				// }
-				// function moveto(string $outdir, callable $rename)
-				// {
-				// 	$success = [];
-				// 	foreach ($this as $files)
-				// 	{
-				// 		if (is_string($basename = $rename($files)) && move_uploaded_file($files['tmp_name'], $filename = "{$outdir}/{$basename}"))
-				// 		{
-				// 			$success[$rename] = $filename;
-				// 		}
-				// 	}
-				// 	return $count;
-				// }
 			};
 		}
 		return $this->uploadedfiles[$name];
@@ -633,7 +670,7 @@ abstract class webapp implements ArrayAccess, Stringable
 				$scss->setFormatter('Leafo\ScssPhp\Formatter\Expanded');
 				file_put_contents($outfile, $scss->compile(file_get_contents($infile)));
 			}
-			$this->response_content_sendfile("webapp/files/ps/{$filename}.css");
+			$this->response_sendfile("webapp/files/ps/{$filename}.css");
 			return;
 		}
 	}

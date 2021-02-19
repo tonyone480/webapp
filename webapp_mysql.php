@@ -1,5 +1,6 @@
 <?php
 #?ini_set('mysqli.reconnect', TRUE);
+/*
 class webapp_mysql_target implements ArrayAccess
 {
 	private $rawdata = [], $change = [];
@@ -119,7 +120,8 @@ class webapp_mysql_target implements ArrayAccess
 		return FALSE;
 	}
 }
-abstract class webapp_mysql_table implements IteratorAggregate, Countable
+*/
+abstract class webapp_mysql_table implements IteratorAggregate, Countable, Stringable
 {
 	private $cond, $paging, $fields = '*';
 	protected $mysql, $tablename, $targetname = 'webapp_mysql_target';
@@ -275,7 +277,7 @@ class webapp_mysql extends mysqli
 	{
 		return ($this->{$tablename})(...$cond);
 	}
-	function __invoke(...$query)
+	function __invoke(...$query):bool
 	{
 		//var_dump($this->sprintf(...$query));
 		if ($this->real_query($this->sprintf(...$query)))
@@ -404,10 +406,9 @@ class webapp_mysql extends mysqli
 				'in' => '?a IN(?S)',
 				'ni' => '?a NOT IN(?S)'
 			];
-			private $mysql, $where = [], $merge = [], $append;
-			function __construct(webapp_mysql $mysql, array $fieldinfo, array $cond)
+			private array $where = [], $merge = [], $append;
+			function __construct(private webapp_mysql $mysql, array $fieldinfo, array $cond)
 			{
-				$this->mysql = $mysql;
 				$this->append = $cond;
 				parent::__construct($fieldinfo);
 			}
@@ -500,5 +501,3 @@ class webapp_mysql extends mysqli
 		
 	// }
 }
-
-

@@ -137,6 +137,8 @@ class webapp_image
 		imagecopyresized($image, $this->image, 0, 0, 0, 0, $width, $height, $this->width, $this->height);
 		imagedestroy($this->image);
 		$this->image = $image;
+		$this->width = $width;
+		$this->height = $height;
 		return $this;
 	}
 	//将真彩色图像转换为调色板图像
@@ -218,13 +220,25 @@ class webapp_image
 	// 	imagefilter($this->image, IMG_FILTER_GAUSSIAN_BLUR);
 	// 	return $this;
 	// }
-	function jpeg($output = 'php://output', int $quality = 75):bool
+	function bmp(mixed $output = 'php://output', bool $compressed = TRUE):bool
+	{
+		return imagebmp($this->image, $output, $compressed);
+	}
+	function gif(mixed $output = 'php://output'):bool
+	{
+		return imagegif($this->image, $output);
+	}
+	function jpeg(mixed $output = 'php://output', int $quality = 75):bool
 	{
 		return imagejpeg($this->image, $output, $quality);
 	}
-	function png($output = 'php://output'):bool
+	function png(mixed $output = 'php://output'):bool
 	{
 		return imagepng($this->image, $output);
+	}
+	function webp(mixed $output = 'php://output'):bool
+	{
+		return imagewebp($this->image, $output, $quality);
 	}
 	function captcha(array $format, string $font, int $size):static
 	{
@@ -262,6 +276,10 @@ class webapp_image
 			$offset += $write['width'];
 		}
 		return $this;
+	}
+	static function from(string $filename)
+	{
+
 	}
 	static function qrcode(string $data, int $ecclevel = 0, int $pixel = 4, int $margin = 2):static
 	{

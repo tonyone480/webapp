@@ -36,27 +36,33 @@ final class sapi implements webapp_sapi
 		if ($uploadedfile)
 		{
 			$uploadedfiles = [];
-			foreach ($_FILES as $name => $info)
+			foreach ($_FILES as $name => $file)
 			{
 				$files = [];
-				foreach ($info as $type => $values)
+				foreach ($file as $type => $info)
 				{
-					if (is_array($values))
+					if (is_array($info))
 					{
-						foreach ($values as $index => $value)
+						foreach ($info as $index => $value)
 						{
 							$files[$index][$type] = $value;
 						}
 						continue;
 					}
-					$files[0][$type] = $values;
+					$files[0][$type] = $info;
 				}
 				$uploadedfiles[$name] = [];
 				foreach ($files as $file)
 				{
 					if ($file['error'] === UPLOAD_ERR_OK)
 					{
-						$uploadedfiles[$name][] = $file;
+						$uploadedfiles[$name][] = [
+							'mime' => $file['type'],
+							'file' => $file['tmp_name'],
+							'size' => $file['size'],
+							'name' => $file['name'],
+							'type' => preg_match('/\.(\w{1,256})$/i', $file['name'], $suffix) ? strtolower($suffix[1]) : 'unknown'
+						];
 					}
 				}
 			}
