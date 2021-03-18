@@ -504,8 +504,7 @@ abstract class webapp implements ArrayAccess, Stringable
 							$success[$hash] = $file;
 						}
 					}
-					echo $this;
-					print_r($this);
+					//1
 					return $success;
 				}
 				function detect(string $mime):bool
