@@ -484,11 +484,11 @@ abstract class webapp implements ArrayAccess, Stringable
 				}
 				// function open(string $hash = NULL):mixed
 				// {
-				// 	return fopen($hash === NULL ? $this : $this[$hash]['tmp_name'], 'r');
+				// 	return fopen($hash === NULL ? $this : $this[$hash]['file'], 'r');
 				// }
 				// function content(string $hash = NULL):string
 				// {
-				// 	return file_get_contents($hash === NULL ? $this : $this[$hash]['tmp_name']);
+				// 	return file_get_contents($hash === NULL ? $this : $this[$hash]['file']);
 				// }
 				function move(string $hash, string $rootdir):bool
 				{
@@ -504,7 +504,6 @@ abstract class webapp implements ArrayAccess, Stringable
 							$success[$hash] = $file;
 						}
 					}
-					//1
 					return $success;
 				}
 				function detect(string $mime):bool
