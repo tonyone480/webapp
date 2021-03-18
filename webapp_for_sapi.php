@@ -57,9 +57,9 @@ final class sapi implements webapp_sapi
 					if ($file['error'] === UPLOAD_ERR_OK)
 					{
 						$uploadedfiles[$name][] = [
-							'mime' => $file['type'],
 							'file' => $file['tmp_name'],
 							'size' => $file['size'],
+							'mime' => $file['type'],
 							'name' => $file['name'],
 							'type' => preg_match('/\.(\w{1,256})$/i', $file['name'], $suffix) ? strtolower($suffix[1]) : 'unknown'
 						];
