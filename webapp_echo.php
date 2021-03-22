@@ -33,7 +33,7 @@ class webapp_echo_json extends ArrayObject implements Stringable
 	use webapp_echo;
 	function __construct(webapp $webapp, array $data = [])
 	{
-		$this($webapp, TRUE, $data)->response_content_type('application/json');
+		$this($webapp, TRUE, $data, ArrayObject::STD_PROP_LIST)->response_content_type('application/json');
 	}
 	function __toString():string
 	{

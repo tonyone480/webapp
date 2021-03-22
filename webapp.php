@@ -34,6 +34,7 @@ abstract class webapp implements ArrayAccess, Stringable
 			'request_query'		=> $sapi->request_query(),
 			//Application
 			'app_charset'		=> 'utf-8',
+			//'app_rootdir'		=> __DIR__,
 			//'app_locales'		=> __DIR__ . '/local/en.php',
 			'app_mapping'		=> 'webapp_mapping_',
 			'app_index'			=> 'home',
@@ -654,6 +655,10 @@ abstract class webapp implements ArrayAccess, Stringable
 		}
 		return 404;
 	}
+	// function get_home()
+	// {
+	// 	$this->app('webapp_html_echo')->section->append('h1', ['Welcome use WebApp Framework', 'style' => 'padding:0.6rem']);
+	// }
 	//这个函数在不久的将来会被移除
 	function get_scss(string $filename = NULL)
 	{
