@@ -207,6 +207,10 @@ abstract class webapp_mysql_table implements IteratorAggregate, Countable, Strin
 	{
 		return $this->mysql('INSERT INTO ?a SET ??', $this->tablename, $this->mysql->sprintf(...is_array($data) ? ['?v', $data] : func_get_args())) && $this->mysql->affected_rows === 1;
 	}
+	function append($data):int
+	{
+		return $this->insert($data) ? $this->mysql->insert_id : 0;
+	}
 	function delete(...$query):int
 	{
 		return $this->mysql('DELETE FROM ?a??', $this->tablename, (string)($query ? $this(...$query) : $this)) ? $this->mysql->affected_rows : -1;
