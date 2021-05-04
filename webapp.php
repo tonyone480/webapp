@@ -81,19 +81,45 @@ abstract class webapp implements ArrayAccess, Stringable
 	{
 		do
 		{
+			// preg_match_all('/\,(\w+)(?:\:([\%\+\-\.\/\=\w]+))?/', $this['request_query'], $params, PREG_SET_ORDER | PREG_UNMATCHED_AS_NULL)
+			// ? array_column($params, 2, 1) : []
+
 			if (method_exists($this['app_mapping'], $this['app_index']))
 			{
 				$method = new ReflectionMethod($this['app_mapping'], $this['app_index']);
-				if ($method->isPublic() && $method->isUserDefined() && $method->getNumberOfRequiredParameters() <= count($this['app_entry']))
+				do
 				{
-					$status = $method->invoke($reflex = $this->app(), ...$this['app_entry']);
-					$object = property_exists($this, 'app') ? $this->app : $reflex;
-					if ($object !== $this && method_exists($object, '__toString'))
+					if (preg_match_all('/\,(\w+)(?:\:([\%\+\-\.\/\=\w]+))?/', $this['request_query'], $params, PREG_SET_ORDER | PREG_UNMATCHED_AS_NULL))
 					{
-						$this->print($object);
+						$entry = [];
+						$parameters = array_column($params, 2, 1);
+						
+						foreach (array_slice($method->getParameters(), $this['app_mapping'] === $this) as $parameter)
+						{
+							if (array_key_exists($parameter->name, $parameters))
+							{
+								$entry[$parameter->name] = $parameters[$parameter->name];
+								continue;
+							}
+							if ($parameter->isOptional() === FALSE)
+							{
+								break 2;
+							}
+						}
+						$this['app_entry'] = $this['app_entry'] + $entry;
+						
 					}
-					break;
-				}
+					if ($method->isPublic() && $method->isUserDefined() && $method->getNumberOfRequiredParameters() <= count($this['app_entry']))
+					{
+						$status = $method->invoke($reflex = $this->app(), ...$this['app_entry']);
+						$object = property_exists($this, 'app') ? $this->app : $reflex;
+						if ($object !== $this && method_exists($object, '__toString'))
+						{
+							$this->print($object);
+						}
+						break 2;
+					}
+				} while (FALSE);
 			}
 			$status = 404;
 		} while (FALSE);
@@ -491,34 +517,36 @@ abstract class webapp implements ArrayAccess, Stringable
 				// {
 				// 	return file_get_contents($hash === NULL ? $this : $this[$hash]['file']);
 				// }
-				function move(string $hash, string $rootdir):bool
-				{
-					return move_uploaded_file($this[$hash]['file'], "{$rootdir}/{$hash}");
-				}
-				function moveto(string $rootdir):array
+				function moveto(string $filename):array
 				{
 					$success = [];
-					foreach ($this as $hash => $file)
+					$date = array_combine(['date', 'year', 'month', 'day', 'week', 'yday', 'time', 'hours', 'minutes', 'seconds'], explode(' ', date('Ymd Y m d w z His H i s')));
+					foreach ($this as $hash => $info)
 					{
-						if ($this->move($hash, $rootdir))
+						if ((is_dir($rootdir = dirname($file = preg_replace_callback('/\{([a-z]+)(?:\,(-?\d+)(?:\,(-?\d+))?)?\}/i', fn(array $format):string => match($format[1])
 						{
-							$success[$hash] = $file;
+							'hash' => count($format) > 2 ? substr($hash, ...array_slice($format, 2)) : $hash,
+							'name', 'type' => $info[$format[1]],
+							default => $date[$format[1]] ?? $format[0]
+						}, $filename))) || mkdir($rootdir, recursive: TRUE)) && move_uploaded_file($this[$hash]['file'], $file)) {
+							$this[$hash]['file'] = $file;
+							$success[$hash] = $this[$hash];
 						}
 					}
 					return $success;
 				}
-				function detect(string $mime):bool
-				{
-					foreach ($this as $files)
-					{
-						//感觉在不久的将来这里需要改
-						if (preg_match('/^(' . str_replace(['/', '*', ','], ['\\/', '.*', '|'], $mime) . ')$/', $files['type']) === 0)
-						{
-							return FALSE;
-						}
-					}
-					return TRUE;
-				}
+				// function detect(string $mime):bool
+				// {
+				// 	foreach ($this as $files)
+				// 	{
+				// 		//感觉在不久的将来这里需要改
+				// 		if (preg_match('/^(' . str_replace(['/', '*', ','], ['\\/', '.*', '|'], $mime) . ')$/', $files['type']) === 0)
+				// 		{
+				// 			return FALSE;
+				// 		}
+				// 	}
+				// 	return TRUE;
+				// }
 			};
 		}
 		return $this->uploadedfiles[$name];
