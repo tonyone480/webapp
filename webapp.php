@@ -427,14 +427,6 @@ abstract class webapp implements ArrayAccess, Stringable
 		$this['app_index'] = '__invoke';
 		$this['app_entry'] = $params;
 	}
-	function uploadfile_rename(array $fileinfo):string
-	{
-		return $this->hash_time33(hash_file('haval160,4', $fileinfo['tmp_name'], TRUE));
-	}
-	function uploadfile_moveto(array $fileinfo):bool
-	{
-
-	}
 	//request
 	function request_ip():string
 	{
