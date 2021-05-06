@@ -366,8 +366,17 @@ abstract class webapp implements ArrayAccess, Stringable
 		}
 		return new webapp_xml("<?xml version='1.0' encoding='{$this['app_charset']}'?><webapp/>");
 	}
-	function formdata(webapp_html_xml $node = NULL, $action = NULL):webapp_html_form
+	function formdata(array|webapp_html_xml $node = NULL, string $action = NULL):webapp_html_form
 	{
+		if (is_array($node))
+		{
+			$form = new webapp_html_form($this);
+			foreach ($node as $name => $attr)
+			{
+				$form->field($name, ...is_array($attr) ? [$attr['type'], $attr] : [$attr]);
+			}
+			return $form;
+		}
 		return new webapp_html_form($this, $node, $action);
 	}
 	function image(int $width, int $height):webapp_image

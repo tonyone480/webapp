@@ -56,7 +56,7 @@ class webapp_xml extends SimpleXMLElement
 		}
 		return $this->addChild($name, $mixed);
 	}
-	function insert($node, string $position = NULL)
+	function insert(DOMNode|string $node, string $position = NULL)
 	{
 		$dom = $this[0]->dom();
 		if (is_string($node))
@@ -280,7 +280,7 @@ class webapp_dom extends DOMDocument implements Stringable
 	{
 		return $this->xml->query($selectors);
 	}
-	function querySelector(string $selectors)
+	function querySelector(string $selectors):?DOMElement
 	{
 		return $this->querySelectorAll($selectors)[0] ?? NULL;
 	}

@@ -523,21 +523,28 @@ class webapp_html_table
 		return $node;
 	}
 }
-class webapp_html_echo extends webapp_dom
+class webapp_html extends webapp_dom
 {
 	use webapp_echo;
 	const appxml = 'webapp_html_xml';
-	function __construct(webapp $webapp)
+	function __construct(webapp $webapp, string $data = NULL)
 	{
 		$this($webapp)->response_content_type("text/html; charset={$webapp['app_charset']}");
-		$this->loadHTML("<!doctype html><html><head><meta charset='{$webapp['app_charset']}'><meta name='viewport' content='width=device-width, initial-scale=1.0'/></head><body class='webapp'/></html>");
-		$this->xml->head->append('link', ['rel' => 'stylesheet', 'type' => 'text/css', 'href' => '?scss/webapp']);
-		// $this->xml->head->append('link', ['rel' => 'stylesheet', 'type' => 'text/css', 'href' => 'webflock/core/files/ps/font-awesome.css']);
-		//$this->xml->head->append('script', ['type' => 'javascript/module', 'src' => 'webapp/files/js/webapp.js']);
-		$this->article = $this->xml->body->append('article');
-		$this->header = $this->article->append('header');
-		$this->section = $this->article->append('section');
-		$this->footer = $this->article->append('footer', $this->webapp['copy_webapp']);
+		if ($data)
+		{
+			str_starts_with($data, '<') ? $this->loadHTML($data) : $this->loadHTMLFile($data);
+		}
+		else
+		{
+			$this->loadHTML("<!doctype html><html><head><meta charset='{$webapp['app_charset']}'><meta name='viewport' content='width=device-width, initial-scale=1.0'/></head><body class='webapp'/></html>");
+			$this->xml->head->append('link', ['rel' => 'stylesheet', 'type' => 'text/css', 'href' => '?scss/webapp']);
+			// $this->xml->head->append('link', ['rel' => 'stylesheet', 'type' => 'text/css', 'href' => 'webflock/core/files/ps/font-awesome.css']);
+			//$this->xml->head->append('script', ['type' => 'javascript/module', 'src' => 'webapp/files/js/webapp.js']);
+			$this->article = $this->xml->body->append('article');
+			$this->header = $this->article->append('header');
+			$this->section = $this->article->append('section');
+			$this->footer = $this->article->append('footer', $this->webapp['copy_webapp']);
+		}
 	}
 	function __toString():string
 	{
