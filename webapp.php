@@ -30,7 +30,7 @@ abstract class webapp implements ArrayAccess, Stringable
 		$this->webapp = $this;
 		$this->configs = $config + [
 			//Request
-			'request_method'	=> in_array($method = strtolower($sapi->request_method()), ['get', 'post', 'put', 'delete']) ? $method : 'get',
+			'request_method'	=> in_array($method = strtolower($sapi->request_method()), ['get', 'post', 'put', 'delete'], TRUE) ? $method : 'get',
 			'request_query'		=> $sapi->request_query(),
 			//Application
 			'app_charset'		=> 'utf-8',
@@ -81,9 +81,6 @@ abstract class webapp implements ArrayAccess, Stringable
 	{
 		do
 		{
-			// preg_match_all('/\,(\w+)(?:\:([\%\+\-\.\/\=\w]+))?/', $this['request_query'], $params, PREG_SET_ORDER | PREG_UNMATCHED_AS_NULL)
-			// ? array_column($params, 2, 1) : []
-
 			if (method_exists($this['app_mapping'], $this['app_index']))
 			{
 				$method = new ReflectionMethod($this['app_mapping'], $this['app_index']);
@@ -91,14 +88,17 @@ abstract class webapp implements ArrayAccess, Stringable
 				{
 					if (preg_match_all('/\,(\w+)(?:\:([\%\+\-\.\/\=\w]+))?/', $this['request_query'], $params, PREG_SET_ORDER | PREG_UNMATCHED_AS_NULL))
 					{
-						$entry = [];
 						$parameters = array_column($params, 2, 1);
-						
 						foreach (array_slice($method->getParameters(), $this['app_mapping'] === $this) as $parameter)
 						{
 							if (array_key_exists($parameter->name, $parameters))
 							{
-								$entry[$parameter->name] = $parameters[$parameter->name];
+								$this['app_entry'][$parameter->name] = match ((string)$parameter->getType())
+								{
+									'int' => intval($parameters[$parameter->name]),
+									'float' => floatval($parameters[$parameter->name]),
+									default => $parameters[$parameter->name]
+								};
 								continue;
 							}
 							if ($parameter->isOptional() === FALSE)
@@ -106,8 +106,6 @@ abstract class webapp implements ArrayAccess, Stringable
 								break 2;
 							}
 						}
-						$this['app_entry'] = $this['app_entry'] + $entry;
-						
 					}
 					if ($method->isPublic() && $method->isUserDefined() && $method->getNumberOfRequiredParameters() <= count($this['app_entry']))
 					{
@@ -177,24 +175,9 @@ abstract class webapp implements ArrayAccess, Stringable
 		}
 		return property_exists($this->app, $name) ? $this->app->{$name} : throw new error;
 	}
-	final function offsetExists(mixed $key):bool
+	final function __invoke(object $object):object
 	{
-		return array_key_exists($key, $this->configs);
-	}
-	final function offsetGet(mixed $key):mixed
-	{
-		return $this->configs[$key] ?? NULL;
-	}
-	final function offsetSet(mixed $key, mixed $value):void
-	{
-		$this->configs[$key] = $value;
-	}
-	final function offsetUnset(mixed $key):void
-	{
-		unset($this->configs[$key]);
-	}
-	final function errors(object $object):object
-	{
+		$object->webapp = $this;
 		if ($object instanceof ArrayAccess)
 		{
 			$object['errors'] = &$this->errors;
@@ -205,8 +188,28 @@ abstract class webapp implements ArrayAccess, Stringable
 		}
 		return $object;
 	}
+	final function offsetExists(mixed $key):bool
+	{
+		return array_key_exists($key, $this->configs);
+	}
+	final function &offsetGet(mixed $key):mixed
+	{
+		return $this->configs[$key];
+	}
+	final function offsetSet(mixed $key, mixed $value):void
+	{
+		$this->configs[$key] = $value;
+	}
+	final function offsetUnset(mixed $key):void
+	{
+		unset($this->configs[$key]);
+	}
 	function app(string $classname = NULL, mixed ...$params):object
 	{
+		// return $this(is_string($classname)
+		// 	? $this->app = new $classname($this, ...$params)
+		// 	: is_object($this['app_mapping']) ? $this['app_mapping'] : $this['app_mapping'] = new $this['app_mapping']($this));
+
 		if (is_string($classname))
 		{
 			return $this->app = new $classname($this, ...$params);
@@ -332,11 +335,6 @@ abstract class webapp implements ArrayAccess, Stringable
 	{
 		return inet_ntop(hex2bin($hex));
 	}
-	function callable(string|object $mapping, string ...$index):bool
-	{
-		return $this['app_mapping'] === $mapping && in_array($this['app_index'], $index, TRUE);
-	}
-	
 
 
 	function connect(string $url):webapp_connect
@@ -394,7 +392,7 @@ abstract class webapp implements ArrayAccess, Stringable
 		{
 			$mysql->set_charset($this['mysql_charset']);
 		}
-		return $this->errors($mysql);
+		return $this($mysql);
 	}
 	function sqlite():webapp_sqlite{}
 	function redis():webapp_redis{}
@@ -599,12 +597,12 @@ abstract class webapp implements ArrayAccess, Stringable
 	final function no_sign_in_admin(webapp_sapi $sapi, array $config = []):bool
 	{
 		self::__construct($sapi, $config);
-		if ($this['app_mapping'] === $this && in_array($this['app_index'], ['get_captcha', 'get_scss'], TRUE)) return TRUE;
+		if ($this['app_mapping'] === $this && in_array($this['app_index'], ['get_captcha', 'get_qrcode', 'get_scss'], TRUE)) return TRUE;
 		if ($this->admin) return FALSE;
 		if ($this['request_method'] === 'post')
 		{
-			$this->errors($this->app('webapp_echo_json', ['signature' => NULL]));
-			if ($input = webapp_html_echo::form_sign_in($this)->fetch($this['captcha_echo']))
+			$this->app('webapp_echo_json', ['errors' => &$this->errors, 'signature' => NULL]);
+			if ($input = webapp_html::form_sign_in($this)->fetch($this['captcha_echo']))
 			{
 				if ($this->admin($signature = $this->signature($input['username'], $input['password'])))
 				{
@@ -619,7 +617,7 @@ abstract class webapp implements ArrayAccess, Stringable
 		}
 		else
 		{
-			webapp_html_echo::form_sign_in($this, $this->app('webapp_html_echo')->xml->body->article->section);
+			webapp_html::form_sign_in($this, $this->app('webapp_html')->xml->body->article->section);
 			$this->title('Sign In Admin');
 		}
 		$this->response_status(200);

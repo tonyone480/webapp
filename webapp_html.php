@@ -136,7 +136,8 @@ class webapp_html_xml extends webapp_xml
 	}
 	function form(string $action):webapp_html_form
 	{
-		return $this->webapp()->formdata($this[0], $action);
+		return new webapp_html_form($this->webapp(), $this[0], $action);
+		//return $this->webapp()->formdata($this[0], $action);
 	}
 	function table(iterable $data, closure $output = NULL, mixed ...$params):webapp_html_table
 	{
@@ -149,7 +150,7 @@ class webapp_html_form
 	private $files = [], $fields = [], $index = 0;
 	function __construct(public webapp $webapp, webapp_html_xml $node = NULL, string $action = NULL)
 	{
-		$this->xml = ($node ?? new webapp_html_xml('<html/>'))->append('form', [
+		$this->xml = $node === NULL ? new webapp_html_xml('<form/>') : $node->append('form', [
 			'autocomplete' => 'off',
 			'enctype' => 'application/x-www-form-urlencoded',
 			'method' => 'post',
@@ -377,7 +378,7 @@ class webapp_html_form
 			}
 			return $values;
 		} while (0);
-		$this->webapp->errors($this)->errors[] = "Form input[{$name}] invalid";
+		($this->webapp)($this)->errors[] = "Form input[{$name}] invalid";
 		return NULL;
 	}
 	private function checkinput(webapp_html_xml $node, string $value):bool
