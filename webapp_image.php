@@ -240,12 +240,16 @@ class webapp_image
 	{
 		return imagewebp($this->image, $output, $quality);
 	}
-	function captcha(array $format, string $font, int $size):static
+	// static function from(string $filename):static
+	// {
+
+	// }
+	static function captcha(array $contents, int $width, int $height, string $font, int $size)
 	{
-		$width = 0;
+		$offset = 0;
 		$writing = [];
 		$fix = $size * 0.4;
-		foreach ($format as $read)
+		foreach ($contents as $read)
 		{
 			$angle = $read[1] * 0.4;
 			$fixsize = $size + ceil($fix * ($read[2] / 128));
@@ -254,7 +258,7 @@ class webapp_image
 			$max_x = max($calc[0], $calc[2], $calc[4], $calc[6]);
 			$min_y = min($calc[1], $calc[3], $calc[5], $calc[7]);
 			$max_y = max($calc[1], $calc[3], $calc[5], $calc[7]);
-			$width += ($writing[] = [
+			$offset += ($writing[] = [
 				'left'	=> abs($min_x),
 				'top'	=> abs($min_y),
 				'width'	=> $max_x - $min_x,
@@ -264,22 +268,19 @@ class webapp_image
 				'size' => $fixsize
 			])['width'];
 		}
-		$offset = ($this->width - $width) * 0.5;
+		$offset = ($width - $offset) * 0.5;
+		$image = new static($width, $height);
 		foreach ($writing as $write)
 		{
-			$this->text($offset + $write['left'],
-				($this->height - $write['height']) * 0.5 + $write['top'],
+			$image->text($offset + $write['left'],
+				($image->height - $write['height']) * 0.5 + $write['top'],
 				$write['code'],
 				$font,
 				$write['size'],
 				$write['angle']);
 			$offset += $write['width'];
 		}
-		return $this;
-	}
-	static function from(string $filename)
-	{
-
+		return $image;
 	}
 	static function qrcode(string $data, int $ecclevel = 0, int $pixel = 4, int $margin = 2):static
 	{

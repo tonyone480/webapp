@@ -23,10 +23,6 @@ trait webapp_echo
 	{
 		return $this->webapp->{$name}(...$params);
 	}
-	// static function callable(webapp $webapp):bool
-	// {
-	// 	return TRUE;
-	// }
 }
 class webapp_echo_json extends ArrayObject implements Stringable
 {

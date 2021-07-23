@@ -1,9 +1,9 @@
 <?php
 class webapp_xml extends SimpleXMLElement
 {
-	function webapp():webapp
+	function webapp():?webapp
 	{
-		return $this->dom()->ownerDocument->webapp;
+		return $this->dom()->ownerDocument->webapp ?? NULL;
 	}
 	function dom():DOMElement
 	{

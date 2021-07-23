@@ -55,8 +55,7 @@ abstract class webapp implements ArrayAccess, Stringable
 			//Captcha
 			'captcha_echo'		=> TRUE,
 			'captcha_unit'		=> 4,
-			'captcha_size'		=> [210, 86],
-			'captcha_params'	=> [__DIR__ . '/files/fonts/ArchitectsDaughter_R.ttf', 28],
+			'captcha_params'	=> [210, 86, __DIR__ . '/files/fonts/ArchitectsDaughter_R.ttf', 28],
 			'captcha_expire'	=> 99,
 			//QRCode
 			'qrcode_echo'		=> TRUE,
@@ -117,10 +116,10 @@ abstract class webapp implements ArrayAccess, Stringable
 						}
 						break 2;
 					}
-				} while (FALSE);
+				} while (0);
 			}
 			$status = 404;
-		} while (FALSE);
+		} while (0);
 		if ($this->sapi->response_sent() === FALSE)
 		{
 			if (is_int($status))
@@ -364,7 +363,7 @@ abstract class webapp implements ArrayAccess, Stringable
 		}
 		return new webapp_xml("<?xml version='1.0' encoding='{$this['app_charset']}'?><webapp/>");
 	}
-	function formdata(array|webapp_html_xml $node = NULL, string $action = NULL):webapp_html_form
+	function formdata(array|webapp_html_xml $node = NULL, string $action = NULL):array|webapp_html_form
 	{
 		if (is_array($node))
 		{
@@ -373,7 +372,7 @@ abstract class webapp implements ArrayAccess, Stringable
 			{
 				$form->field($name, ...is_array($attr) ? [$attr['type'], $attr] : [$attr]);
 			}
-			return $form;
+			return $form->fetch() ?? [];
 		}
 		return new webapp_html_form($this, $node, $action);
 	}
@@ -413,10 +412,6 @@ abstract class webapp implements ArrayAccess, Stringable
 			$cond[$value[1]] = array_key_exists(2, $value) ? urldecode($value[2]) : NULL;
 		}
 		return $cond;
-	}
-	function page(string $name = 'page'):int
-	{
-		return intval($this->request_query($name));
 	}
 	function callback(closure $callable, mixed ...$params):void
 	{
@@ -602,7 +597,7 @@ abstract class webapp implements ArrayAccess, Stringable
 		if ($this['request_method'] === 'post')
 		{
 			$this->app('webapp_echo_json', ['errors' => &$this->errors, 'signature' => NULL]);
-			if ($input = webapp_html::form_sign_in($this)->fetch($this['captcha_echo']))
+			if ($input = webapp_html::form_sign_in($this))
 			{
 				if ($this->admin($signature = $this->signature($input['username'], $input['password'])))
 				{
@@ -617,7 +612,7 @@ abstract class webapp implements ArrayAccess, Stringable
 		}
 		else
 		{
-			webapp_html::form_sign_in($this, $this->app('webapp_html')->xml->body->article->section);
+			webapp_html::form_sign_in($this->app('webapp_html')->xml->body->article->section);
 			$this->title('Sign In Admin');
 		}
 		$this->response_status(200);
@@ -659,7 +654,7 @@ abstract class webapp implements ArrayAccess, Stringable
 			if (is_string($random) && ($format = $this->captcha_format($random)))
 			{
 				$this->response_content_type('image/jpeg');
-				$this->image(...$this['captcha_size'])->captcha($format[1], ...$this['captcha_params'])->jpeg($this->io);
+				webapp_image::captcha($format[1], ...$this['captcha_params'])->jpeg($this->io);
 				return;
 			}
 			if ($random = $this->captcha_random())
@@ -684,7 +679,7 @@ abstract class webapp implements ArrayAccess, Stringable
 	}
 	// function get_home()
 	// {
-	// 	$this->app('webapp_html_echo')->section->append('h1', ['Welcome use WebApp Framework', 'style' => 'padding:0.6rem']);
+	// 	$this->app('webapp_html')->section->append('h1', ['Welcome use WebApp Framework', 'style' => 'padding:0.6rem']);
 	// }
 	//这个函数在不久的将来会被移除
 	function get_scss(string $filename = NULL)

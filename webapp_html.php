@@ -136,28 +136,148 @@ class webapp_html_xml extends webapp_xml
 	}
 	function form(string $action):webapp_html_form
 	{
-		return new webapp_html_form($this->webapp(), $this[0], $action);
-		//return $this->webapp()->formdata($this[0], $action);
+		return new webapp_html_form($this[0], $action);
 	}
 	function table(iterable $data, closure $output = NULL, mixed ...$params):webapp_html_table
 	{
-		return new webapp_html_table($this->webapp(), $this[0], $data, $output, ...$params);
+		return new webapp_html_table($this[0], $data, $output, ...$params);
 	}
 }
 class webapp_html_form
 {
-	public webapp_html_xml $xml, $fieldset;
+	const appxml = 'webapp_html_xml';
+	public ?webapp_html_xml $xml, $fieldset, $captcha = NULL;
 	private $files = [], $fields = [], $index = 0;
-	function __construct(public webapp $webapp, webapp_html_xml $node = NULL, string $action = NULL)
+	function __construct(private webapp_html_xml|webapp|array $context, string $action = NULL)
 	{
-		$this->xml = $node === NULL ? new webapp_html_xml('<form/>') : $node->append('form', [
-			'autocomplete' => 'off',
-			'enctype' => 'application/x-www-form-urlencoded',
+		//$this->rendered = $context instanceof webapp_html_xml;
+		$this->xml = $context instanceof webapp_html_xml ? $context->append('form', [
 			'method' => 'post',
-			'action' => $action,
-			'class' => 'webapp'
-		]);
+			'autocomplete' => 'off',
+			'class' => 'webapp',
+			'action' => $action
+		]) : new (static::appxml)('<form/>');
+		$this->xml['enctype'] = 'application/x-www-form-urlencoded';
 		$this->fieldset();
+	}
+	function __invoke(array $values = []):NULL|array|static
+	{
+		do
+		{
+			if ($this->context instanceof webapp_html_xml)
+			{
+				return $this->setdefault($values);
+			}
+			if (is_array($this->context))
+			{
+				$errors = &$this->errors;
+				$input = $this->context;
+			}
+			else
+			{
+				$errors = &($this->context)(new stdclass)->errors;
+				$input = $this->context->request_content($this->xml['enctype']);
+				if ($this->captcha)
+				{
+					if (array_key_exists('captcha_encrypt', $input)
+						&& array_key_exists('captcha_decrypt', $input)
+						&& $this->context->captcha_verify($input['captcha_encrypt'], $input['captcha_decrypt'])) {
+						unset($input['captcha_encrypt'], $input['captcha_decrypt']);
+					}
+					else
+					{
+						$name = 'captcha_decrypt';
+						break;
+					}
+				}
+				// foreach ($this->files as $name => $node)
+				// {
+				// 	$uploadedfile = $this->context->request_uploadedfile($name);
+				// 	if ((isset($node['required']) > $uploadedfile->count())
+				// 		|| (isset($node['accept']) && $uploadedfile->detect($node['accept']) === FALSE)
+				// 		|| (isset($node['data-maxfile']) && $uploadedfile->count() > intval($node['data-maxfile']))
+				// 		|| (isset($node['data-maxsize']) && $uploadedfile->size() > intval($node['data-maxsize']))) {
+				// 		break 2;
+				// 	}
+				// 	continue;
+				// }
+			}
+			$values = [];
+			foreach ($this->fields as $name => $node)
+			{
+				$tagname = $node->getName();
+				// if (isset($input[$name]) === FALSE)
+				// {
+				// 	switch ($tagname)
+				// 	{
+				// 		case 'div':
+				// 			foreach ($node->xpath('label/input[@name]') as $input)
+				// 			{
+				// 				if (isset($input['required']))
+				// 				{
+				// 					break 4;
+				// 				}
+				// 			}
+				// 			break;
+				// 		default:
+				// 			if (isset($node['required']))
+				// 			{
+				// 				break 3;
+				// 			}
+				// 			break;
+				// 	}
+				// 	$values[$name] = NULL;
+				// 	continue;
+				// }
+				//数据输入检查
+				$value = $input[$name];
+				switch ($tagname)
+				{
+					case 'div':
+					case 'select':
+						if ($tagname === 'div')
+						{
+							$nodename = 'label/input';
+							$multiple = (string)$node['data-type'] === 'checkbox';
+						}
+						else
+						{
+							$nodename = 'option';
+							$multiple = isset($node['multiple']);
+						}
+						$sourcedata = [];
+						foreach ($node->xpath("{$nodename}[@value]") as $children)
+						{
+							$sourcedata[] = (string)$children['value'];
+						}
+						if ($multiple)
+						{
+							if (is_array($value) === FALSE || array_diff($value, $sourcedata))
+							{
+								break 3;
+							}
+						}
+						else
+						{
+							if (in_array($value, $sourcedata, TRUE) === FALSE)
+							{
+								break 3;
+							}
+						}
+						break;
+					default:
+						if ((is_scalar($value) && $this->checkinput($node, $value)) === FALSE)
+						{
+							break 3;
+						}
+				}
+				$values[$name] = $value;
+			}
+			return $values;
+		} while (0);
+		$errors[] = "Form input[{$name}] invalid";
+		return NULL;
+		
 	}
 	function fieldset(string $name = NULL):webapp_html_xml
 	{
@@ -171,16 +291,25 @@ class webapp_html_form
 	{
 		return $this->fieldset->append('button', [$name, 'type' => $type] + $attributes);
 	}
-	function captcha(string $name):static
+	function captcha(string $name):?webapp_html_xml
 	{
-		$this->fieldset($name);
-		$this->field('captcha_encrypt')['value'] = $random = $this->webapp->captcha_random();
-		$this->field('captcha_decrypt', 'text', ['placeholder' => 'Type following captcha', 'onfocus' => 'this.select()', 'required' => NULL]);
-		$this->fieldset()->attr([
-			'style' => "height:{$this->webapp['captcha_size'][1]}px;background:url(?captcha/{$random}) no-repeat center",
-			'onckick' => ''
-		]);
-		return $this;
+		if ($this->captcha === NULL 
+			&& ($webapp = $this->context instanceof webapp_html_xml ? $this->context->webapp() : $this->context) instanceof webapp
+			&& $webapp['captcha_echo']) {
+			$this->captcha = $this->fieldset($name);
+			$this->field('captcha_encrypt');
+			$this->field('captcha_decrypt', 'text', ['placeholder' => 'Type following captcha', 'onfocus' => 'this.select()', 'required' => NULL]);
+			if ($this->context instanceof webapp_html_xml)
+			{
+				$this->fields['captcha_encrypt']['value'] = $random = $webapp->captcha_random();
+				$this->fieldset()->attr([
+					'style' => "height:{$webapp['captcha_params'][1]}px;background:url(?captcha/{$random}) no-repeat center",
+					'onckick' => ''
+				]);
+			}
+			unset($this->fields['captcha_encrypt'], $this->fields['captcha_decrypt']);
+		}
+		return $this->captcha;
 	}
 	function field(string $name, string $type = 'hidden', array $attributes = []):webapp_html_xml
 	{
@@ -233,11 +362,11 @@ class webapp_html_form
 				return $this->{$typename === 'file' ? 'files' : 'fields'}[$rename] = $this->fieldset->append('input', ['type' => $typename, 'name' => $alias] + $attributes);
 		}
 	}
-	function value(array $default):static
+	private function setdefault(array $values):static
 	{
 		foreach ($this->fields as $name => $node)
 		{
-			if (isset($default[$name]))
+			if (isset($values[$name]))
 			{
 				switch ($node->getName())
 				{
@@ -254,7 +383,7 @@ class webapp_html_form
 							$attrname = 'checked';
 						}
 						$more = [];
-						foreach (is_array($default[$name]) ? $default[$name] : [$default[$name]] as $value)
+						foreach (is_array($values[$name]) ? $values[$name] : [$values[$name]] as $value)
 						{
 							$more[] = "{$nodename}[@value=\"{$value}\"]";
 						}
@@ -267,119 +396,14 @@ class webapp_html_form
 						}
 						continue 2;
 					case 'textarea':
-						$node->text($default[$name]);
+						$node->text($values[$name]);
 						continue 2;
 					default:
-						$node['value'] = $default[$name];
+						$node['value'] = $values[$name];
 				}
 			}
 		}
 		return $this;
-	}
-	function fetch(bool $captcha = FALSE):?array
-	{
-		do
-		{
-			$input = $this->webapp->request_content($this->xml['enctype']);
-			foreach ($this->files as $name => $node)
-			{
-				$uploadedfile = $this->webapp->request_uploadedfile($name);
-				if ((isset($node['required']) > $uploadedfile->count())
-					|| (isset($node['accept']) && $uploadedfile->detect($node['accept']) === FALSE)
-					|| (isset($node['data-maxfile']) && $uploadedfile->count() > intval($node['data-maxfile']))
-					|| (isset($node['data-maxsize']) && $uploadedfile->size() > intval($node['data-maxsize']))) {
-					break 2;
-				}
-				continue;
-			}
-			$values = [];
-			foreach ($this->fields as $name => $node)
-			{
-				$tagname = $node->getName();
-				if (isset($input[$name]) === FALSE)
-				{
-					switch ($tagname)
-					{
-						case 'div':
-							foreach ($node->xpath('label/input[@name]') as $input)
-							{
-								if (isset($input['required']))
-								{
-									break 4;
-								}
-							}
-							break;
-						default:
-							if (isset($node['required']))
-							{
-								break 3;
-							}
-							break;
-					}
-					$values[$name] = NULL;
-					continue;
-				}
-				//数据输入检查
-				$value = $input[$name];
-				switch ($tagname)
-				{
-					case 'div':
-					case 'select':
-						if ($tagname === 'div')
-						{
-							$nodename = 'label/input';
-							$multiple = (string)$node['data-type'] === 'checkbox';
-						}
-						else
-						{
-							$nodename = 'option';
-							$multiple = isset($node['multiple']);
-						}
-						$sourcedata = [];
-						foreach ($node->xpath("{$nodename}[@value]") as $children)
-						{
-							$sourcedata[] = (string)$children['value'];
-						}
-						if ($multiple)
-						{
-							if (is_array($value) === FALSE || array_diff($value, $sourcedata))
-							{
-								break 3;
-							}
-						}
-						else
-						{
-							if (in_array($value, $sourcedata, TRUE) === FALSE)
-							{
-								break 3;
-							}
-						}
-						break;
-					default:
-						if ((is_string($value) && $this->checkinput($node, $value)) === FALSE)
-						{
-							break 3;
-						}
-				}
-				$values[$name] = $value;
-			}
-			if ($captcha)
-			{
-				if (array_key_exists('captcha_encrypt', $values)
-					&& array_key_exists('captcha_decrypt', $values)
-					&& $this->webapp->captcha_verify($values['captcha_encrypt'], $values['captcha_decrypt'])) {
-					unset($values['captcha_encrypt'], $values['captcha_decrypt']);
-				}
-				else
-				{
-					$name = 'captcha_decrypt';
-					break;
-				}
-			}
-			return $values;
-		} while (0);
-		($this->webapp)($this)->errors[] = "Form input[{$name}] invalid";
-		return NULL;
 	}
 	private function checkinput(webapp_html_xml $node, string $value):bool
 	{
@@ -441,7 +465,7 @@ class webapp_html_form
 class webapp_html_table
 {
 	public $xml, $tbody, $paging;
-	function __construct(public webapp $webapp, webapp_html_xml $node, iterable $data, closure $output = NULL, ...$params)
+	function __construct(webapp_html_xml $node, iterable $data, closure $output = NULL, mixed ...$params)
 	{
 		$this->xml = &$node->table[];
 		$this->tbody = &$this->xml->tbody;
@@ -472,6 +496,18 @@ class webapp_html_table
 	}
 	function __get(string $name)
 	{
+		// return match ($name)
+		// {
+		// 	'caption'	=> $this->caption = $this->xml->insert('caption', 'first'),
+		// 	'colgroup'	=> $this->colgroup = $this->caption->insert('colgroup', 'after'),
+		// 	'thead'		=> $this->thead = $this->tbody->insert('thead', 'before'),
+		// 	'fieldname'	=> $this->fieldname = &$this->thead->tr[],
+		// 	'title'		=> (property_exists($this, 'fieldname') ? $this->fieldname->insert('tr', 'before') : $this->thead->append('tr'))->append('td', ['colspan' => $this->column]),
+		// 	'column'	=> isset($this->tbody->tr->td) ? count($this->tbody->tr->td) : 0,
+		// 	'tfoot'		=> $this->tfoot = $this->tbody->insert('tfoot', 'after'),
+		// 	default		=> NULL
+		// }
+
 		switch ($name)
 		{
 			case 'caption': return $this->caption = $this->xml->insert('caption', 'first');
@@ -568,19 +604,16 @@ class webapp_html extends webapp_dom
 
 
 
-	static function form_sign_in(webapp $webapp, webapp_html_xml $node = NULL, string $authurl = NULL):webapp_html_form
+	static function form_sign_in(webapp_html_xml|webapp|array $context, string $authurl = NULL):NULL|array|webapp_html_form
 	{
-		$form = $webapp->formdata($node, $authurl);
+		$form = new webapp_html_form($context, $authurl);
 		$form->fieldset('Username');
 		$form->field('username', 'text', ['placeholder' => 'Type username', 'required' => NULL, 'autofocus' => NULL]);
 		$form->fieldset('Password');
 		$form->field('password', 'password', ['placeholder' => 'Type password', 'required' => NULL]);
-		if ($webapp['captcha_echo'])
-		{
-			$form->captcha('Captcha');
-		}
+		$form->captcha('Captcha');
 		$form->fieldset();
 		$form->button('Sign In', 'submit');
-		return $form;
+		return $form();
 	}
 }
