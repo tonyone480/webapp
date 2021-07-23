@@ -36,13 +36,13 @@ abstract class webapp implements ArrayAccess, Stringable
 			'app_charset'		=> 'utf-8',
 			//'app_rootdir'		=> __DIR__,
 			//'app_locales'		=> __DIR__ . '/local/en.php',
+			'app_preroute'		=> '?',
 			'app_mapping'		=> 'webapp_mapping_',
 			'app_index'			=> 'home',
 			'app_entry'			=> 'index',
 			//Admin
 			'admin_username'	=> 'admin',
 			'admin_password'	=> 'nimda',
-			'admin_captcha'		=> TRUE,
 			'admin_cookie'		=> 'webapp',
 			'admin_expire'		=> 604800,
 			//MySQL
