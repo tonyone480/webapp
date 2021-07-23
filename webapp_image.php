@@ -284,7 +284,7 @@ class webapp_image
 	}
 	static function qrcode(string $data, int $ecclevel = 0, int $pixel = 4, int $margin = 2):static
 	{
-		include 'qrcode/phpqrcode.php';
+		include 'files/qrcode/phpqrcode.php';
 		// switch (1)
 		// {
 		// 	case preg_match('/^[0-9]+$/', $data): $mode = QR_MODE_NUM; break;
