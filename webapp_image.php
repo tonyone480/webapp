@@ -2,69 +2,14 @@
 class webapp_image
 {
 	private
-	$file,
-	$image,
 	$colors = [0, 0xffffff],
 	$color = 0,
 	$width,
 	$height;
-	// static function from(string $filename):static
-	// {
-	// 	if (is_file($filename))
-	// 	{
-	// 		$fileinfo = getimagesize($filename);
-	// 		return match ($fileinfo[2])
-	// 		{
-	// 			1 => new static(imagecreatefromgif($filename)),
-	// 			2 => new static(imagecreatefromjpeg($filename)),
-	// 			3 => new static(imagecreatefrompng($filename)),
-	// 			default => static::create(),
-	// 		};
-	// 	}
-	// 	return new static(getimagesizefromstring($filename));
-	// }
-	function __construct(string $x, int $y = NULL)
+	function __construct(private $image)
 	{
-		if ($y === NULL)
-		{
-			if (is_file($x))
-			{
-				if ($info = getimagesize($x))
-				{
-					$this->width = $info[0];
-					$this->height = $info[1];
-					switch ($info[2])
-					{
-						case 1://GIF
-							$this->image = imagecreatefromgif($x);
-							return;
-						case 2://JPG
-							$this->image = imagecreatefromjpeg($x);
-							return;
-						case 3://PNG
-							$this->image = imagecreatefrompng($x);
-							return;
-					};
-				}
-			}
-			else
-			{
-				if ($info = getimagesizefromstring($x))
-				{
-					$this->image = imagecreatefromstring($x);
-					$this->width = $info[0];
-					$this->height = $info[1];
-					return;
-				}
-			}
-			throw new error;
-		}
-		$this->image = imagecreatetruecolor($this->width = $x, $this->height = $y);
-		$this->color(1)->fill(0, 0)->color(0);
-	}
-	function import(string $filename)
-	{
-
+		$this->width = imagesx($image);
+		$this->height = imagesy($image);
 	}
 	function colorat(int $x, int $y, string $name = NULL):static
 	{
@@ -201,7 +146,6 @@ class webapp_image
 		imagefilter($this->image, IMG_FILTER_PIXELATE, $block, $advanced);
 		return $this;
 	}
-
 	// function wave(array $values = []):webapp_img
 	// {
 	// 	$values += ['x0' => 12, 'x1' => 14, 'y0' => 11, 'y1' => 5];
@@ -240,10 +184,24 @@ class webapp_image
 	{
 		return imagewebp($this->image, $output, $quality);
 	}
-	// static function from(string $filename):static
-	// {
-
-	// }
+	static function from(string $filename):?static
+	{
+		return ($image = is_array($info = @getimagesize($filename)) ? match($info[2])
+		{
+			1 =>		imagecreatefromgif($filename),
+			2 =>		imagecreatefromjpeg($filename),
+			3 =>		imagecreatefrompng($filename),
+			6 =>		imagecreatefrombmp($filename),
+			18 =>		imagecreatefromwebp($filename),
+			15 =>		imagecreatefromwbmp($filename),
+			16 =>		imagecreatefromxbm($filename),
+			default =>	FALSE
+		} : imagecreatefromstring($filename)) ? new static($image) : NULL;
+	}
+	static function create(int $width, int $height):static
+	{
+		return (new static(imagecreatetruecolor($width, $height)))->color(1)->fill(0, 0)->color(0);
+	}
 	static function captcha(array $contents, int $width, int $height, string $font, int $size)
 	{
 		$offset = 0;
@@ -269,7 +227,7 @@ class webapp_image
 			])['width'];
 		}
 		$offset = ($width - $offset) * 0.5;
-		$image = new static($width, $height);
+		$image = static::create($width, $height);
 		foreach ($writing as $write)
 		{
 			$image->text($offset + $write['left'],
@@ -284,15 +242,8 @@ class webapp_image
 	}
 	static function qrcode(string $data, int $ecclevel = 0, int $pixel = 4, int $margin = 2):static
 	{
-		include 'files/qrcode/phpqrcode.php';
-		// switch (1)
-		// {
-		// 	case preg_match('/^[0-9]+$/', $data): $mode = QR_MODE_NUM; break;
-		// 	case preg_match('/^[0-9A-Z\$%\*\+\–\.\/\: ]+$/', $data): $mode = QR_MODE_AN; break;
-		// 	default: $mode = QR_MODE_8;
-		// }
-		$size = count($data = (new QRcode())->encodeString8bit($data, 0, $ecclevel)->data);
-		$image = new static($resize = $size + $margin * 2, $resize);
+		$size = count($data = (include 'files/qrcode/function.php')($data, $ecclevel));
+		$image = static::create($resize = $size + $margin * 2, $resize);
 		for ($x = 0; $x < $size; ++$x)
 		{
 			for ($y = 0; $y < $size; ++$y)
