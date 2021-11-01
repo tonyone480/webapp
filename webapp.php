@@ -36,7 +36,7 @@ abstract class webapp implements ArrayAccess, Stringable
 			'app_charset'		=> 'utf-8',
 			//'app_rootdir'		=> __DIR__,
 			//'app_locales'		=> __DIR__ . '/local/en.php',
-			'app_preroute'		=> '?',
+			'app_sources'		=> '/webapp/files',
 			'app_mapping'		=> 'webapp_mapping_',
 			'app_index'			=> 'home',
 			'app_entry'			=> 'index',
@@ -334,7 +334,10 @@ abstract class webapp implements ArrayAccess, Stringable
 	{
 		return inet_ntop(hex2bin($hex));
 	}
-
+	function src($filename):string
+	{
+		return "{$this['app_sources']}{$filename}";
+	}
 
 	function connect(string $url):webapp_connect
 	{
