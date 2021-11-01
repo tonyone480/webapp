@@ -23,7 +23,7 @@ interface webapp_sapi
 }
 abstract class webapp implements ArrayAccess, Stringable
 {
-	const version = '4.1a', key = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz-';
+	const version = '4.4a', key = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz-';
 	private array $errors = [], $headers = [], $cookies = [], $configs, $uploadedfiles;
 	function __construct(private webapp_sapi $sapi, array $config = [])
 	{
@@ -33,10 +33,11 @@ abstract class webapp implements ArrayAccess, Stringable
 			'request_method'	=> in_array($method = strtolower($sapi->request_method()), ['get', 'post', 'put', 'delete'], TRUE) ? $method : 'get',
 			'request_query'		=> $sapi->request_query(),
 			//Application
+			// 'app_rootdir'		=> __DIR__,
+			// 'app_locales'		=> __DIR__ . '/lib/local/en.php',
+			'app_library'		=> __DIR__ . '/lib',
 			'app_rootsrc'		=> '/webapp/src',
 			'app_charset'		=> 'utf-8',
-			//'app_rootdir'		=> __DIR__,
-			//'app_locales'		=> __DIR__ . '/local/en.php',
 			'app_mapping'		=> 'webapp_mapping_',
 			'app_index'			=> 'home',
 			'app_entry'			=> 'index',
@@ -681,10 +682,12 @@ abstract class webapp implements ArrayAccess, Stringable
 		}
 		return 404;
 	}
-	// function get_home()
-	// {
-	// 	$this->app('webapp_html')->section->append('h1', ['Welcome use WebApp Framework', 'style' => 'padding:0.6rem']);
-	// }
+	function get_home()
+	{
+		$this->app('webapp_html')->header['style'] = 'font-size:2rem';
+		$this->app->header->text('Welcome in WebApp Framework');
+		//$this->app('webapp_html')->header->append('h1', ['Welcome use WebApp Framework', 'style' => 'padding:0.6rem']);
+	}
 	//这个函数在不久的将来会被移除
 	function get_scss(string $filename = NULL)
 	{
