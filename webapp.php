@@ -337,7 +337,7 @@ abstract class webapp implements ArrayAccess, Stringable
 	//---------------------
 	function rootsrc($filename):string
 	{
-		return "{$this['app_sources']}{$filename}";
+		return "{$this['app_rootres']}/{$filename}";
 	}
 
 	function connect(string $url):webapp_connect
