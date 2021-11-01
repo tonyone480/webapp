@@ -1,5 +1,5 @@
 <?php
-require '../webapp_for_sapi.php';
+require __DIR__ . '/../webapp_for_sapi.php';
 class webapp_mysql_api extends webapp_echo_json
 {
 	function __construct(webapp $webapp)

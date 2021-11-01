@@ -1,5 +1,5 @@
 <?php
-require '../webapp_for_sapi.php';
+require __DIR__ . '/../webapp_for_sapi.php';
 new class extends webapp
 {
 	function __construct()
