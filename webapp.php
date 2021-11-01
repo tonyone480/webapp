@@ -335,7 +335,7 @@ abstract class webapp implements ArrayAccess, Stringable
 		return inet_ntop(hex2bin($hex));
 	}
 	//---------------------
-	function src($filename):string
+	function rootsrc($filename):string
 	{
 		return "{$this['app_sources']}{$filename}";
 	}
