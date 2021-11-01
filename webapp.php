@@ -33,10 +33,10 @@ abstract class webapp implements ArrayAccess, Stringable
 			'request_method'	=> in_array($method = strtolower($sapi->request_method()), ['get', 'post', 'put', 'delete'], TRUE) ? $method : 'get',
 			'request_query'		=> $sapi->request_query(),
 			//Application
+			'app_rootsrc'		=> '/webapp/src',
 			'app_charset'		=> 'utf-8',
 			//'app_rootdir'		=> __DIR__,
 			//'app_locales'		=> __DIR__ . '/local/en.php',
-			'app_sources'		=> '/webapp/files',
 			'app_mapping'		=> 'webapp_mapping_',
 			'app_index'			=> 'home',
 			'app_entry'			=> 'index',
