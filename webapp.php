@@ -36,7 +36,7 @@ abstract class webapp implements ArrayAccess, Stringable
 			// 'app_rootdir'		=> __DIR__,
 			// 'app_locales'		=> __DIR__ . '/lib/local/en.php',
 			'app_library'		=> __DIR__ . '/lib',
-			'app_rootsrc'		=> '/webapp/src',
+			'app_resroot'		=> '/webapp/res',
 			'app_charset'		=> 'utf-8',
 			'app_mapping'		=> 'webapp_mapping_',
 			'app_index'			=> 'home',
@@ -336,9 +336,13 @@ abstract class webapp implements ArrayAccess, Stringable
 		return inet_ntop(hex2bin($hex));
 	}
 	//---------------------
-	function rootsrc($filename):string
+	function library(string $function):mixed
 	{
-		return "{$this['app_rootres']}/{$filename}";
+		return include_once "{$this['app_library']}/{$function}/interface.php";
+	}
+	function resroot(string $filename = NULL):string
+	{
+		return "{$this['app_resroot']}/{$filename}";
 	}
 	//----------------
 	function connect(string $url):webapp_connect
@@ -652,6 +656,12 @@ abstract class webapp implements ArrayAccess, Stringable
 			&& $format[0] + $this['captcha_expire'] > time()
 			&& join(array_column($format[1], 0)) === strtoupper($answer);
 	}
+	function get_home()
+	{
+		$this->app('webapp_html')->header['style'] = 'font-size:2rem';
+		$this->app->header->text('Welcome in WebApp Framework');
+		//$this->app('webapp_html')->header->append('h1', ['Welcome use WebApp Framework', 'style' => 'padding:0.6rem']);
+	}
 	function get_captcha(string $random = NULL)
 	{
 		if ($this['captcha_echo'])
@@ -682,27 +692,22 @@ abstract class webapp implements ArrayAccess, Stringable
 		}
 		return 404;
 	}
-	function get_home()
-	{
-		$this->app('webapp_html')->header['style'] = 'font-size:2rem';
-		$this->app->header->text('Welcome in WebApp Framework');
-		//$this->app('webapp_html')->header->append('h1', ['Welcome use WebApp Framework', 'style' => 'padding:0.6rem']);
-	}
 	//这个函数在不久的将来会被移除
 	function get_scss(string $filename = NULL)
 	{
 		$this->response_content_type('text/css');
 		$this->response_cache_control('no-cache');
-		if (preg_match('/^\w+/', $filename) && file_exists($infile = "work/webapp/files/ps/{$filename}.scss"))
+		if (file_exists($scss = __DIR__ . "/res/ps/{$filename}.scss"))
 		{
-			if (filemtime($infile) > filemtime($outfile = "work/webapp/files/ps/{$filename}.css"))
+			if (filemtime($scss) > filemtime($css = __DIR__ . "/res/ps/{$filename}.css"))
 			{
-				include 'scss/scss.php';
-				$scss = new Leafo\ScssPhp\Compiler;
-				$scss->setFormatter('Leafo\ScssPhp\Formatter\Expanded');
-				file_put_contents($outfile, $scss->compile(file_get_contents($infile)));
+				$app = $this->library("scss");
+			// 	// include 'lib/scss/scss.php';
+			// 	// $a = new Leafo\ScssPhp\Compiler;
+				$app->setFormatter('Leafo\ScssPhp\Formatter\Expanded');
+				file_put_contents($css, $app->compile(file_get_contents($scss)));
 			}
-			$this->response_sendfile("webapp/files/ps/{$filename}.css");
+			$this->response_sendfile($css);
 			return;
 		}
 	}
