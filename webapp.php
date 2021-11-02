@@ -693,22 +693,23 @@ abstract class webapp implements ArrayAccess, Stringable
 		return 404;
 	}
 	//这个函数在不久的将来会被移除
-	function get_scss(string $filename = NULL)
+	function get_scss(string $filename)
 	{
-		$this->response_content_type('text/css');
-		$this->response_cache_control('no-cache');
 		if (file_exists($scss = __DIR__ . "/res/ps/{$filename}.scss"))
 		{
+			$this->response_content_type('text/css');
+			$this->response_cache_control('no-cache');
 			if (filemtime($scss) > filemtime($css = __DIR__ . "/res/ps/{$filename}.css"))
 			{
-				$app = $this->library("scss");
-			// 	// include 'lib/scss/scss.php';
-			// 	// $a = new Leafo\ScssPhp\Compiler;
+				// include 'lib/scss/scss.php';
+				// $a = new Leafo\ScssPhp\Compiler;
+				$app = $this->library('scss');
 				$app->setFormatter('Leafo\ScssPhp\Formatter\Expanded');
 				file_put_contents($css, $app->compile(file_get_contents($scss)));
 			}
 			$this->response_sendfile($css);
 			return;
 		}
+		return 404;
 	}
 }

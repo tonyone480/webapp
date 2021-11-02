@@ -242,7 +242,7 @@ class webapp_image
 	}
 	static function qrcode(string $data, int $ecclevel = 0, int $pixel = 4, int $margin = 2):static
 	{
-		$size = count($data = (include 'lib/qrcode/function.php')($data, $ecclevel));
+		$size = count($data = (include __DIR__ . '/lib/qrcode/interface.php')($data, $ecclevel));
 		$image = static::create($resize = $size + $margin * 2, $resize);
 		for ($x = 0; $x < $size; ++$x)
 		{
