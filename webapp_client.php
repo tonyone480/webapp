@@ -24,7 +24,7 @@ class webapp_client
 			'is_tty' =>			stream_isatty($this->stream)
 		};
 	}
-	// 调试
+	//调试
 	function debug(int $filter = STREAM_FILTER_WRITE/* STREAM_FILTER_ALL */):void
 	{
 		if (in_array('webapp_client_debug', stream_get_filters(), TRUE) === FALSE)
