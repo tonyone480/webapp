@@ -1,8 +1,7 @@
 <?php
-require 'webapp_connect.php';
+require 'webapp_client.php';
 require 'webapp_dom.php';
 require 'webapp_echo.php';
-require 'webapp_html.php';
 require 'webapp_image.php';
 require 'webapp_mysql.php';
 interface webapp_sapi

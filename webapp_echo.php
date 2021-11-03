@@ -24,6 +24,63 @@ trait webapp_echo
 		return $this->webapp->{$name}(...$params);
 	}
 }
+class webapp_echo_html extends webapp_dom
+{
+	use webapp_echo;
+	const appxml = 'webapp_html_xml';
+	function __construct(webapp $webapp, string $data = NULL)
+	{
+		$this($webapp)->response_content_type("text/html; charset={$webapp['app_charset']}");
+		if ($data)
+		{
+			str_starts_with($data, '<') ? $this->loadHTML($data) : $this->loadHTMLFile($data);
+		}
+		else
+		{
+			$this->loadHTML("<!doctype html><html><head><meta charset='{$webapp['app_charset']}'><meta name='viewport' content='width=device-width, initial-scale=1.0'/></head><body class='webapp'/></html>");
+			//$this->xml->head->append('link', ['rel' => 'stylesheet', 'type' => 'text/css', 'href' => '?scss/webapp']);
+			// $this->xml->head->append('link', ['rel' => 'stylesheet', 'type' => 'text/css', 'href' => 'webflock/core/files/ps/font-awesome.css']);
+			//$this->xml->head->append('script', ['type' => 'javascript/module', 'src' => 'webapp/files/js/webapp.js']);
+			$this->article = $this->xml->body->append('article');
+			$this->header = $this->article->append('header');
+			$this->section = $this->article->append('section');
+			$this->footer = $this->article->append('footer', $this->webapp['copy_webapp']);
+		}
+	}
+	function __toString():string
+	{
+		return html_entity_decode($this->saveHTML(), ENT_HTML5, $this->webapp['app_charset']);
+	}
+	function xpath(string $expression):array
+	{
+		return iterator_to_array((new DOMXPath($this))->evaluate($expression));
+	}
+	function title(string $title):void
+	{
+		$this->xml->head->title = $title;
+	}
+	function aside(bool $after = FALSE):webapp_html_xml
+	{
+		$this->aside = $this->article->section->append('aside');
+		$this->section = $this->aside->insert('section', $after ? 'before' : 'after');
+		return $this->aside;
+	}
+
+
+
+	static function form_sign_in(webapp_html_xml|webapp|array $context, string $authurl = NULL):NULL|array|webapp_html_form
+	{
+		$form = new webapp_html_form($context, $authurl);
+		$form->fieldset('Username');
+		$form->field('username', 'text', ['placeholder' => 'Type username', 'required' => NULL, 'autofocus' => NULL]);
+		$form->fieldset('Password');
+		$form->field('password', 'password', ['placeholder' => 'Type password', 'required' => NULL]);
+		$form->captcha('Captcha');
+		$form->fieldset();
+		$form->button('Sign In', 'submit');
+		return $form();
+	}
+}
 class webapp_echo_json extends ArrayObject implements Stringable
 {
 	use webapp_echo;

@@ -1,38 +1,11 @@
 <?php
-class webapp_connect_debug extends php_user_filter
+class webapp_client
 {
-	//注意：过滤流在内部读取时只能过滤一个队列，这是一个BUG？
-	function filter($in, $out, &$consumed, $closing):int
+	public $errors = [];
+	private $length = 0, $buffer, $stream;
+	function __construct(private string $remote)
 	{
-		echo "\r\n", $consumed === NULL
-			? '>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'
-			: '<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<',
-			"\r\n";
-		while ($bucket = stream_bucket_make_writeable($in))
-		{
-			$consumed += $bucket->datalen;
-			stream_bucket_append($out, $bucket);
-			echo quoted_printable_encode($bucket->data);
-		}
-		return PSFS_PASS_ON;
-	}
-}
-class webapp_connect
-{
-	public $errors = [], $path;
-	private $cookies = [], $headers = [
-		'Host' => '*',
-		'Connection' => 'keep-alive',
-		'User-Agent' => 'WebApp/Connect',
-		'Accept' => '*/*',
-		'Accept-Encoding' => 'gzip, deflate',
-		'Accept-Language' => 'en'
-	], $length = 0, $buffer, $remote, $stream;
-	function __construct(public string $url, private ?array &$referers = [])
-	{
-		[$this->headers['Host'], $this->remote, $this->path] = static::parseurl($url);
 		$this->buffer = fopen('php://memory', 'w+');
-		$this->referers[$this->remote] = $this;
 		$this->reconnect();
 	}
 	function __destruct()
@@ -43,8 +16,6 @@ class webapp_connect
 	{
 		return match($name)
 		{
-			'cookies' =>		$this->cookies,
-			'headers' =>		$this->headers,
 			'metadata' =>		stream_get_meta_data($this->stream),
 			// 'remote_name' =>	stream_socket_get_name($this->stream, TRUE),
 			// 'local_name' =>		stream_socket_get_name($this->stream, FALSE),
@@ -53,48 +24,16 @@ class webapp_connect
 			'is_tty' =>			stream_isatty($this->stream)
 		};
 	}
-	static function parseurl(string $url):array
-	{
-		if (is_array($urlinfo = parse_url($url)) && array_key_exists('scheme', $urlinfo) && array_key_exists('host', $urlinfo))
-		{
-			if (preg_match('/^(?:http|ws)(s)?$/i', $urlinfo['scheme'], $pattern))
-			{
-				if (count($pattern) === 2)
-				{
-					$protocol = 'ssl';
-					$port = $urlinfo['port'] ?? 443;
-				}
-				else
-				{
-					$protocol = 'tcp';
-					$port = $urlinfo['port'] ?? 80;
-				}
-			}
-			else
-			{
-				$protocol = $urlinfo['scheme'];
-				$port = $urlinfo['port'] ?? 0;
-			}
-			return [$urlinfo['host'],
-				"{$protocol}://{$urlinfo['host']}:{$port}",
-				($urlinfo['path'] ?? NULL) . (array_key_exists('query', $urlinfo) ? "?{$urlinfo['query']}" : NULL)];
-		}
-		return ['127.0.0.1', 'tcp://127.0.0.1:80', '/'];
-	}
-	static function mimetype(array $responses):array
-	{
-		return preg_match('/^[a-z]+\/([^;]+)(?:[^=]+=([^\n]+))?/i', $mime = $responses['Content-Type'] ?? 'application/octet-stream', $type) ? $type : [$mime, 'unknown'];
-	}
 	// 调试
 	function debug(int $filter = STREAM_FILTER_WRITE/* STREAM_FILTER_ALL */):void
 	{
-		if (in_array('webapp_connect_debug', stream_get_filters(), TRUE) === FALSE)
+		if (in_array('webapp_client_debug', stream_get_filters(), TRUE) === FALSE)
 		{
-			stream_filter_register('webapp_connect_debug', 'webapp_connect_debug');
+			stream_filter_register('webapp_client_debug', 'webapp_client_debug');
 		}
 		if ($this->debug === NULL && $filter)
 		{
-			$this->debug = stream_filter_append($this->stream, 'webapp_connect_debug', $filter);
+			$this->debug = stream_filter_append($this->stream, 'webapp_client_debug', $filter);
 		}
 	}
 	//重连
@@ -106,7 +45,7 @@ class webapp_connect
 			'allow_self_signed' => TRUE]]))) {
 			return TRUE;
 		}
-		$this->errors[] = $error;
+		$this->errors[] = "{$erron}:{$error}";
 		return FALSE;
 	}
 	//断开
@@ -436,6 +375,88 @@ class webapp_connect
 		}
 		return $host;
 	}
+}
+class webapp_client_debug extends php_user_filter
+{
+	//注意：过滤流在内部读取时只能过滤一个队列，这是一个BUG？
+	function filter($in, $out, &$consumed, $closing):int
+	{
+		echo "\r\n", $consumed === NULL
+			? '>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'
+			: '<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<',
+			"\r\n";
+		while ($bucket = stream_bucket_make_writeable($in))
+		{
+			$consumed += $bucket->datalen;
+			stream_bucket_append($out, $bucket);
+			echo quoted_printable_encode($bucket->data);
+		}
+		return PSFS_PASS_ON;
+	}
+}
+class webapp_client_smtp extends webapp_client
+{
+}
+class webapp_client_http //extends webapp_client
+{
+	public $path;
+	private $cookies = [], $headers = [
+		'Host' => '*',
+		'Connection' => 'keep-alive',
+		'User-Agent' => 'WebApp/Connect',
+		'Accept' => '*/*',
+		'Accept-Encoding' => 'gzip, deflate',
+		'Accept-Language' => 'en'
+	];
+	static function parseurl(string $url):array
+	{
+		if (is_array($parse = parse_url($url)) && array_key_exists('scheme', $parse) && array_key_exists('host', $parse))
+		{
+			if (preg_match('/^(?:http|ws)(s)?$/i', $parse['scheme'], $pattern))
+			{
+				if (count($pattern) === 2)
+				{
+					$protocol = 'ssl';
+					$port = $parse['port'] ?? 443;
+				}
+				else
+				{
+					$protocol = 'tcp';
+					$port = $parse['port'] ?? 80;
+				}
+			}
+			else
+			{
+				$protocol = $parse['scheme'];
+				$port = $parse['port'] ?? 0;
+			}
+			$path = $parse['path'] ?? '/';
+			if (array_key_exists('query', $parse))
+			{
+				$path .= "?{$parse['query']}";
+			}
+			return ["{$protocol}://{$parse['host']}:{$port}", ($parse['path'] ?? '/') . (array_key_exists('query', $parse) ? "?{$parse['query']}" : NULL)];
+		}
+		return ['tcp://127.0.0.1:80', '/'];
+	}
+	static function mimetype(array $responses):array
+	{
+		return preg_match('/^[a-z]+\/([^;]+)(?:[^=]+=([^\n]+))?/i', $mime = $responses['Content-Type'] ?? 'application/octet-stream', $type) ? $type : [$mime, 'unknown'];
+	}
+	function __construct(public string $url, private ?array &$referers = [])
+	{
+		$parse = static::parseurl($url);
+		[$this->headers['Host'], $this->path] = $parse;
+		print_r($parse);
+		// [$this->headers['Host'], $this->remote, $this->path] = static::parseurl($url);
+		// $this->buffer = fopen('php://memory', 'w+');
+		// $this->referers[$this->remote] = $this;
+		// $this->reconnect();
+	}
+
+}
+class webapp_client_websocket extends webapp_client_http
+{
 	/*
 	WebSocket
 	Frame format:
@@ -458,6 +479,10 @@ class webapp_connect
 	|                     Payload Data continued ...                |
 	+---------------------------------------------------------------+
 	*/
+	function __construct(string $url)
+	{
+
+	}
 	function websocket(?array &$responses = NULL):bool
 	{
 		return ($responses = $this->headers([
@@ -523,6 +548,7 @@ class webapp_connect
 		}
 		return [];
 	}
+
 	function sendframe(string $content, int $opcode = 1, bool $fin = TRUE, int $rsv = 0, string $mask = NULL):bool
 	{
 		return $this->send($this->packfhi(strlen($content), $opcode, $fin, $rsv, $mask)) && $this->send($content);

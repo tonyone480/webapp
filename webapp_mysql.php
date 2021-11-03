@@ -1,264 +1,5 @@
 <?php
 #?ini_set('mysqli.reconnect', TRUE);
-/*
-class webapp_mysql_target implements ArrayAccess
-{
-	private $rawdata = [], $change = [];
-	protected $table, $mysql, $tablename, $primary, $key;
-	final function __construct(webapp_mysql_table $table, $mixed = NULL)
-	{
-		$this->table = $table;
-		$this->mysql = $table->mysql;
-		$this->tablename = &$table->tablename();
-		$this->primary = &$table->primary();
-		if (is_scalar($mixed))
-		{
-			if ($this->rawdata = $this->mysql->row('SELECT * FROM ?a WHERE ?a=?s LIMIT 1', $this->tablename, $this->primary, $mixed))
-			{
-				$this->key = $this->rawdata[$this->primary];
-			}
-		}
-		else
-		{
-			if (is_array($mixed))
-			{
-				if (array_key_exists($this->primary, $mixed))
-				{
-					$this->key = $mixed[$this->primary];
-				}
-				$this->change = $mixed;
-			}
-		}
-	}
-	function __get(string $field)
-	{
-		return $this[$field];
-	}
-	function __set(string $field, $value)
-	{
-		return $this[$field] = $value;
-	}
-	final function offsetExists($key):bool
-	{
-		return array_key_exists($key, $this->rawdata) || array_key_exists($key, $this->change);
-	}
-	final function offsetGet($key)
-	{
-		return array_key_exists($key, $this->change) ? $this->change[$key] : $this->rawdata[$key] ?? NULL;
-	}
-	final function offsetSet($key, $value):void
-	{
-		$data = $value === NULL ? NULL : (string)$value;
-		if (array_key_exists($key, $this->rawdata) === FALSE || $this->rawdata[$key] !== $data)
-		{
-			$this->change[$key] = $data;
-		}
-	}
-	final function offsetUnset($key):void
-	{
-		$this[$key] = NULL;
-	}
-
-	// protected function mysql(...$query):webapp_mysql
-	// {
-	// 	return $this->table->mysql(...$query);
-	// }
-	protected function table(...$cond):webapp_mysql_table
-	{
-		return ($this->table)(...$cond);
-	}
-	function save(string $key = NULL):bool
-	{
-		if ($this->change)
-		{
-			if ($key === NULL)
-			{
-				$key = $this->key;
-			}
-			if ($this->table('WHERE ?a=?s LIMIT 1', $this->primary, $key)->update($this->change))
-			{
-				$this->key = array_key_exists($this->primary, $this->change) ? $this->change[$this->primary] : $key;
-				$this->rawdata = $this->change + $this->rawdata;
-				$this->change = [];
-				return TRUE;
-			}
-			return FALSE;
-		}
-		return TRUE;
-	}
-	function saveas(string $key = NULL):bool
-	{
-		$data = $this->change + $this->rawdata;
-		$data[$this->primary] = $key;
-		if ($this->table->insert($data))
-		{
-			$this->key = $data[$this->primary] === NULL
-				? $data[$this->primary] = $this->mysql->insert_id
-				: $data[$this->primary];
-			$this->rawdata = $data;
-			$this->change = [];
-			return TRUE;
-		}
-		return FALSE;
-	}
-	function exist():bool
-	{
-		return boolval($this->rawdata);
-	}
-	function empty():bool
-	{
-		return empty($this->rawdata);
-	}
-	function delete():bool
-	{
-		if ($this->table->delete('WHERE ?a=?s LIMIT 1', $this->primary, $this->key))
-		{
-			$this->change += $this->rawdata;
-			$this->rawdata = [];
-			return TRUE;
-		}
-		return FALSE;
-	}
-}
-*/
-abstract class webapp_mysql_table implements IteratorAggregate, Countable, Stringable
-{
-	private $cond, $paging, $fields = '*';
-	protected $mysql, $tablename, $targetname = 'webapp_mysql_target';
-	function __construct(webapp_mysql $mysql)
-	{
-		$this->mysql = $mysql;
-	}
-	function __isset(string $name):bool
-	{
-		return property_exists($this, $name);
-	}
-	function __get(string $name)
-	{
-		switch ($name)
-		{
-			case 'mysql': return $this->mysql;
-			case 'tablename': return $this->tablename();
-			case 'primary': return $this->primary();
-			case 'paging': return $this->paging;
-			case 'scalar':
-			case 'row':
-				if (preg_match('/LIMIT\s+\d+(?:,\d+)?$/i', $this->cond) === 0)
-				{
-					$this->cond .= ' LIMIT 1';
-				}
-			case 'all':
-				return $this->mysql->{$name}('SELECT ?? FROM ?a??', $this->fields, $this->tablename, (string)$this);
-
-			case 'create': return $this->mysql->row('SHOW CREATE TABLE ?a', $this->tablename)['Create Table'];
-		}
-	}
-	function __invoke(...$cond):static
-	{
-		return [$this, $this->cond = $this->mysql->sprintf(...$cond)][0];
-	}
-	function __toString():string
-	{
-		return [is_string($this->cond) ? " {$this->cond}" : (string)$this->cond, $this->cond = NULL, $this->fields = '*'][0];
-	}
-	function getIterator():Traversable
-	{
-		return $this->mysql->list('SELECT ?? FROM ?a??', $this->fields, $this->tablename, (string)$this);
-	}
-	function count(?string &$cond = NULL):int
-	{
-		return [$cond = $this->cond, intval($this->mysql->scalar('SELECT SQL_NO_CACHE COUNT(1) FROM ?a?? LIMIT 1', $this->tablename, (string)$this))][1];
-	}
-	function &tablename():string
-	{
-		return $this->tablename;
-	}
-	function &primary():string
-	{
-		if (property_exists($this, 'primary') === FALSE)
-		{
-			$this->primary =
-				$this->mysql->row('SHOW FIELDS FROM ?a WHERE ?a=?s', $this->tablename, 'Key', 'PRI')['Field'] ??
-				$this->mysql->row('SHOW FIELDS FROM ?a WHERE ?a=?s', $this->tablename, 'Key', 'UNI')['Field'] ?? NULL;
-		}
-		return $this->primary;
-	}
-	function fieldinfo()
-	{
-		$fields = [];
-		foreach ($this->mysql->list('SHOW FULL COLUMNS FROM ?a', $this->tablename) as $info)
-		{
-			$fields[$info['Field']] = array_change_key_case($info);
-		}
-	
-		print_r($fields);
-		// array_change_key_case()
-		// $fields = [];
-		// foreach ($this->mysql->list('SHOW FULL COLUMNS FROM ?a', $this->tablename) as $field)
-		// {
-		// 	print_r($field);
-		// }
-	}
-	function mysql(...$query):bool
-	{
-		return ($this->mysql)(...$query);
-	}
-	function insert($data):bool
-	{
-		return $this->mysql('INSERT INTO ?a SET ??', $this->tablename, $this->mysql->sprintf(...is_array($data) ? ['?v', $data] : func_get_args())) && $this->mysql->affected_rows === 1;
-	}
-	function append($data):int
-	{
-		return $this->insert($data) ? $this->mysql->insert_id : 0;
-	}
-	function delete(...$query):int
-	{
-		return $this->mysql('DELETE FROM ?a??', $this->tablename, (string)($query ? $this(...$query) : $this)) ? $this->mysql->affected_rows : -1;
-	}
-	function update($data):int
-	{
-		return $this->mysql('UPDATE ?a SET ????', $this->tablename, $this->mysql->sprintf(...is_array($data) ? ['?v', $data] : func_get_args()), (string)$this) ? intval(substr($this->mysql->info, 14)) : -1;
-	}
-	function select($fields):static
-	{
-		return [$this, $this->fields = $this->mysql->sprintf('?A', $fields)][0];
-	}
-	function paging(int $index, int $rows = 21):static
-	{
-		$this->paging['count'] = $this->count($this->paging['cond']);
-		$this->paging['max'] = ceil($this->paging['count'] / $rows);
-		$this->paging['index'] = max(1, min($index, $this->paging['max']));
-		$this->paging['skip'] = ($this->paging['index'] - 1) * $rows;
-		$this->paging['rows'] = $rows;
-		return $this(join(' ', [$this->paging['cond'], 'LIMIT', "{$this->paging['skip']},{$rows}"]));
-	}
-	function column(string ...$keys):array
-	{
-		return array_column($this->select($keys)->all, ...$keys);
-	}
-
-	function target($mixed = NULL):webapp_mysql_target
-	{
-		return new $this->targetname($this, $mixed);
-	}
-	function rename(string $name):bool
-	{
-		if ($this->mysql('ALTER TABLE ?a RENAME TO ?a', $this->tablename, $name))
-		{
-			$this->tablename = $name;
-			return TRUE;
-		}
-		return FALSE;
-	}
-	function truncate():bool
-	{
-		return $this->mysql('TRUNCATE TABLE ?a', $this->tablename);
-	}
-	function drop():bool
-	{
-		return $this->mysql('DROP TABLE ?a', $this->tablename);
-	}
-}
 class webapp_mysql extends mysqli
 {
 	public array $errors = [];
@@ -505,3 +246,262 @@ class webapp_mysql extends mysqli
 		
 	// }
 }
+abstract class webapp_mysql_table implements IteratorAggregate, Countable, Stringable
+{
+	private $cond, $paging, $fields = '*';
+	protected $mysql, $tablename, $targetname = 'webapp_mysql_target';
+	function __construct(webapp_mysql $mysql)
+	{
+		$this->mysql = $mysql;
+	}
+	function __isset(string $name):bool
+	{
+		return property_exists($this, $name);
+	}
+	function __get(string $name)
+	{
+		switch ($name)
+		{
+			case 'mysql': return $this->mysql;
+			case 'tablename': return $this->tablename();
+			case 'primary': return $this->primary();
+			case 'paging': return $this->paging;
+			case 'scalar':
+			case 'row':
+				if (preg_match('/LIMIT\s+\d+(?:,\d+)?$/i', $this->cond) === 0)
+				{
+					$this->cond .= ' LIMIT 1';
+				}
+			case 'all':
+				return $this->mysql->{$name}('SELECT ?? FROM ?a??', $this->fields, $this->tablename, (string)$this);
+
+			case 'create': return $this->mysql->row('SHOW CREATE TABLE ?a', $this->tablename)['Create Table'];
+		}
+	}
+	function __invoke(...$cond):static
+	{
+		return [$this, $this->cond = $this->mysql->sprintf(...$cond)][0];
+	}
+	function __toString():string
+	{
+		return [is_string($this->cond) ? " {$this->cond}" : (string)$this->cond, $this->cond = NULL, $this->fields = '*'][0];
+	}
+	function getIterator():Traversable
+	{
+		return $this->mysql->list('SELECT ?? FROM ?a??', $this->fields, $this->tablename, (string)$this);
+	}
+	function count(?string &$cond = NULL):int
+	{
+		return [$cond = $this->cond, intval($this->mysql->scalar('SELECT SQL_NO_CACHE COUNT(1) FROM ?a?? LIMIT 1', $this->tablename, (string)$this))][1];
+	}
+	function &tablename():string
+	{
+		return $this->tablename;
+	}
+	function &primary():string
+	{
+		if (property_exists($this, 'primary') === FALSE)
+		{
+			$this->primary =
+				$this->mysql->row('SHOW FIELDS FROM ?a WHERE ?a=?s', $this->tablename, 'Key', 'PRI')['Field'] ??
+				$this->mysql->row('SHOW FIELDS FROM ?a WHERE ?a=?s', $this->tablename, 'Key', 'UNI')['Field'] ?? NULL;
+		}
+		return $this->primary;
+	}
+	function fieldinfo()
+	{
+		$fields = [];
+		foreach ($this->mysql->list('SHOW FULL COLUMNS FROM ?a', $this->tablename) as $info)
+		{
+			$fields[$info['Field']] = array_change_key_case($info);
+		}
+	
+		print_r($fields);
+		// array_change_key_case()
+		// $fields = [];
+		// foreach ($this->mysql->list('SHOW FULL COLUMNS FROM ?a', $this->tablename) as $field)
+		// {
+		// 	print_r($field);
+		// }
+	}
+	function mysql(...$query):bool
+	{
+		return ($this->mysql)(...$query);
+	}
+	function insert($data):bool
+	{
+		return $this->mysql('INSERT INTO ?a SET ??', $this->tablename, $this->mysql->sprintf(...is_array($data) ? ['?v', $data] : func_get_args())) && $this->mysql->affected_rows === 1;
+	}
+	function append($data):int
+	{
+		return $this->insert($data) ? $this->mysql->insert_id : 0;
+	}
+	function delete(...$query):int
+	{
+		return $this->mysql('DELETE FROM ?a??', $this->tablename, (string)($query ? $this(...$query) : $this)) ? $this->mysql->affected_rows : -1;
+	}
+	function update($data):int
+	{
+		return $this->mysql('UPDATE ?a SET ????', $this->tablename, $this->mysql->sprintf(...is_array($data) ? ['?v', $data] : func_get_args()), (string)$this) ? intval(substr($this->mysql->info, 14)) : -1;
+	}
+	function select($fields):static
+	{
+		return [$this, $this->fields = $this->mysql->sprintf('?A', $fields)][0];
+	}
+	function paging(int $index, int $rows = 21):static
+	{
+		$this->paging['count'] = $this->count($this->paging['cond']);
+		$this->paging['max'] = ceil($this->paging['count'] / $rows);
+		$this->paging['index'] = max(1, min($index, $this->paging['max']));
+		$this->paging['skip'] = ($this->paging['index'] - 1) * $rows;
+		$this->paging['rows'] = $rows;
+		return $this(join(' ', [$this->paging['cond'], 'LIMIT', "{$this->paging['skip']},{$rows}"]));
+	}
+	function column(string ...$keys):array
+	{
+		return array_column($this->select($keys)->all, ...$keys);
+	}
+
+	function target($mixed = NULL):webapp_mysql_target
+	{
+		return new $this->targetname($this, $mixed);
+	}
+	function rename(string $name):bool
+	{
+		if ($this->mysql('ALTER TABLE ?a RENAME TO ?a', $this->tablename, $name))
+		{
+			$this->tablename = $name;
+			return TRUE;
+		}
+		return FALSE;
+	}
+	function truncate():bool
+	{
+		return $this->mysql('TRUNCATE TABLE ?a', $this->tablename);
+	}
+	function drop():bool
+	{
+		return $this->mysql('DROP TABLE ?a', $this->tablename);
+	}
+}
+/*
+class webapp_mysql_target implements ArrayAccess
+{
+	private $rawdata = [], $change = [];
+	protected $table, $mysql, $tablename, $primary, $key;
+	final function __construct(webapp_mysql_table $table, $mixed = NULL)
+	{
+		$this->table = $table;
+		$this->mysql = $table->mysql;
+		$this->tablename = &$table->tablename();
+		$this->primary = &$table->primary();
+		if (is_scalar($mixed))
+		{
+			if ($this->rawdata = $this->mysql->row('SELECT * FROM ?a WHERE ?a=?s LIMIT 1', $this->tablename, $this->primary, $mixed))
+			{
+				$this->key = $this->rawdata[$this->primary];
+			}
+		}
+		else
+		{
+			if (is_array($mixed))
+			{
+				if (array_key_exists($this->primary, $mixed))
+				{
+					$this->key = $mixed[$this->primary];
+				}
+				$this->change = $mixed;
+			}
+		}
+	}
+	function __get(string $field)
+	{
+		return $this[$field];
+	}
+	function __set(string $field, $value)
+	{
+		return $this[$field] = $value;
+	}
+	final function offsetExists($key):bool
+	{
+		return array_key_exists($key, $this->rawdata) || array_key_exists($key, $this->change);
+	}
+	final function offsetGet($key)
+	{
+		return array_key_exists($key, $this->change) ? $this->change[$key] : $this->rawdata[$key] ?? NULL;
+	}
+	final function offsetSet($key, $value):void
+	{
+		$data = $value === NULL ? NULL : (string)$value;
+		if (array_key_exists($key, $this->rawdata) === FALSE || $this->rawdata[$key] !== $data)
+		{
+			$this->change[$key] = $data;
+		}
+	}
+	final function offsetUnset($key):void
+	{
+		$this[$key] = NULL;
+	}
+
+	// protected function mysql(...$query):webapp_mysql
+	// {
+	// 	return $this->table->mysql(...$query);
+	// }
+	protected function table(...$cond):webapp_mysql_table
+	{
+		return ($this->table)(...$cond);
+	}
+	function save(string $key = NULL):bool
+	{
+		if ($this->change)
+		{
+			if ($key === NULL)
+			{
+				$key = $this->key;
+			}
+			if ($this->table('WHERE ?a=?s LIMIT 1', $this->primary, $key)->update($this->change))
+			{
+				$this->key = array_key_exists($this->primary, $this->change) ? $this->change[$this->primary] : $key;
+				$this->rawdata = $this->change + $this->rawdata;
+				$this->change = [];
+				return TRUE;
+			}
+			return FALSE;
+		}
+		return TRUE;
+	}
+	function saveas(string $key = NULL):bool
+	{
+		$data = $this->change + $this->rawdata;
+		$data[$this->primary] = $key;
+		if ($this->table->insert($data))
+		{
+			$this->key = $data[$this->primary] === NULL
+				? $data[$this->primary] = $this->mysql->insert_id
+				: $data[$this->primary];
+			$this->rawdata = $data;
+			$this->change = [];
+			return TRUE;
+		}
+		return FALSE;
+	}
+	function exist():bool
+	{
+		return boolval($this->rawdata);
+	}
+	function empty():bool
+	{
+		return empty($this->rawdata);
+	}
+	function delete():bool
+	{
+		if ($this->table->delete('WHERE ?a=?s LIMIT 1', $this->primary, $this->key))
+		{
+			$this->change += $this->rawdata;
+			$this->rawdata = [];
+			return TRUE;
+		}
+		return FALSE;
+	}
+}
+*/
