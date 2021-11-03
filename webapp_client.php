@@ -2,8 +2,8 @@
 class webapp_client
 {
 	public $errors = [];
-	private $length = 0, $buffer, $stream;
-	function __construct(private string $remote)
+	protected $length = 0, $buffer, $stream;
+	function __construct(protected string $remote)
 	{
 		$this->buffer = fopen('php://memory', 'w+');
 		$this->reconnect();
@@ -30,10 +30,7 @@ class webapp_client
 		if (in_array('webapp_client_debug', stream_get_filters(), TRUE) === FALSE)
 		{
 			stream_filter_register('webapp_client_debug', 'webapp_client_debug');
-		}
-		if ($this->debug === NULL && $filter)
-		{
-			$this->debug = stream_filter_append($this->stream, 'webapp_client_debug', $filter);
+			stream_filter_append($this->stream, 'webapp_client_debug', $filter);
 		}
 	}
 	//重连
@@ -64,13 +61,13 @@ class webapp_client
 		return stream_set_timeout($this->stream, $seconds);
 	}
 	//缓冲区重写
-	private function rewind():bool
+	function rewind():bool
 	{
 		$this->length = 0;
 		return rewind($this->buffer);
 	}
 	//缓冲区追加
-	private function append(int $length):bool
+	function append(int $length):bool
 	{
 		if ($this->readinto($this->buffer, $length) === $length)
 		{
@@ -131,7 +128,89 @@ class webapp_client
 	{
 		return @fwrite($this->stream, $data) === strlen($data);
 	}
-	//HTTP
+}
+class webapp_client_debug extends php_user_filter
+{
+	//注意：过滤流在内部读取时只能过滤一个队列，这是一个BUG？
+	function filter($in, $out, &$consumed, $closing):int
+	{
+		echo "\r\n", $consumed === NULL
+			? '>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'
+			: '<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<',
+			"\r\n";
+		while ($bucket = stream_bucket_make_writeable($in))
+		{
+			$consumed += $bucket->datalen;
+			stream_bucket_append($out, $bucket);
+			echo quoted_printable_encode($bucket->data);
+		}
+		return PSFS_PASS_ON;
+	}
+}
+class webapp_client_smtp extends webapp_client
+{
+	function __construct()
+	{
+	}
+	function mailto():bool
+	{
+	}
+}
+class webapp_client_http extends webapp_client
+{
+	public $cookies = [], $headers = [
+		'Host' => '*',
+		'Connection' => 'keep-alive',
+		'User-Agent' => 'WebApp/Connect',
+		'Accept' => '*/*',
+		'Accept-Encoding' => 'gzip, deflate',
+		'Accept-Language' => 'en'
+	], $path;
+	static function parseurl(string $url):array
+	{
+		if (is_array($parse = parse_url($url)) && array_key_exists('scheme', $parse) && array_key_exists('host', $parse))
+		{
+			if (preg_match('/^(?:http|ws)(s)?$/i', $parse['scheme'], $pattern))
+			{
+				if (count($pattern) === 2)
+				{
+					$protocol = 'ssl';
+					$port = $parse['port'] ?? 443;
+				}
+				else
+				{
+					$protocol = 'tcp';
+					$port = $parse['port'] ?? 80;
+				}
+			}
+			else
+			{
+				$protocol = $parse['scheme'];
+				$port = $parse['port'] ?? 0;
+			}
+			$path = $parse['path'] ?? '/';
+			if (array_key_exists('query', $parse))
+			{
+				$path .= "?{$parse['query']}";
+			}
+			return ["{$protocol}://{$parse['host']}:{$port}", $parse['host'], ($parse['path'] ?? '/') . (array_key_exists('query', $parse) ? "?{$parse['query']}" : NULL)];
+		}
+		return ['tcp://127.0.0.1:80', '127.0.0.1', '/'];
+	}
+	static function mimetype(array $responses):array
+	{
+		return preg_match('/^[a-z]+\/([^;]+)(?:[^=]+=([^\n]+))?/i', $mime = $responses['Content-Type'] ?? 'application/octet-stream', $type) ? $type : [$mime, 'unknown'];
+	}
+	function __construct(private string $url, private ?array &$referers = [])
+	{
+		[$remote, $this->headers['Host'], $this->path] = static::parseurl($url);
+		$this->referers[$remote] = $this;
+		parent::__construct($remote);
+	}
+	function goto(string $url = NULL, string $method =  'GET', /*Closure|int*/$detect = 4, $data = NULL, bool $multipart = FALSE):static
+	{
+
+	}
 	private function multipart(string $contents, string $filename, mixed $data, string $name = NULL):void
 	{
 		//get_debug_type
@@ -176,9 +255,9 @@ class webapp_client
 		}
 		return $this;
 	}
-	function request(string $method, string $path, mixed $data = NULL, bool $multipart = FALSE):array
+	function request(string $method, mixed $data = NULL, bool $multipart = FALSE):array
 	{
-		$headers = ["{$method} {$path} HTTP/1.1"];
+		$headers = ["{$method} {$this->path} HTTP/1.1"];
 		foreach ($this->headers as $name => $value)
 		{
 			$headers[] = "{$name}: {$value}";
@@ -375,85 +454,6 @@ class webapp_client
 		}
 		return $host;
 	}
-}
-class webapp_client_debug extends php_user_filter
-{
-	//注意：过滤流在内部读取时只能过滤一个队列，这是一个BUG？
-	function filter($in, $out, &$consumed, $closing):int
-	{
-		echo "\r\n", $consumed === NULL
-			? '>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'
-			: '<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<',
-			"\r\n";
-		while ($bucket = stream_bucket_make_writeable($in))
-		{
-			$consumed += $bucket->datalen;
-			stream_bucket_append($out, $bucket);
-			echo quoted_printable_encode($bucket->data);
-		}
-		return PSFS_PASS_ON;
-	}
-}
-class webapp_client_smtp extends webapp_client
-{
-}
-class webapp_client_http //extends webapp_client
-{
-	public $path;
-	private $cookies = [], $headers = [
-		'Host' => '*',
-		'Connection' => 'keep-alive',
-		'User-Agent' => 'WebApp/Connect',
-		'Accept' => '*/*',
-		'Accept-Encoding' => 'gzip, deflate',
-		'Accept-Language' => 'en'
-	];
-	static function parseurl(string $url):array
-	{
-		if (is_array($parse = parse_url($url)) && array_key_exists('scheme', $parse) && array_key_exists('host', $parse))
-		{
-			if (preg_match('/^(?:http|ws)(s)?$/i', $parse['scheme'], $pattern))
-			{
-				if (count($pattern) === 2)
-				{
-					$protocol = 'ssl';
-					$port = $parse['port'] ?? 443;
-				}
-				else
-				{
-					$protocol = 'tcp';
-					$port = $parse['port'] ?? 80;
-				}
-			}
-			else
-			{
-				$protocol = $parse['scheme'];
-				$port = $parse['port'] ?? 0;
-			}
-			$path = $parse['path'] ?? '/';
-			if (array_key_exists('query', $parse))
-			{
-				$path .= "?{$parse['query']}";
-			}
-			return ["{$protocol}://{$parse['host']}:{$port}", ($parse['path'] ?? '/') . (array_key_exists('query', $parse) ? "?{$parse['query']}" : NULL)];
-		}
-		return ['tcp://127.0.0.1:80', '/'];
-	}
-	static function mimetype(array $responses):array
-	{
-		return preg_match('/^[a-z]+\/([^;]+)(?:[^=]+=([^\n]+))?/i', $mime = $responses['Content-Type'] ?? 'application/octet-stream', $type) ? $type : [$mime, 'unknown'];
-	}
-	function __construct(public string $url, private ?array &$referers = [])
-	{
-		$parse = static::parseurl($url);
-		[$this->headers['Host'], $this->path] = $parse;
-		print_r($parse);
-		// [$this->headers['Host'], $this->remote, $this->path] = static::parseurl($url);
-		// $this->buffer = fopen('php://memory', 'w+');
-		// $this->referers[$this->remote] = $this;
-		// $this->reconnect();
-	}
-
 }
 class webapp_client_websocket extends webapp_client_http
 {

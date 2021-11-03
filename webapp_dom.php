@@ -441,7 +441,7 @@ class webapp_html extends webapp_xml
 		return new webapp_html_table($this[0], $data, $output, ...$params);
 	}
 }
-class webapp_html_form
+class webapp_form
 {
 	const appxml = 'webapp_html_xml';
 	public ?webapp_html_xml $xml, $fieldset, $captcha = NULL;
@@ -760,7 +760,7 @@ class webapp_html_form
 		}
 	}
 }
-class webapp_html_table
+class webapp_table
 {
 	public $xml, $tbody, $paging;
 	function __construct(webapp_html_xml $node, iterable $data, closure $output = NULL, mixed ...$params)

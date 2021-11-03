@@ -24,10 +24,22 @@ trait webapp_echo
 		return $this->webapp->{$name}(...$params);
 	}
 }
+class webapp_echo_json extends ArrayObject implements Stringable
+{
+	use webapp_echo;
+	function __construct(webapp $webapp, array $data = [])
+	{
+		$this($webapp, TRUE, $data, ArrayObject::STD_PROP_LIST)->response_content_type('application/json');
+	}
+	function __toString():string
+	{
+		return json_encode($this->getArrayCopy(), JSON_UNESCAPED_UNICODE);
+	}
+}
 class webapp_echo_html extends webapp_dom
 {
 	use webapp_echo;
-	const appxml = 'webapp_html_xml';
+	const appxml = 'webapp_html';
 	function __construct(webapp $webapp, string $data = NULL)
 	{
 		$this($webapp)->response_content_type("text/html; charset={$webapp['app_charset']}");
@@ -38,13 +50,13 @@ class webapp_echo_html extends webapp_dom
 		else
 		{
 			$this->loadHTML("<!doctype html><html><head><meta charset='{$webapp['app_charset']}'><meta name='viewport' content='width=device-width, initial-scale=1.0'/></head><body class='webapp'/></html>");
-			//$this->xml->head->append('link', ['rel' => 'stylesheet', 'type' => 'text/css', 'href' => '?scss/webapp']);
-			// $this->xml->head->append('link', ['rel' => 'stylesheet', 'type' => 'text/css', 'href' => 'webflock/core/files/ps/font-awesome.css']);
-			//$this->xml->head->append('script', ['type' => 'javascript/module', 'src' => 'webapp/files/js/webapp.js']);
+			// $this->xml->head->append('link', ['rel' => 'stylesheet', 'type' => 'text/css', 'href' => '?scss/webapp']);
+			// $this->xml->head->append('link', ['rel' => 'stylesheet', 'type' => 'text/css', 'href' => $webapp->resroot('ps/font-awesome.css')]);
+			// $this->xml->head->append('script', ['type' => 'javascript/module', 'src' => $webapp->resroot('js/webapp.js')]);
 			$this->article = $this->xml->body->append('article');
 			$this->header = $this->article->append('header');
 			$this->section = $this->article->append('section');
-			$this->footer = $this->article->append('footer', $this->webapp['copy_webapp']);
+			$this->footer = $this->article->append('footer', $webapp['copy_webapp']);
 		}
 	}
 	function __toString():string
@@ -81,19 +93,7 @@ class webapp_echo_html extends webapp_dom
 		return $form();
 	}
 }
-class webapp_echo_json extends ArrayObject implements Stringable
-{
-	use webapp_echo;
-	function __construct(webapp $webapp, array $data = [])
-	{
-		$this($webapp, TRUE, $data, ArrayObject::STD_PROP_LIST)->response_content_type('application/json');
-	}
-	function __toString():string
-	{
-		return json_encode($this->getArrayCopy(), JSON_UNESCAPED_UNICODE);
-	}
-}
-class webapp_echo_dom extends webapp_dom
+class webapp_echo_xml extends webapp_dom
 {
 	use webapp_echo;
 	function __construct(webapp $webapp)
