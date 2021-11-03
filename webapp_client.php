@@ -166,51 +166,13 @@ class webapp_client_http extends webapp_client
 		'Accept-Encoding' => 'gzip, deflate',
 		'Accept-Language' => 'en'
 	], $path;
-	static function parseurl(string $url):array
-	{
-		if (is_array($parse = parse_url($url)) && array_key_exists('scheme', $parse) && array_key_exists('host', $parse))
-		{
-			if (preg_match('/^(?:http|ws)(s)?$/i', $parse['scheme'], $pattern))
-			{
-				if (count($pattern) === 2)
-				{
-					$protocol = 'ssl';
-					$port = $parse['port'] ?? 443;
-				}
-				else
-				{
-					$protocol = 'tcp';
-					$port = $parse['port'] ?? 80;
-				}
-			}
-			else
-			{
-				$protocol = $parse['scheme'];
-				$port = $parse['port'] ?? 0;
-			}
-			$path = $parse['path'] ?? '/';
-			if (array_key_exists('query', $parse))
-			{
-				$path .= "?{$parse['query']}";
-			}
-			return ["{$protocol}://{$parse['host']}:{$port}", $parse['host'], ($parse['path'] ?? '/') . (array_key_exists('query', $parse) ? "?{$parse['query']}" : NULL)];
-		}
-		return ['tcp://127.0.0.1:80', '127.0.0.1', '/'];
-	}
-	static function mimetype(array $responses):array
-	{
-		return preg_match('/^[a-z]+\/([^;]+)(?:[^=]+=([^\n]+))?/i', $mime = $responses['Content-Type'] ?? 'application/octet-stream', $type) ? $type : [$mime, 'unknown'];
-	}
 	function __construct(private string $url, private ?array &$referers = [])
 	{
 		[$remote, $this->headers['Host'], $this->path] = static::parseurl($url);
 		$this->referers[$remote] = $this;
 		parent::__construct($remote);
 	}
-	function goto(string $url = NULL, string $method =  'GET', /*Closure|int*/$detect = 4, $data = NULL, bool $multipart = FALSE):static
-	{
 
-	}
 	private function multipart(string $contents, string $filename, mixed $data, string $name = NULL):void
 	{
 		//get_debug_type
@@ -409,6 +371,10 @@ class webapp_client_http extends webapp_client
 			default => $this->bufferdata()
 		};
 	}
+	function goto(string $url = NULL, string $method =  'GET', /*Closure|int*/$detect = 4, $data = NULL, bool $multipart = FALSE):static
+	{
+
+	}
 	function http(string $method, string $url, /*Closure|int*/$detect = 4, $data = NULL, bool $multipart = FALSE)
 	{
 		do
@@ -453,6 +419,41 @@ class webapp_client_http extends webapp_client
 			$host->reconnect();
 		}
 		return $host;
+	}
+	static function parseurl(string $url):array
+	{
+		if (is_array($parse = parse_url($url)) && array_key_exists('scheme', $parse) && array_key_exists('host', $parse))
+		{
+			if (preg_match('/^(?:http|ws)(s)?$/i', $parse['scheme'], $pattern))
+			{
+				if (count($pattern) === 2)
+				{
+					$protocol = 'ssl';
+					$port = $parse['port'] ?? 443;
+				}
+				else
+				{
+					$protocol = 'tcp';
+					$port = $parse['port'] ?? 80;
+				}
+			}
+			else
+			{
+				$protocol = $parse['scheme'];
+				$port = $parse['port'] ?? 0;
+			}
+			$path = $parse['path'] ?? '/';
+			if (array_key_exists('query', $parse))
+			{
+				$path .= "?{$parse['query']}";
+			}
+			return ["{$protocol}://{$parse['host']}:{$port}", $parse['host'], ($parse['path'] ?? '/') . (array_key_exists('query', $parse) ? "?{$parse['query']}" : NULL)];
+		}
+		return ['tcp://127.0.0.1:80', '127.0.0.1', '/'];
+	}
+	static function mimetype(array $responses):array
+	{
+		return preg_match('/^[a-z]+\/([^;]+)(?:[^=]+=([^\n]+))?/i', $mime = $responses['Content-Type'] ?? 'application/octet-stream', $type) ? $type : [$mime, 'unknown'];
 	}
 }
 class webapp_client_websocket extends webapp_client_http
