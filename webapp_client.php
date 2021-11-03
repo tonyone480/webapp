@@ -17,8 +17,8 @@ class webapp_client
 		return match($name)
 		{
 			'metadata' =>		stream_get_meta_data($this->stream),
-			// 'remote_name' =>	stream_socket_get_name($this->stream, TRUE),
-			// 'local_name' =>		stream_socket_get_name($this->stream, FALSE),
+			'remote_name' =>	stream_socket_get_name($this->stream, TRUE),
+			'local_name' =>		stream_socket_get_name($this->stream, FALSE),
 			'is_lockable' =>	stream_supports_lock($this->stream),
 			'is_local' =>		stream_is_local($this->stream),
 			'is_tty' =>			stream_isatty($this->stream)
