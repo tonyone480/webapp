@@ -63,6 +63,7 @@ abstract class webapp implements ArrayAccess, Stringable
 			'qrcode_size'		=> 4,
 			'qrcode_maxdata'	=> 256,
 			//Misc
+			'smtp_host'			=> 'tcp://user:pass@localhost',
 			'copy_webapp'		=> 'Web Application v' . self::version,
 			'gzip_level'		=> -1
 		];

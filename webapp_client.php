@@ -128,6 +128,48 @@ class webapp_client
 	{
 		return @fwrite($this->stream, $data) === strlen($data);
 	}
+	static function parseurl(string $url, int $port = 80):array
+	{
+		if (is_array($parse = parse_url($url)) && array_key_exists('scheme', $parse) && array_key_exists('host', $parse))
+		{
+			if (preg_match('/^(?:http|ws)(s)?$/i', $parse['scheme'], $pattern))
+			{
+				if (count($pattern) === 2)
+				{
+					$protocol = 'ssl';
+					$port = $parse['port'] ?? 443;
+				}
+				else
+				{
+					$protocol = 'tcp';
+					$port = $parse['port'] ?? 80;
+				}
+			}
+			else
+			{
+				$protocol = $parse['scheme'];
+				if (array_key_exists('port', $parse))
+				{
+					$port = $parse['port'];
+				}
+			}
+			$result = ["{$protocol}://{$parse['host']}:{$port}", $parse['host'], $parse['path'] ?? '/'];
+			if (array_key_exists('query', $parse))
+			{
+				$result[2] .= "?{$parse['query']}";
+			}
+			if (array_key_exists('user', $parse))
+			{
+				$result[] = $parse['user'];
+				if (array_key_exists('pass', $parse))
+				{
+					$result[] = $parse['pass'];
+				}
+			}
+			return $result;
+		}
+		return ['tcp://127.0.0.1:' . $port, 'localhost', '/'];
+	}
 }
 class webapp_client_debug extends php_user_filter
 {
@@ -149,8 +191,42 @@ class webapp_client_debug extends php_user_filter
 }
 class webapp_client_smtp extends webapp_client
 {
-	function __construct()
+	function __construct(string $host)
 	{
+		$parse = static::parseurl($host, 25);
+		parent::__construct($parse[0]);
+		//$this->debug(STREAM_FILTER_ALL);
+		if ($this->readstat() === 220)
+		{
+			if (count($parse) > 3)
+			{
+				$this->send("EHLO {$parse[1]}\r\n");
+				if ($this->readstat($status) && strpos(join($status), 'AUTH LOGIN'))
+				{
+					$this->send("AUTH LOGIN\r\n");
+					$this->readstat($status);
+					$this->send(base64_encode($parse[3]) . "\r\n");
+					$this->readstat($status);
+					$this->send(base64_encode($parse[4]) . "\r\n");
+					$this->readstat($status);
+					print_r($status);
+				}
+			}
+			else
+			{
+				$this->send("HELO {$parse[1]}\r\n");
+			}
+			// if ($this->readstat() === 220) 
+			// {
+
+			// }
+		}
+		
+	}
+	private function readstat(?array &$status = []):int
+	{
+		for (;$this->readline($content); $status[] = $content);
+		return intval(end($status));
 	}
 	function mailto():bool
 	{
@@ -168,23 +244,28 @@ class webapp_client_http extends webapp_client
 	], $path;
 	function __construct(private string $url, private ?array &$referers = [])
 	{
-		[$remote, $this->headers['Host'], $this->path] = static::parseurl($url);
+		[$remote, $this->headers['Host'], $this->path] = $parse = static::parseurl($url);
+		if (count($parse) > 3)
+		{
+			$this->headers['Authorization'] = 'Basic ' . base64_encode($parse[3] . ':' . ($parse[4] ?? NULL));
+		}
 		$this->referers[$remote] = $this;
 		parent::__construct($remote);
 	}
-
 	private function multipart(string $contents, string $filename, mixed $data, string $name = NULL):void
 	{
 		//get_debug_type
-		switch (TRUE)
+		switch (get_debug_type($data))
 		{
-			case is_array($data):
+			case 'array':
 				foreach ($data as $key => $value)
 				{
 					$this->multipart($contents, $filename, $value, $name === NULL ? $key : "{$name}[{$key}]");
 				}
 				return;
-			case is_scalar($data):
+			case 'int':
+			case 'float':
+			case 'string':
 				fwrite($this->buffer, sprintf($contents, $name));
 				fwrite($this->buffer, $data);
 				fwrite($this->buffer, "\r\n");
@@ -420,37 +501,7 @@ class webapp_client_http extends webapp_client
 		}
 		return $host;
 	}
-	static function parseurl(string $url):array
-	{
-		if (is_array($parse = parse_url($url)) && array_key_exists('scheme', $parse) && array_key_exists('host', $parse))
-		{
-			if (preg_match('/^(?:http|ws)(s)?$/i', $parse['scheme'], $pattern))
-			{
-				if (count($pattern) === 2)
-				{
-					$protocol = 'ssl';
-					$port = $parse['port'] ?? 443;
-				}
-				else
-				{
-					$protocol = 'tcp';
-					$port = $parse['port'] ?? 80;
-				}
-			}
-			else
-			{
-				$protocol = $parse['scheme'];
-				$port = $parse['port'] ?? 0;
-			}
-			$path = $parse['path'] ?? '/';
-			if (array_key_exists('query', $parse))
-			{
-				$path .= "?{$parse['query']}";
-			}
-			return ["{$protocol}://{$parse['host']}:{$port}", $parse['host'], ($parse['path'] ?? '/') . (array_key_exists('query', $parse) ? "?{$parse['query']}" : NULL)];
-		}
-		return ['tcp://127.0.0.1:80', '127.0.0.1', '/'];
-	}
+
 	static function mimetype(array $responses):array
 	{
 		return preg_match('/^[a-z]+\/([^;]+)(?:[^=]+=([^\n]+))?/i', $mime = $responses['Content-Type'] ?? 'application/octet-stream', $type) ? $type : [$mime, 'unknown'];
