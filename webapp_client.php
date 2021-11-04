@@ -34,7 +34,7 @@ class webapp_client
 		}
 	}
 	//重连
-	function reconnect(int $timeout = 8):bool
+	function reconnect(int $timeout = 4):bool
 	{
 		if ($this->stream = @stream_socket_client($this->remote, $erron, $error, $timeout, STREAM_CLIENT_CONNECT, stream_context_create(['ssl' => [
 			'verify_peer' => FALSE,
