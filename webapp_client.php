@@ -3,7 +3,7 @@ class webapp_client
 {
 	public $errors = [];
 	protected $length = 0, $buffer, $stream;
-	function __construct(protected string $remote, protected string $timeout = 4)
+	function __construct(protected string $remote)
 	{
 		$this->buffer = fopen('php://memory', 'w+');
 		$this->reconnect();
