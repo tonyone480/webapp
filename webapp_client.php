@@ -1,9 +1,8 @@
 <?php
 class webapp_client
 {
-	public $errors = [];
 	protected $length = 0, $buffer, $stream;
-	function __construct(protected string $remote)
+	function __construct(protected string $remote, protected ?array &$errors = [])
 	{
 		$this->buffer = fopen('php://memory', 'w+');
 		$this->reconnect();
@@ -234,14 +233,14 @@ class webapp_client_smtp extends webapp_client
 }
 class webapp_client_http extends webapp_client
 {
-	public $cookies = [], $headers = [
+	public $headers = [
 		'Host' => '*',
 		'Connection' => 'keep-alive',
 		'User-Agent' => 'WebApp/Connect',
 		'Accept' => '*/*',
 		'Accept-Encoding' => 'gzip, deflate',
 		'Accept-Language' => 'en'
-	], $path;
+	], $cookies = [], $path;
 	function __construct(private string $url, private ?array &$referers = [])
 	{
 		[$remote, $this->headers['Host'], $this->path] = $parse = static::parseurl($url);
