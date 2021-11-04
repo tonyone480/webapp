@@ -297,9 +297,9 @@ class webapp_client_http extends webapp_client
 		}
 		return $this;
 	}
-	function request(string $method, mixed $data = NULL, bool $multipart = FALSE):array
+	function request(string $method, string $path, mixed $data = NULL, bool $multipart = FALSE):array
 	{
-		$headers = ["{$method} {$this->path} HTTP/1.1"];
+		$headers = ["{$method} {$path} HTTP/1.1"];
 		foreach ($this->headers as $name => $value)
 		{
 			$headers[] = "{$name}: {$value}";
@@ -504,6 +504,12 @@ class webapp_client_http extends webapp_client
 	static function mimetype(array $responses):array
 	{
 		return preg_match('/^[a-z]+\/([^;]+)(?:[^=]+=([^\n]+))?/i', $mime = $responses['Content-Type'] ?? 'application/octet-stream', $type) ? $type : [$mime, 'unknown'];
+	}
+	static function get(string $url, mixed $data = NULL, bool $multipart = FALSE):static
+	{
+		$client = new static($url);
+		$client->request('GET', $client->path, $data, $multipart);
+		return $client;
 	}
 }
 class webapp_client_websocket extends webapp_client_http
