@@ -609,9 +609,8 @@ class webapp_client_websocket extends webapp_client_http
 	}
 	function readframe(?array &$hi = NULL):?string
 	{
-		if ($hi = $this->readfhi())
+		if (count($hi = $this->readfhi()) && strlen($contents = $this->readfull($hi['length'])) === $hi['length'])
 		{
-			$contents = $this->readfull($hi['length']);
 			if ($mask = $hi['mask'])
 			{
 				$length = strlen($contents);
