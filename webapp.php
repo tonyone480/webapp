@@ -175,16 +175,16 @@ abstract class webapp implements ArrayAccess, Stringable
 		}
 		return property_exists($this->app, $name) ? $this->app->{$name} : throw new error;
 	}
-	final function __invoke(object $object):object
+	final function __invoke(object $object, string $errors = 'errors'):object
 	{
 		$object->webapp = $this;
 		if ($object instanceof ArrayAccess)
 		{
-			$object['errors'] = &$this->errors;
+			$object[$errors] = &$this->errors;
 		}
 		else
 		{
-			$object->errors = &$this->errors;
+			$object->{$errors} = &$this->errors;
 		}
 		return $object;
 	}
@@ -345,15 +345,14 @@ abstract class webapp implements ArrayAccess, Stringable
 		return "{$this['app_resroot']}/{$filename}";
 	}
 	//----------------
-	function connect(string $url):webapp_connect
+	function http(string $url):webapp_client_http
 	{
-		$connect = new webapp_connect($url);
-		if ($connect->errors)
+		$client = new webapp_client_http($url);
+		if ($client->errors)
 		{
-			array_push($this->errors, ...$connect->errors);
+			array_push($this->errors, ...$client->errors);
 		}
-		$connect->headers(['User-Agent' => 'WebApp/' . self::version]);
-		return $this->errors($connect);
+		return $this($client->headers(['User-Agent' => 'WebApp/' . self::version]));
 	}
 	function xml(mixed ...$params):webapp_xml
 	{

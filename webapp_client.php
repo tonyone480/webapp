@@ -2,7 +2,7 @@
 class webapp_client
 {
 	protected $length = 0, $buffer, $stream;
-	function __construct(protected string $remote, protected ?array &$errors = [])
+	function __construct(protected string $remote, public ?array &$errors = [])
 	{
 		$this->buffer = fopen('php://memory', 'w+');
 		$this->reconnect();
@@ -451,7 +451,7 @@ class webapp_client_http extends webapp_client
 			default => $this->bufferdata()
 		};
 	}
-	function goto(string $url = NULL, string $method =  'GET', /*Closure|int*/$detect = 4, $data = NULL, bool $multipart = FALSE):static
+	function goto(string $url = NULL, string $method = 'GET', /*Closure|int*/$detect = 4, $data = NULL, bool $multipart = FALSE):static
 	{
 
 	}
@@ -538,11 +538,8 @@ class webapp_client_websocket extends webapp_client_http
 	*/
 	function __construct(string $url)
 	{
-
-	}
-	function websocket(?array &$responses = NULL):bool
-	{
-		return ($responses = $this->headers([
+		parent::__construct($url);
+		($responses = $this->headers([
 			'Upgrade' => 'websocket',
 			'Connection' => 'Upgrade',
 			'Sec-WebSocket-Version' => 13,
@@ -583,7 +580,7 @@ class webapp_client_websocket extends webapp_client_http
 	}
 	function readfhi():array
 	{
-		if (strlen($headinfo =  $this->readfull(2)) === 2)
+		if (strlen($headinfo = $this->readfull(2)) === 2)
 		{
 			extract(unpack('Cb0/Cb1', $headinfo));
 			$hi = [
