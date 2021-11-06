@@ -55,7 +55,7 @@ abstract class webapp implements ArrayAccess, Stringable
 			//Captcha
 			'captcha_echo'		=> TRUE,
 			'captcha_unit'		=> 4,
-			'captcha_params'	=> [210, 86, __DIR__ . '/files/fonts/ArchitectsDaughter_R.ttf', 28],
+			'captcha_params'	=> [210, 86, __DIR__ . '/res/fonts/ArchitectsDaughter_R.ttf', 28],
 			'captcha_expire'	=> 99,
 			//QRCode
 			'qrcode_echo'		=> TRUE,
@@ -630,7 +630,7 @@ abstract class webapp implements ArrayAccess, Stringable
 		}
 		else
 		{
-			webapp_html::form_sign_in($this->app('webapp_html')->xml->body->article->section);
+			webapp_echo_html::form_sign_in($this->app('webapp_echo_html')->xml->body->article->section);
 			$this->title('Sign In Admin');
 		}
 		$this->response_status(200);
