@@ -315,6 +315,12 @@ abstract class webapp implements ArrayAccess, Stringable
 		}
 		return FALSE;
 	}
+	function authorization(closure $authenticate = NULL):bool
+	{
+		return $authenticate
+			? $this->authorize($authenticate, $this->request_header('Authorization'))
+			: $this->admin($this->request_header('Authorization'));
+	}
 	function admin(string $signature = NULL):bool
 	{
 		return $this->authorize(fn(string $username, string $password, int $signtime):bool =>
@@ -345,8 +351,12 @@ abstract class webapp implements ArrayAccess, Stringable
 		return "{$this['app_resroot']}/{$filename}";
 	}
 	//----------------
-	function http(string $url):webapp_client_http
+	function http(string $url, int $timeout = 4):webapp_client_http
 	{
+		return $this(new webapp_client_http($url, $timeout))->headers([
+			'Authorization' => 'Digest ' . $this->signature($this['admin_username'], $this['admin_password']),
+			'User-Agent' => 'WebApp/' . self::version
+		]);
 		$client = new webapp_client_http($url);
 		if ($client->errors)
 		{
@@ -657,7 +667,7 @@ abstract class webapp implements ArrayAccess, Stringable
 	}
 	function get_home()
 	{
-		$this->app('webapp_html')->header['style'] = 'font-size:2rem';
+		$this->app('webapp_echo_html')->header['style'] = 'font-size:2rem';
 		$this->app->header->text('Welcome in WebApp Framework');
 		//$this->app('webapp_html')->header->append('h1', ['Welcome use WebApp Framework', 'style' => 'padding:0.6rem']);
 	}

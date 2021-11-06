@@ -1,8 +1,9 @@
 <?php
 class webapp_client
 {
+	public $errors = [];
 	protected $length = 0, $buffer, $stream;
-	function __construct(protected string $remote, public ?array &$errors = [])
+	function __construct(protected string $remote, protected int $timeout = 4)
 	{
 		$this->buffer = fopen('php://memory', 'w+');
 		$this->reconnect();
@@ -33,9 +34,9 @@ class webapp_client
 		}
 	}
 	//重连
-	function reconnect(int $timeout = 4):bool
+	function reconnect():bool
 	{
-		if ($this->stream = @stream_socket_client($this->remote, $erron, $error, $timeout, STREAM_CLIENT_CONNECT, stream_context_create(['ssl' => [
+		if ($this->stream = @stream_socket_client($this->remote, $erron, $error, $this->timeout, STREAM_CLIENT_CONNECT, stream_context_create(['ssl' => [
 			'verify_peer' => FALSE,
 			'verify_peer_name' => FALSE,
 			'allow_self_signed' => TRUE]]))) {
@@ -199,15 +200,15 @@ class webapp_client_http extends webapp_client
 		'Accept-Encoding' => 'gzip, deflate',
 		'Accept-Language' => 'en'
 	], $cookies = [], $path;
-	function __construct(private string $url, private ?array &$referers = [])
+	function __construct(private string $url, int $timeout = 4, private ?array &$referers = [])
 	{
 		[$remote, $this->headers['Host'], $this->path] = $parse = static::parseurl($url);
+		$this->referers[$remote] = $this;
 		if (count($parse) > 3)
 		{
-			$this->headers['Authorization'] = 'Basic ' . base64_encode($parse[3] . ':' . ($parse[4] ?? NULL));
+			$this->headers['Authorization'] = 'Basic ' . base64_encode(join(':', array_slice($parse, 3)));
 		}
-		$this->referers[$remote] = $this;
-		parent::__construct($remote);
+		parent::__construct($remote, $timeout);
 	}
 	private function multipart(string $contents, string $filename, mixed $data, string $name = NULL):void
 	{

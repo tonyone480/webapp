@@ -10,8 +10,8 @@ final class sapi implements webapp_sapi
 	{
 		return match($key = strtr(strtoupper($name), '-', '_'))
 		{
-			'CONTENT_TYPE',
-			'CONTENT_LENGTH' => $_SERVER[$key] ?? NULL,
+			'AUTHORIZATION' => $_SERVER['PHP_AUTH_DIGEST'] ?? NULL,
+			'CONTENT_TYPE', 'CONTENT_LENGTH' => $_SERVER[$key] ?? NULL,
 			default => $_SERVER["HTTP_{$key}"] ?? NULL
 		};
 	}
