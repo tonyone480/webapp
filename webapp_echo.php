@@ -39,7 +39,7 @@ class webapp_echo_json extends ArrayObject implements Stringable
 class webapp_echo_html extends webapp_dom
 {
 	use webapp_echo;
-	const appxml = 'webapp_html';
+	const xmltype = 'webapp_html';
 	function __construct(webapp $webapp, string $data = NULL)
 	{
 		$this($webapp)->response_content_type("text/html; charset={$webapp['app_charset']}");
@@ -71,7 +71,7 @@ class webapp_echo_html extends webapp_dom
 	{
 		$this->xml->head->title = $title;
 	}
-	function aside(bool $after = FALSE):webapp_html_xml
+	function aside(bool $after = FALSE):webapp_html
 	{
 		$this->aside = $this->article->section->append('aside');
 		$this->section = $this->aside->insert('section', $after ? 'before' : 'after');
@@ -80,7 +80,7 @@ class webapp_echo_html extends webapp_dom
 
 
 
-	static function form_sign_in(webapp_html_xml|webapp|array $context, string $authurl = NULL):NULL|array|webapp_html_form
+	static function form_sign_in(array|webapp|webapp_html $context, string $authurl = NULL):NULL|array|webapp_html_form
 	{
 		$form = new webapp_html_form($context, $authurl);
 		$form->fieldset('Username');

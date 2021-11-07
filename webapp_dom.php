@@ -1,14 +1,20 @@
 <?php
 class webapp_dom extends DOMDocument implements Stringable
 {
-	const appxml = 'webapp_xml';
+	const xmltype = 'webapp_xml';
+	function __construct()
+	{
+		parent::__construct();
+		$this->appendChild($this->createElement('html'));
+		$this->xml(TRUE);
+	}
 	function __toString():string
 	{
 		return $this->saveXML();
 	}
 	private function xml(bool $loaded):bool
 	{
-		return $loaded && ($this->xml = simplexml_import_dom($this, static::appxml)) !== FALSE;
+		return $loaded && ($this->xml = simplexml_import_dom($this, static::xmltype)) !== FALSE;
 	}
 	function load(string $source, int $options = NULL):bool
 	{
@@ -443,18 +449,18 @@ class webapp_html extends webapp_xml
 }
 class webapp_form
 {
-	const appxml = 'webapp_html_xml';
-	public ?webapp_html_xml $xml, $fieldset, $captcha = NULL;
+	const xmltype = 'webapp_html';
+	public ?webapp_html $xml, $fieldset, $captcha = NULL;
 	private $files = [], $fields = [], $index = 0;
-	function __construct(private webapp_html_xml|webapp|array $context, string $action = NULL)
+	function __construct(private array|webapp|webapp_html $context, string $action = NULL)
 	{
-		//$this->rendered = $context instanceof webapp_html_xml;
-		$this->xml = $context instanceof webapp_html_xml ? $context->append('form', [
+		//$this->rendered = $context instanceof webapp_html;
+		$this->xml = $context instanceof webapp_html ? $context->append('form', [
 			'method' => 'post',
 			'autocomplete' => 'off',
 			'class' => 'webapp',
 			'action' => $action
-		]) : new (static::appxml)('<form/>');
+		]) : new (static::xmltype)('<form/>');
 		$this->xml['enctype'] = 'application/x-www-form-urlencoded';
 		$this->fieldset();
 	}
@@ -462,7 +468,7 @@ class webapp_form
 	{
 		do
 		{
-			if ($this->context instanceof webapp_html_xml)
+			if ($this->context instanceof webapp_html)
 			{
 				return $this->setdefault($values);
 			}
@@ -577,27 +583,27 @@ class webapp_form
 		return NULL;
 		
 	}
-	function fieldset(string $name = NULL):webapp_html_xml
+	function fieldset(string $name = NULL):webapp_html
 	{
 		return $this->fieldset = $this->xml->fieldset($name);
 	}
-	function progress():webapp_html_xml
+	function progress():webapp_html
 	{
 		return $this->fieldset->progress();
 	}
-	function button(string $name, string $type = 'button', array $attributes = []):webapp_html_xml
+	function button(string $name, string $type = 'button', array $attributes = []):webapp_html
 	{
 		return $this->fieldset->append('button', [$name, 'type' => $type] + $attributes);
 	}
-	function captcha(string $name):?webapp_html_xml
+	function captcha(string $name):?webapp_html
 	{
 		if ($this->captcha === NULL 
-			&& ($webapp = $this->context instanceof webapp_html_xml ? $this->context->webapp() : $this->context) instanceof webapp
+			&& ($webapp = $this->context instanceof webapp_html ? $this->context->webapp() : $this->context) instanceof webapp
 			&& $webapp['captcha_echo']) {
 			$this->captcha = $this->fieldset($name);
 			$this->field('captcha_encrypt');
 			$this->field('captcha_decrypt', 'text', ['placeholder' => 'Type following captcha', 'onfocus' => 'this.select()', 'required' => NULL]);
-			if ($this->context instanceof webapp_html_xml)
+			if ($this->context instanceof webapp_html)
 			{
 				$this->fields['captcha_encrypt']['value'] = $random = $webapp->captcha_random();
 				$this->fieldset()->attr([
@@ -609,7 +615,7 @@ class webapp_form
 		}
 		return $this->captcha;
 	}
-	function field(string $name, string $type = 'hidden', array $attributes = []):webapp_html_xml
+	function field(string $name, string $type = 'hidden', array $attributes = []):webapp_html
 	{
 		$alias = $rename = preg_match('/^\w+/', $name, $retval) ? $retval[0] : $this->index++;
 		switch ($typename = strtolower($type))
@@ -703,7 +709,7 @@ class webapp_form
 		}
 		return $this;
 	}
-	private function checkinput(webapp_html_xml $node, string $value):bool
+	private function checkinput(webapp_html $node, string $value):bool
 	{
 		switch (strtolower($node['type']))
 		{
@@ -763,7 +769,7 @@ class webapp_form
 class webapp_table
 {
 	public $xml, $tbody, $paging;
-	function __construct(webapp_html_xml $node, iterable $data, closure $output = NULL, mixed ...$params)
+	function __construct(webapp_html $node, iterable $data, closure $output = NULL, mixed ...$params)
 	{
 		$this->xml = &$node->table[];
 		$this->tbody = &$this->xml->tbody;
@@ -848,7 +854,7 @@ class webapp_table
 		}
 		return $this;
 	}
-	function fieldname(...$names):webapp_html_xml
+	function fieldname(...$names):webapp_html
 	{
 		$node = $this->fieldname;
 		foreach ($names as $name)

@@ -381,7 +381,7 @@ abstract class webapp implements ArrayAccess, Stringable
 		}
 		return new webapp_xml("<?xml version='1.0' encoding='{$this['app_charset']}'?><webapp/>");
 	}
-	function formdata(array|webapp_html_xml $node = NULL, string $action = NULL):array|webapp_html_form
+	function formdata(array|webapp_html $node = NULL, string $action = NULL):array|webapp_html_form
 	{
 		if (is_array($node))
 		{
