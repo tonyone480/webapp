@@ -1,73 +1,11 @@
 <?php
-class webapp_dom extends DOMDocument implements Stringable
-{
-	const xmltype = 'webapp_xml';
-	function __construct()
-	{
-		parent::__construct();
-		$this->appendChild($this->createElement('html'));
-		$this->xml(TRUE);
-	}
-	function __toString():string
-	{
-		return $this->saveXML();
-	}
-	private function xml(bool $loaded):bool
-	{
-		return $loaded && ($this->xml = simplexml_import_dom($this, static::xmltype)) !== FALSE;
-	}
-	function load(string $source, int $options = NULL):bool
-	{
-		return $this->loadXMLFile($source, $options);
-	}
-	function loadXML(string $source, int $options = NULL):bool
-	{
-		return $this->xml(parent::loadXML($source, $options));
-	}
-	function loadXMLFile(string $source, int $options = NULL):bool
-	{
-		return $this->xml(parent::load($source, $options));
-	}
-	function loadHTML(string $source, int $options = NULL):bool
-	{
-		return $this->xml(parent::loadHTML($source, $options | LIBXML_NOWARNING | LIBXML_NOERROR));
-	}
-	function loadHTMLFile(string $source, int $options = NULL):bool
-	{
-		return $this->xml(parent::loadHTMLFile($source, $options | LIBXML_NOWARNING | LIBXML_NOERROR));
-	}
-	function evaluate(string $expression, DOMNode $contextnode = NULL)
-	{
-		return (new DOMXPath($this))->evaluate($expression, $contextnode);
-	}
-	function querySelectorAll(string $selectors):array
-	{
-		return $this->xml->query($selectors);
-	}
-	function querySelector(string $selectors):?DOMElement
-	{
-		return $this->querySelectorAll($selectors)[0] ?? NULL;
-	}
-	function fragment(string $data):DOMDocumentFragment
-	{
-		$fragment = $this->createDocumentFragment();
-		$fragment->appendXML($data);
-		return $fragment;
-	}
-	static function html(string $data):static
-	{
-		$dom = new static;
-		$dom->loadHTML($data);
-		return $dom;
-	}
-}
 class webapp_xml extends SimpleXMLElement
 {
 	function webapp():?webapp
 	{
 		return $this->dom()->ownerDocument->webapp ?? NULL;
 	}
-	function dom():DOMElement
+	function dom():DOMNode
 	{
 		return dom_import_simplexml($this[0]);
 	}
@@ -105,18 +43,18 @@ class webapp_xml extends SimpleXMLElement
 		}
 		return $xml;
 	}
-	function append(string $name, $mixed = NULL):static
+	function append(string $name, array|string $content = NULL):static
 	{
-		if (is_array($mixed))
+		if (is_array($content))
 		{
 			$node = &$this[0]->{$name}[];
-			foreach ($mixed as $attribute => $value)
+			foreach ($content as $attribute => $value)
 			{
 				$node[$attribute] = $value;
 			}
 			return $node;
 		}
-		return $this->addChild($name, $mixed);
+		return $this->addChild($name, $content);
 	}
 	function insert(DOMNode|string $node, string $position = NULL)
 	{
@@ -446,6 +384,69 @@ class webapp_html extends webapp_xml
 	{
 		return new webapp_html_table($this[0], $data, $output, ...$params);
 	}
+}
+class webapp_document extends DOMDocument implements Stringable
+{
+	const xmltype = 'webapp_xml';
+	// function __construct(string $version = '1.0', string $encoding = NULL, string $root)
+	// {
+	// 	parent::__construct($version, $encoding);
+	// 	$this->appendChild($this->createElement($root));
+	// 	$this->xml(TRUE);
+	// }
+	function __toString():string
+	{
+		return $this->saveXML();
+	}
+	//protected function xml(bool $loaded):bool
+	private function xml(bool $loaded):bool
+	{
+		return $loaded && $this->xml = simplexml_import_dom($this, static::xmltype);
+	}
+	function load(string $source, int $options = NULL):bool
+	{
+		return $this->loadXMLFile($source, $options);
+	}
+	function loadXML(string $source, int $options = NULL):bool
+	{
+		return $this->xml(parent::loadXML($source, $options));
+	}
+	function loadXMLFile(string $source, int $options = NULL):bool
+	{
+		return $this->xml(parent::load($source, $options));
+	}
+	function loadHTML(string $source, int $options = NULL):bool
+	{
+		return $this->xml(parent::loadHTML($source, $options | LIBXML_NOWARNING | LIBXML_NOERROR));
+	}
+	function loadHTMLFile(string $source, int $options = NULL):bool
+	{
+		return $this->xml(parent::loadHTMLFile($source, $options | LIBXML_NOWARNING | LIBXML_NOERROR));
+	}
+	// function evaluate(string $expression, DOMNode $contextnode = NULL)
+	// {
+	// 	return (new DOMXPath($this))->evaluate($expression, $contextnode);
+	// }
+	// function querySelectorAll(string $selectors):array
+	// {
+	// 	return $this->xml->query($selectors);
+	// }
+	// function querySelector(string $selectors):?DOMElement
+	// {
+	// 	return $this->querySelectorAll($selectors)[0] ?? NULL;
+	// }
+	// function fragment(string $data):DOMDocumentFragment
+	// {
+	// 	$fragment = $this->createDocumentFragment();
+	// 	$fragment->appendXML($data);
+	// 	return $fragment;
+	// }
+	// static function html(string $data):static
+	// {
+	// 	$document = new static;
+	// 	$document->loadHTML($data);
+	// 	return $document;
+	// }
 }
 class webapp_form
 {

@@ -36,7 +36,7 @@ class webapp_echo_json extends ArrayObject implements Stringable
 		return json_encode($this->getArrayCopy(), JSON_UNESCAPED_UNICODE);
 	}
 }
-class webapp_echo_html extends webapp_dom
+class webapp_echo_html extends webapp_document
 {
 	use webapp_echo;
 	const xmltype = 'webapp_html';
@@ -49,7 +49,8 @@ class webapp_echo_html extends webapp_dom
 		}
 		else
 		{
-			$this->loadHTML("<!doctype html><html><head><meta charset='{$webapp['app_charset']}'><meta name='viewport' content='width=device-width, initial-scale=1.0'/></head><body class='webapp'/></html>");
+			$this->loadHTML("<!doctype html><html><head><meta charset='{$webapp['app_charset']}'/></head><body/></html>", LIBXML_HTML_NOIMPLIED);
+			$this->xml->head->append('meta', ['name' => 'viewport', 'content' => 'width=device-width,initial-scale=1.0']);
 			// $this->xml->head->append('link', ['rel' => 'stylesheet', 'type' => 'text/css', 'href' => '?scss/webapp']);
 			// $this->xml->head->append('link', ['rel' => 'stylesheet', 'type' => 'text/css', 'href' => $webapp->resroot('ps/font-awesome.css')]);
 			// $this->xml->head->append('script', ['type' => 'javascript/module', 'src' => $webapp->resroot('js/webapp.js')]);
@@ -61,16 +62,22 @@ class webapp_echo_html extends webapp_dom
 	}
 	function __toString():string
 	{
-		return html_entity_decode($this->saveHTML(), ENT_HTML5, $this->webapp['app_charset']);
-	}
-	function xpath(string $expression):array
-	{
-		return iterator_to_array((new DOMXPath($this))->evaluate($expression));
+		//var_dump($this->ownerDocument);
+		// return html_entity_decode($this->saveHTML(), ENT_HTML5, $this->webapp['app_charset']);
+		return $this->saveHTML($this);
 	}
 	function title(string $title):void
 	{
 		$this->xml->head->title = $title;
 	}
+
+
+
+	function xpath(string $expression):array
+	{
+		return iterator_to_array((new DOMXPath($this))->evaluate($expression));
+	}
+
 	function aside(bool $after = FALSE):webapp_html
 	{
 		$this->aside = $this->article->section->append('aside');
@@ -93,7 +100,7 @@ class webapp_echo_html extends webapp_dom
 		return $form();
 	}
 }
-class webapp_echo_xml extends webapp_dom
+class webapp_echo_xml extends webapp_document
 {
 	use webapp_echo;
 	function __construct(webapp $webapp)
@@ -101,7 +108,7 @@ class webapp_echo_xml extends webapp_dom
 		$this($webapp, TRUE)->response_content_type('application/xml');
 	}
 }
-class webapp_echo_xls extends webapp_dom
+class webapp_echo_xls extends webapp_document
 {
 	use webapp_echo;
 	function __construct(webapp $webapp)
