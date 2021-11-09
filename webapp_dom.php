@@ -107,83 +107,83 @@ class webapp_xml extends SimpleXMLElement
 
 
 
-	function query(string $selector):array
-	{
-		$query = ['descendant::*'];
-		while (preg_match('/^\s*(\w+|\*)?([\.\#]([\w\x{00c0}-\x{ffff}\-]+))?/u', $selector, $matches) && isset($matches[1]))
-		{
-			$selector = substr($selector, strlen($matches[0]));
-			if ($matches[1] && $matches[1] !== '*')
-			{
-				$query[] = '[translate(name(.),"abcdefghijklmnopqrstuvwxyz","ABCDEFGHIJKLMNOPQRSTUVWXYZ")="' . strtoupper($matches[1]) . '"]';
-			}
-			if (isset($matches[2]))
-			{
-				$query[] = $matches[2][0] === '#' ? '[@id="' . $matches[3] . '"]' : '[contains(concat(" ",normalize-space(@class)," "),"' . $matches[3] . '")]';
-			}
-			while (preg_match('/^\[\s*(\w+)\s*(?:(\!\=|\$\=|\*\=|\=|\^\=|\~\=|\|\=)\s*(\'|\")?([\w\x{00c0}-\x{ffff}\-]+)\3?\s*)?\]/u', $selector, $matches))
-			{
-				$selector = substr($selector, strlen($matches[0]));
-				if (isset($matches[2]))
-				{
-					switch ($matches[2])
-					{
-						case '!=':
-							$query[] = '[@' . $matches[1] . '!="' . $matches[4] . '"]';
-							break;
-						case '$=':
-							$query[] = '[@' . $matches[1] . '$="' . $matches[4] . '"]';
-							break;
-						case '*=':
-							$query[] = '[contains(@' . $matches[1] . ',"' . $matches[4] . '")]';
-							break;
-						case '=':
-							$query[] = '[@' . $matches[1] . '="' . $matches[4] . '"]';
-							break;
-						case '^=':
-							$query[] = '[starts-with(@' . $matches[1] . '," ' . $matches[4] . ' ")]';
-							break;
-						case '~=':
-							$query[] = '[contains(concat(" ",normalize-space(@' . $matches[1] . ')," "),"' . $matches[4] . '")]';
-							break;
-						case '|=':
-							$query[] = '[@' . $matches[1] . '="' . $matches[4] . '" or starts-with(@' . $matches[1] . ',"' . $matches[4] . '")]';
-					};
-					continue;
-				}
-				$query[] = '[@' . $matches[1] . ']';
-			}
-			if (preg_match('/^\s*(\+|\>|\~|\,)?/', $selector, $matches))
-			{
-				$selector = substr($selector, strlen($matches[0]));
-				if (isset($matches[1]))
-				{
-					switch ($matches[1])
-					{
-						case '+':
-							$query[] = '/following-sibling::*[1]';
-							break;
-						case '>':
-							$query[] = '/*';
-							break;
-						case '~':
-							$query[] = '/following-sibling::*';
-							break;
-						default:
-							$query[] = '|descendant::*';
-					};
-					continue;
-				}
-				if ($selector)
-				{
-					$query[] = '/descendant::*';
-					continue;
-				}
-			}
-			break;
-		}
-		return $this[0]->xpath(join($query));
-	}
+	// function query(string $selector):array
+	// {
+	// 	$query = ['descendant::*'];
+	// 	while (preg_match('/^\s*(\w+|\*)?([\.\#]([\w\x{00c0}-\x{ffff}\-]+))?/u', $selector, $matches) && isset($matches[1]))
+	// 	{
+	// 		$selector = substr($selector, strlen($matches[0]));
+	// 		if ($matches[1] && $matches[1] !== '*')
+	// 		{
+	// 			$query[] = '[translate(name(.),"abcdefghijklmnopqrstuvwxyz","ABCDEFGHIJKLMNOPQRSTUVWXYZ")="' . strtoupper($matches[1]) . '"]';
+	// 		}
+	// 		if (isset($matches[2]))
+	// 		{
+	// 			$query[] = $matches[2][0] === '#' ? '[@id="' . $matches[3] . '"]' : '[contains(concat(" ",normalize-space(@class)," "),"' . $matches[3] . '")]';
+	// 		}
+	// 		while (preg_match('/^\[\s*(\w+)\s*(?:(\!\=|\$\=|\*\=|\=|\^\=|\~\=|\|\=)\s*(\'|\")?([\w\x{00c0}-\x{ffff}\-]+)\3?\s*)?\]/u', $selector, $matches))
+	// 		{
+	// 			$selector = substr($selector, strlen($matches[0]));
+	// 			if (isset($matches[2]))
+	// 			{
+	// 				switch ($matches[2])
+	// 				{
+	// 					case '!=':
+	// 						$query[] = '[@' . $matches[1] . '!="' . $matches[4] . '"]';
+	// 						break;
+	// 					case '$=':
+	// 						$query[] = '[@' . $matches[1] . '$="' . $matches[4] . '"]';
+	// 						break;
+	// 					case '*=':
+	// 						$query[] = '[contains(@' . $matches[1] . ',"' . $matches[4] . '")]';
+	// 						break;
+	// 					case '=':
+	// 						$query[] = '[@' . $matches[1] . '="' . $matches[4] . '"]';
+	// 						break;
+	// 					case '^=':
+	// 						$query[] = '[starts-with(@' . $matches[1] . '," ' . $matches[4] . ' ")]';
+	// 						break;
+	// 					case '~=':
+	// 						$query[] = '[contains(concat(" ",normalize-space(@' . $matches[1] . ')," "),"' . $matches[4] . '")]';
+	// 						break;
+	// 					case '|=':
+	// 						$query[] = '[@' . $matches[1] . '="' . $matches[4] . '" or starts-with(@' . $matches[1] . ',"' . $matches[4] . '")]';
+	// 				};
+	// 				continue;
+	// 			}
+	// 			$query[] = '[@' . $matches[1] . ']';
+	// 		}
+	// 		if (preg_match('/^\s*(\+|\>|\~|\,)?/', $selector, $matches))
+	// 		{
+	// 			$selector = substr($selector, strlen($matches[0]));
+	// 			if (isset($matches[1]))
+	// 			{
+	// 				switch ($matches[1])
+	// 				{
+	// 					case '+':
+	// 						$query[] = '/following-sibling::*[1]';
+	// 						break;
+	// 					case '>':
+	// 						$query[] = '/*';
+	// 						break;
+	// 					case '~':
+	// 						$query[] = '/following-sibling::*';
+	// 						break;
+	// 					default:
+	// 						$query[] = '|descendant::*';
+	// 				};
+	// 				continue;
+	// 			}
+	// 			if ($selector)
+	// 			{
+	// 				$query[] = '/descendant::*';
+	// 				continue;
+	// 			}
+	// 		}
+	// 		break;
+	// 	}
+	// 	return $this[0]->xpath(join($query));
+	// }
 	//以数组递归方式导入当前节点下所有内容
 	function import(array $values):static
 	{
@@ -770,7 +770,7 @@ class webapp_form
 class webapp_table
 {
 	public $xml, $tbody, $paging;
-	function __construct(webapp_html $node, iterable $data, closure $output = NULL, mixed ...$params)
+	function __construct(webapp_html $node, iterable $data = [], closure $output = NULL, mixed ...$params)
 	{
 		$this->xml = &$node->table[];
 		$this->tbody = &$this->xml->tbody;

@@ -49,7 +49,7 @@ class webapp_echo_html extends webapp_document
 		}
 		else
 		{
-			$this->loadHTML("<!doctype html><html><head><meta charset='{$webapp['app_charset']}'/></head><body/></html>", LIBXML_HTML_NOIMPLIED);
+			$this->loadHTML("<!doctype html><html><head><meta charset='{$webapp['app_charset']}'/></head><body/></html>");
 			$this->xml->head->append('meta', ['name' => 'viewport', 'content' => 'width=device-width,initial-scale=1.0']);
 			// $this->xml->head->append('link', ['rel' => 'stylesheet', 'type' => 'text/css', 'href' => '?scss/webapp']);
 			// $this->xml->head->append('link', ['rel' => 'stylesheet', 'type' => 'text/css', 'href' => $webapp->resroot('ps/font-awesome.css')]);
@@ -62,8 +62,7 @@ class webapp_echo_html extends webapp_document
 	}
 	function __toString():string
 	{
-		//var_dump($this->ownerDocument);
-		// return html_entity_decode($this->saveHTML(), ENT_HTML5, $this->webapp['app_charset']);
+		//return html_entity_decode($this->saveHTML(), ENT_HTML5, $this->webapp['app_charset']);
 		return $this->saveHTML($this);
 	}
 	function title(string $title):void
