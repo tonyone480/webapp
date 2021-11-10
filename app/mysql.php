@@ -42,7 +42,7 @@ new class extends webapp
 		if ($this->no_sign_in_admin(new sapi)) return;
 		if ($this['app_mapping'] === $this)
 		{
-			$this->app('webapp_html')->title('MySQL Admin');
+			$this->app('webapp_echo_html')->title('MySQL Admin');
 			$this->app->header->navbar([
 				['Home', 'href' => '?'],
 				['Console', 'href' => '?console'],

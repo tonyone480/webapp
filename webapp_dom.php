@@ -87,23 +87,23 @@ class webapp_xml extends SimpleXMLElement
 	{
 		return $this[0]->xpath('..')[0] ?? $this[0];
 	}
-	function attr($values = NULL)
-	{
-		if (func_num_args())
-		{
-			$node = $this[0];
-			if (is_array($values))
-			{
-				foreach ($values as $name => $value)
-				{
-					$node[$name] = $value;
-				}
-				return $node;
-			}
-			return isset($node[$values]) ? (string)$node[$values] : NULL;
-		}
-		return ((array)$this[0]->attributes())['@attributes'] ?? [];
-	}
+	// function attr($values = NULL)
+	// {
+	// 	if (func_num_args())
+	// 	{
+	// 		$node = $this[0];
+	// 		if (is_array($values))
+	// 		{
+	// 			foreach ($values as $name => $value)
+	// 			{
+	// 				$node[$name] = $value;
+	// 			}
+	// 			return $node;
+	// 		}
+	// 		return isset($node[$values]) ? (string)$node[$values] : NULL;
+	// 	}
+	// 	return ((array)$this[0]->attributes())['@attributes'] ?? [];
+	// }
 
 
 
@@ -185,12 +185,12 @@ class webapp_xml extends SimpleXMLElement
 	// 	return $this[0]->xpath(join($query));
 	// }
 	//以数组递归方式导入当前节点下所有内容
-	function import(array $values):static
+	function import(iterable $values):static
 	{
 		foreach ($values as $key => $value)
 		{
 			$node = &$this[0]->{$key}[];
-			if (is_array($value))
+			if (is_iterable($value))
 			{
 				$node->import($value);
 			}
@@ -243,6 +243,13 @@ class webapp_xml extends SimpleXMLElement
 }
 class webapp_html extends webapp_xml
 {
+	function progress(float $value = 0, float $max = 1):static
+	{
+		$node = &$this[0]->progress[];
+		$node['value'] = $value;
+		$node['max'] = $max;
+		return $node;
+	}
 	function fieldset(string $legend = NULL):static
 	{
 		//An optional <legend> element, followed by flow content.
@@ -274,7 +281,7 @@ class webapp_html extends webapp_xml
 	{
 		foreach ($values as $value => $content)
 		{
-			if (is_array($content))
+			if (is_iterable($content))
 			{
 				$this[0]->append('optgroup', ['label' => $value])->options($content, ...$default);
 				continue;
@@ -283,39 +290,38 @@ class webapp_html extends webapp_xml
 		}
 		return $this[0];
 	}
-	// function optgroup(array $values):static
-	// {
-	// 	foreach ($values as $label => $values)
-	// 	{
-	// 		$node = &$this[0]->optgroup[];
-	// 		$node['label'] = $label;
-	// 		$node->options($values);
-	// 	}
-	// 	return $this[0];
-	// }
 	function select(iterable $values, string ...$default):static
 	{
 		return $this->append('select')->options($values, ...$default);
 	}
-	function progress(float $value = 0, float $max = 1):static
+
+	function appendtree(iterable $list, string $root = 'ul', string $child = 'li'):static
 	{
-		$node = &$this[0]->progress[];
-		$node['value'] = $value;
-		$node['max'] = $max;
-		return $node;
-	}
-	function ultree(iterable $list):static
-	{
-		$node = &$this[0]->ul[];
+		$node = &$this[0]->{$root}[];
 		foreach ($list as $item)
 		{
-			if (is_iterable($item))
+			$element = &$node->{$child}[];
+			if (is_scalar($item))
 			{
-				$node->ultree($item);
+				$element->text($item);
 				continue;
 			}
-			$node->append('li', $item);
+			if (is_array($item))
+			{
+				if(is_iterable($item[1]))
+			}
+
 		}
+		// $node = &$this[0]->ul[];
+		// foreach ($list as $item)
+		// {
+		// 	if (is_iterable($item))
+		// 	{
+		// 		$node->ultree($item);
+		// 		continue;
+		// 	}
+		// 	$node->append('li', $item);
+		// }
 		return $node;
 	}
 	function atree(iterable $anchors):static
@@ -376,13 +382,13 @@ class webapp_html extends webapp_xml
 		$node['class'] = 'webapp';
 		return $node;
 	}
-	function form(string $action):webapp_html_form
+	function form(string $action):webapp_form
 	{
-		return new webapp_html_form($this[0], $action);
+		return new webapp_form($this[0], $action);
 	}
-	function table(iterable $data, closure $output = NULL, mixed ...$params):webapp_html_table
+	function table(iterable $data = [], closure $output = NULL, mixed ...$params):webapp_table
 	{
-		return new webapp_html_table($this[0], $data, $output, ...$params);
+		return new webapp_table($this[0], $data, $output, ...$params);
 	}
 }
 class webapp_document extends DOMDocument implements Stringable

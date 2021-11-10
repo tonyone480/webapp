@@ -51,10 +51,10 @@ class webapp_echo_html extends webapp_document
 		{
 			$this->loadHTML("<!doctype html><html><head><meta charset='{$webapp['app_charset']}'/></head><body/></html>");
 			$this->xml->head->append('meta', ['name' => 'viewport', 'content' => 'width=device-width,initial-scale=1.0']);
-			// $this->xml->head->append('link', ['rel' => 'stylesheet', 'type' => 'text/css', 'href' => '?scss/webapp']);
+			$this->xml->head->append('link', ['rel' => 'stylesheet', 'type' => 'text/css', 'href' => '?scss/webapp', 'media' => 'all']);
 			// $this->xml->head->append('link', ['rel' => 'stylesheet', 'type' => 'text/css', 'href' => $webapp->resroot('ps/font-awesome.css')]);
 			// $this->xml->head->append('script', ['type' => 'javascript/module', 'src' => $webapp->resroot('js/webapp.js')]);
-			$this->article = $this->xml->body->append('article');
+			$this->article = $this->xml->body->append('article', ['class' => 'webapp']);
 			$this->header = $this->article->append('header');
 			$this->section = $this->article->append('section');
 			$this->footer = $this->article->append('footer', $webapp['copy_webapp']);
@@ -86,9 +86,9 @@ class webapp_echo_html extends webapp_document
 
 
 
-	static function form_sign_in(array|webapp|webapp_html $context, string $authurl = NULL):NULL|array|webapp_html_form
+	static function form_sign_in(array|webapp|webapp_html $context, string $authurl = NULL):NULL|array|webapp_form
 	{
-		$form = new webapp_html_form($context, $authurl);
+		$form = new webapp_form($context, $authurl);
 		$form->fieldset('Username');
 		$form->field('username', 'text', ['placeholder' => 'Type username', 'required' => NULL, 'autofocus' => NULL]);
 		$form->fieldset('Password');

@@ -41,6 +41,18 @@ $danger: rgb(203, 36, 49);
 	border-radius: 0.5em;
 	box-shadow: 0 0.5em 2em rgba($border, 0.175);
 }
+
+body>article.webapp>section{
+	display: table-row;
+	>aside,>section{
+		vertical-align: top;
+		display: table-cell;
+	}
+	>section{
+		@include padding(4);
+	}
+}
+/*
 *[class|=webapp]{
 	margin: 0;
 	padding: 0;
@@ -178,8 +190,7 @@ body.webapp>article>section{
 body.webapp>article>footer{
 	@include padding(2);
 }
-
-
+*/
 
 
 

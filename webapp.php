@@ -75,7 +75,6 @@ abstract class webapp implements ArrayAccess, Stringable
 			= method_exists($this, $index = "{$this['request_method']}_{$this['app_index']}")
 			? [$this, $index, array_slice($entry, 1)]
 			: [$this['app_mapping'] . $this['app_index'], strtr("{$this['request_method']}_{$this['app_entry']}", '-', '_'), []];
-		return $this;
 	}
 	function __destruct()
 	{
@@ -447,6 +446,35 @@ abstract class webapp implements ArrayAccess, Stringable
 		$this['app_index'] = '__invoke';
 		$this['app_entry'] = $params;
 	}
+	function captcha_random():?string
+	{
+		$random = $this->random($this['captcha_unit'] * 3);
+		for ($i = 0; $i < $this['captcha_unit']; ++$i)
+		{
+			$random[$i] = chr((ord($random[$i]) % 26) + 65);
+		}
+		return $this->encrypt(pack('Va*', time(), $random));
+	}
+	function captcha_format(string $random):array
+	{
+		if (strlen($binary = $this->decrypt($random)) === $this['captcha_unit'] * 3 + 4)
+		{
+			$format = unpack('Vtime/a4code/c4rotate/c4size', $binary);
+			$result = [$format['time']];
+			for ($i = 0; $i < $this['captcha_unit'];)
+			{
+				$result[1][] = [$format['code'][$i++], $format['rotate' . $i], $format['size' . $i]];
+			}
+			return $result;
+		}
+		return [];
+	}
+	function captcha_verify(string $random, string $answer):bool
+	{
+		return ($format = $this->captcha_format($random))
+			&& $format[0] + $this['captcha_expire'] > time()
+			&& join(array_column($format[1], 0)) === strtoupper($answer);
+	}
 	//request
 	function request_ip():string
 	{
@@ -615,7 +643,7 @@ abstract class webapp implements ArrayAccess, Stringable
 		if ($this['request_method'] === 'post')
 		{
 			$this->app('webapp_echo_json', ['errors' => &$this->errors, 'signature' => NULL]);
-			if ($input = webapp_html::form_sign_in($this))
+			if ($input = webapp_echo_html::form_sign_in($this))
 			{
 				if ($this->admin($signature = $this->signature($input['username'], $input['password'])))
 				{
@@ -636,40 +664,10 @@ abstract class webapp implements ArrayAccess, Stringable
 		$this->response_status(200);
 		return TRUE;
 	}
-	function captcha_random():?string
-	{
-		$random = $this->random($this['captcha_unit'] * 3);
-		for ($i = 0; $i < $this['captcha_unit']; ++$i)
-		{
-			$random[$i] = chr((ord($random[$i]) % 26) + 65);
-		}
-		return $this->encrypt(pack('Va*', time(), $random));
-	}
-	function captcha_format(string $random):array
-	{
-		if (strlen($binary = $this->decrypt($random)) === $this['captcha_unit'] * 3 + 4)
-		{
-			$format = unpack('Vtime/a4code/c4rotate/c4size', $binary);
-			$result = [$format['time']];
-			for ($i = 0; $i < $this['captcha_unit'];)
-			{
-				$result[1][] = [$format['code'][$i++], $format['rotate' . $i], $format['size' . $i]];
-			}
-			return $result;
-		}
-		return [];
-	}
-	function captcha_verify(string $random, string $answer):bool
-	{
-		return ($format = $this->captcha_format($random))
-			&& $format[0] + $this['captcha_expire'] > time()
-			&& join(array_column($format[1], 0)) === strtoupper($answer);
-	}
 	function get_home()
 	{
 		$this->app('webapp_echo_html')->header['style'] = 'font-size:2rem';
 		$this->app->header->text('Welcome in WebApp Framework');
-		//$this->app('webapp_html')->header->append('h1', ['Welcome use WebApp Framework', 'style' => 'padding:0.6rem']);
 	}
 	function get_captcha(string $random = NULL)
 	{
