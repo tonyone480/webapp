@@ -27,7 +27,7 @@ class webapp_xml extends SimpleXMLElement
 	}
 	function pi(string ...$values):DOMNode
 	{
-		return  $this[0]->dom()->appendChild(new DOMProcessingInstruction(...$values));
+		return $this[0]->dom()->appendChild(new DOMProcessingInstruction(...$values));
 	}
 	function text(string ...$values):DOMNode
 	{
@@ -82,6 +82,12 @@ class webapp_xml extends SimpleXMLElement
 	function remove():void
 	{
 		unset($this[0]);
+	}
+	function clear():string
+	{
+		$text = (string)$this[0];
+		$this[0] = NULL;
+		return $text;
 	}
 	function parent():static
 	{
@@ -294,21 +300,78 @@ class webapp_html extends webapp_xml
 	{
 		return $this[0]->append('select')->options($values, ...$default);
 	}
-	function appendcontext(array $element):static
+	function appendnode(array $context):static
 	{
-		return $this[0]->append($element[0], array_slice($element, 1));
+		return $this[0]->append($context[0], array_slice($context, 1));
 	}
-	function appenditerable(iterable $context):static
+	function appenditerable(iterable $context, string|array ...$extends):static
 	{
 		foreach ($context as $element)
 		{
 			if (is_array($element))
 			{
-				$this[0]->append($element[0], array_slice($element, 1));
+				// $contents = NULL;
+				// if (array_key_exists('iterable', $element))
+				// {
+				// 	$contents = $element['iterable'];
+				// 	unset($element['iterable']);
+				// }
+				// $node = $this[0]->appendnode($element);
+				// if (is_iterable($contents))
+				// {
+				// 	foreach ($extends as $a)
+				// 	{
+				// 		if (is_array($a))
+				// 		{
+				// 			if (is_string($a[0]))
+				// 			{
+				// 				$node = $node->appendnode($a);
+				// 			}
+				// 			else
+				// 			{
+				// 				$node = $a[0]->call($node, $element);
+				// 			}
+				// 		}
+				// 		else
+				// 		{
+				// 			$node = $node->append($a);
+				// 		}
+				// 	}
+				// }
+
+
+				if (array_key_exists('iterable', $element) && is_iterable($element['iterable']))
+				{
+					$contents = $element['iterable'];
+					unset($element['iterable']);
+					$node = $this[0]->appendnode($element);
+					foreach ($extends as $a)
+					{
+						if (is_array($a))
+						{
+							if (is_string($a[0]))
+							{
+								$node = $node->appendnode($a);
+							}
+							else
+							{
+								$node = $a[0]->call($node);
+							}
+						}
+						else
+						{
+							$node = $node->append($a);
+						}
+					}
+					$node->appenditerable($contents, ...$extends);
+				}
+				else
+				{
+					$this[0]->appendnode($element);
+				}
 			}
 		}
-		
-
+		return $this[0];
 	}
 	function appendtree(iterable $list, string $root = 'ul', string $child = 'li'):static
 	{
