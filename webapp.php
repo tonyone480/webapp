@@ -12,17 +12,18 @@ interface webapp_io
 	function request_query():string;
 	function request_cookie(string $name):?string;
 	function request_content():string;
-	function request_formdata(bool $uploadedfile):array;
+	function request_formdata():array;
+	function request_uploadedfile():array;
 	function response_sent():bool;
 	function response_status(int $code):void;
 	function response_header(string $value):void;
 	function response_cookie(string ...$values):void;
-	function response_content(string $data):void;
+	function response_content(string $data):bool;
 	function response_sendfile(string $filename):bool;
 }
 abstract class webapp implements ArrayAccess, Stringable
 {
-	const version = '4.4a', key = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz-';
+	const version = '4.7a', key = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz-';
 	private array $errors = [], $headers = [], $cookies = [], $configs, $uploadedfiles;
 	function __construct(private webapp_io $io, array $config = [])
 	{

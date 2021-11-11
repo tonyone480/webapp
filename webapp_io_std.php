@@ -1,6 +1,6 @@
 <?php
 require 'webapp.php';
-final class sapi implements webapp_sapi
+final class io implements webapp_io
 {
 	function request_ip():string
 	{
@@ -31,44 +31,44 @@ final class sapi implements webapp_sapi
 	{
 		return file_get_contents('php://input');
 	}
-	function request_formdata(bool $uploadedfile):array
+	function request_formdata():array
 	{
-		if ($uploadedfile)
+		return $_POST;
+	}
+	function request_uploadedfile():array
+	{
+		$uploadedfiles = [];
+		foreach ($_FILES as $name => $file)
 		{
-			$uploadedfiles = [];
-			foreach ($_FILES as $name => $file)
+			$files = [];
+			foreach ($file as $type => $info)
 			{
-				$files = [];
-				foreach ($file as $type => $info)
+				if (is_array($info))
 				{
-					if (is_array($info))
+					foreach ($info as $index => $value)
 					{
-						foreach ($info as $index => $value)
-						{
-							$files[$index][$type] = $value;
-						}
-						continue;
+						$files[$index][$type] = $value;
 					}
-					$files[0][$type] = $info;
+					continue;
 				}
-				$uploadedfiles[$name] = [];
-				foreach ($files as $file)
+				$files[0][$type] = $info;
+			}
+			$uploadedfiles[$name] = [];
+			foreach ($files as $file)
+			{
+				if ($file['error'] === UPLOAD_ERR_OK)
 				{
-					if ($file['error'] === UPLOAD_ERR_OK)
-					{
-						$uploadedfiles[$name][] = [
-							'file' => $file['tmp_name'],
-							'size' => $file['size'],
-							'mime' => $file['type'],
-							'name' => $file['name'],
-							'type' => preg_match('/\.(\w{1,256})$/i', $file['name'], $suffix) ? strtolower($suffix[1]) : 'unknown'
-						];
-					}
+					$uploadedfiles[$name][] = [
+						'file' => $file['tmp_name'],
+						'size' => $file['size'],
+						'mime' => $file['type'],
+						'name' => $file['name'],
+						'type' => preg_match('/\.(\w{1,256})$/i', $file['name'], $suffix) ? strtolower($suffix[1]) : 'unknown'
+					];
 				}
 			}
-			return $uploadedfiles;
 		}
-		return $_POST;
+		return $uploadedfiles;
 	}
 	function response_sent():bool
 	{
@@ -86,12 +86,15 @@ final class sapi implements webapp_sapi
 	{
 		setcookie(...$values);
 	}
-	function response_content(string $data):void
+	function response_content(string $data):bool
 	{
-		file_put_contents('php://output', $data);
+		return file_put_contents('php://output', $data) !== FALSE;
 	}
 	function response_sendfile(string $filename):bool
 	{
-		return !$this->response_header("X-Sendfile: {$filename}");
+		return PHP_SAPI === 'apache2handler'
+			&& in_array('mod_xsendfile', apache_get_modules(), TRUE)
+			? $this->response_header("X-Sendfile: {$filename}") === NULL
+			: copy($filename, 'php://output');
 	}
 }

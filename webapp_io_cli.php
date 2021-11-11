@@ -1,6 +1,6 @@
 <?php
 require 'webapp.php';
-final class sapi implements webapp_sapi
+final class io implements webapp_io
 {
 	function request_ip():string
 	{
@@ -26,7 +26,11 @@ final class sapi implements webapp_sapi
 	{
 		return file_get_contents('php://input');
 	}
-	function request_formdata(bool $uploadedfile):array
+	function request_formdata():array
+	{
+		return [];
+	}
+	function request_uploadedfile():array
 	{
 		return [];
 	}
@@ -46,12 +50,12 @@ final class sapi implements webapp_sapi
 	{
 		setcookie(...$values);
 	}
-	function response_content(string $data):void
+	function response_content(string $data):bool
 	{
-		file_put_contents('php://output', $data);
+		return file_put_contents('php://output', $data) !== FALSE;
 	}
 	function response_sendfile(string $filename):bool
 	{
-		return !$this->response_header("X-Sendfile: {$filename}");
+		return copy($filename, 'php://output');
 	}
 }

@@ -323,7 +323,7 @@ class webapp_html extends webapp_xml
 			}
 			if (is_array($item))
 			{
-				if(is_iterable($item[1]))
+				//if(is_iterable($item[1]))
 			}
 
 		}
