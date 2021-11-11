@@ -292,9 +292,24 @@ class webapp_html extends webapp_xml
 	}
 	function select(iterable $values, string ...$default):static
 	{
-		return $this->append('select')->options($values, ...$default);
+		return $this[0]->append('select')->options($values, ...$default);
 	}
+	function appendcontext(array $element):static
+	{
+		return $this[0]->append($element[0], array_slice($element, 1));
+	}
+	function appenditerable(iterable $context):static
+	{
+		foreach ($context as $element)
+		{
+			if (is_array($element))
+			{
+				$this[0]->append($element[0], array_slice($element, 1));
+			}
+		}
+		
 
+	}
 	function appendtree(iterable $list, string $root = 'ul', string $child = 'li'):static
 	{
 		$node = &$this[0]->{$root}[];

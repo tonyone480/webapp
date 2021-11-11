@@ -4,7 +4,7 @@ require 'webapp_dom.php';
 require 'webapp_echo.php';
 require 'webapp_image.php';
 require 'webapp_mysql.php';
-interface webapp_sapi
+interface webapp_io
 {
 	function request_ip():string;
 	function request_header(string $name):?string;
@@ -24,13 +24,13 @@ abstract class webapp implements ArrayAccess, Stringable
 {
 	const version = '4.4a', key = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz-';
 	private array $errors = [], $headers = [], $cookies = [], $configs, $uploadedfiles;
-	function __construct(private webapp_sapi $sapi, array $config = [])
+	function __construct(private webapp_io $io, array $config = [])
 	{
 		$this->webapp = $this;
 		$this->configs = $config + [
 			//Request
-			'request_method'	=> in_array($method = strtolower($sapi->request_method()), ['get', 'post', 'put', 'delete'], TRUE) ? $method : 'get',
-			'request_query'		=> $sapi->request_query(),
+			'request_method'	=> in_array($method = strtolower($io->request_method()), ['get', 'post', 'put', 'delete'], TRUE) ? $method : 'get',
+			'request_query'		=> $io->request_query(),
 			//Application
 			// 'app_rootdir'		=> __DIR__,
 			// 'app_locales'		=> __DIR__ . '/lib/local/en.php',
@@ -120,35 +120,35 @@ abstract class webapp implements ArrayAccess, Stringable
 			}
 			$status = 404;
 		} while (0);
-		if ($this->sapi->response_sent() === FALSE)
+		if ($this->io->response_sent() === FALSE)
 		{
 			if (is_int($status))
 			{
-				$this->sapi->response_status($status);
+				$this->io->response_status($status);
 			}
 			foreach ($this->cookies as $values)
 			{
-				$this->sapi->response_cookie(...$values);
+				$this->io->response_cookie(...$values);
 			}
 			foreach ($this->headers as $key => $value)
 			{
-				$this->sapi->response_header("{$key}: {$value}");
+				$this->io->response_header("{$key}: {$value}");
 			}
 			if (property_exists($this, 'io'))
 			{
 				if ($this['gzip_level']
 					&& stripos($this->request_header('Accept-Encoding'), 'gzip') !== FALSE
-					&& stream_filter_append($this->io, 'zlib.deflate', STREAM_FILTER_READ, ['level' => $this['gzip_level'], 'window' => 31, 'memory' => 9])) {
-					$this->sapi->response_header('Content-Encoding: gzip');
+					&& stream_filter_append($this->buffer, 'zlib.deflate', STREAM_FILTER_READ, ['level' => $this['gzip_level'], 'window' => 31, 'memory' => 9])) {
+					$this->io->response_header('Content-Encoding: gzip');
 				}
-				$this->sapi->response_content($this);
-				unset($this->io);
+				$this->io->response_content($this);
+				unset($this->buffer);
 			}
 		}
 	}
 	function __toString():string
 	{
-		return rewind($this->io) ? stream_get_contents($this->io) : join(PHP_EOL, $this->errors);
+		return rewind($this->buffer) ? stream_get_contents($this->buffer) : join(PHP_EOL, $this->errors);
 	}
 	// function __debugInfo():array
 	// {
@@ -203,6 +203,26 @@ abstract class webapp implements ArrayAccess, Stringable
 	{
 		unset($this->configs[$key]);
 	}
+	final function buffer():mixed
+	{
+		return fopen('php://memory', 'r+');
+	}
+	function print(string $data):int
+	{
+		return fwrite($this->buffer, $data);
+	}
+	function printf(string $format, string ...$params):int
+	{
+		return fprintf($this->buffer, $format, ...$params);
+	}
+	function println(string $data):int
+	{
+		return $this->printf("%s\n", $data);
+	}
+	function putcsv(array $values, string $delimiter = ',', string $enclosure = '"'):int
+	{
+		return fputcsv($this->buffer, $values, $delimiter, $enclosure);
+	}
 	function app(string $classname = NULL, mixed ...$params):object
 	{
 		// return $this(is_string($classname)
@@ -214,26 +234,6 @@ abstract class webapp implements ArrayAccess, Stringable
 			return $this->app = new $classname($this, ...$params);
 		}
 		return is_object($this['app_mapping']) ? $this['app_mapping'] : $this['app_mapping'] = new $this['app_mapping']($this);
-	}
-	function io():mixed
-	{
-		return fopen('php://memory', 'r+');
-	}
-	function print(string $data):int
-	{
-		return fwrite($this->io, $data);
-	}
-	function printf(string $format, string ...$params):int
-	{
-		return fprintf($this->io, $format, ...$params);
-	}
-	function println(string $data):int
-	{
-		return $this->printf("%s\n", $data);
-	}
-	function putcsv(array $values, string $delimiter = ',', string $enclosure = '"'):int
-	{
-		return fputcsv($this->io, $values, $delimiter, $enclosure);
 	}
 	function hash_time33(string $data, bool $care = FALSE):string
 	{
@@ -478,15 +478,15 @@ abstract class webapp implements ArrayAccess, Stringable
 	//request
 	function request_ip():string
 	{
-		return $this->sapi->request_ip();
+		return $this->io->request_ip();
 	}
 	function request_header(string $name):?string
 	{
-		return $this->sapi->request_header($name);
+		return $this->io->request_header($name);
 	}
 	function request_cookie(string $name):?string
 	{
-		return $this->sapi->request_cookie($name);
+		return $this->io->request_cookie($name);
 	}
 	function request_cookie_decrypt(string $name):?string
 	{
@@ -513,15 +513,15 @@ abstract class webapp implements ArrayAccess, Stringable
 		return match($format ?? strtolower(strpos($type = $this->request_header('Content-Type'), ';') === FALSE ? $type : strstr($type, ';', TRUE)))
 		{
 			'multipart/form-data',
-			'application/x-www-form-urlencoded' => $this->sapi->request_formdata(FALSE),
-			'application/json' => json_decode($this->sapi->request_content(), TRUE),
-			'application/xml' => $this->xml($this->sapi->request_content()),
-			default => $this->sapi->request_content()
+			'application/x-www-form-urlencoded' => $this->io->request_formdata(FALSE),
+			'application/json' => json_decode($this->io->request_content(), TRUE),
+			'application/xml' => $this->xml($this->io->request_content()),
+			default => $this->io->request_content()
 		};
 	}
 	function request_uploadedfile(string $name, int $maximum = 1):ArrayObject
 	{
-		if (array_key_exists($name, $this->uploadedfiles ??= $this->sapi->request_formdata(TRUE)) === FALSE || is_array($this->uploadedfiles[$name]))
+		if (array_key_exists($name, $this->uploadedfiles ??= $this->io->request_formdata(TRUE)) === FALSE || is_array($this->uploadedfiles[$name]))
 		{
 			$uploadedfiles = [];
 			if (array_key_exists($name, $this->uploadedfiles))
@@ -594,7 +594,7 @@ abstract class webapp implements ArrayAccess, Stringable
 	//response
 	function response_sendfile(string $filename):bool
 	{
-		return $this->sapi->response_sendfile($filename);
+		return $this->io->response_sendfile($filename);
 	}
 	function response_status(int $code, string $data = NULL):void
 	{
@@ -635,9 +635,9 @@ abstract class webapp implements ArrayAccess, Stringable
 		$this->response_header('Content-Disposition', 'attachment; filename=' . urlencode($basename));
 	}
 	//append function
-	final function no_sign_in_admin(webapp_sapi $sapi, array $config = []):bool
+	final function no_sign_in_admin(webapp_io $io, array $config = []):bool
 	{
-		self::__construct($sapi, $config);
+		self::__construct($io, $config);
 		if ($this['app_mapping'] === $this && in_array($this['app_index'], ['get_captcha', 'get_qrcode', 'get_scss'], TRUE)) return TRUE;
 		if ($this->admin) return FALSE;
 		if ($this['request_method'] === 'post')
@@ -676,7 +676,7 @@ abstract class webapp implements ArrayAccess, Stringable
 			if (is_string($random) && ($format = $this->captcha_format($random)))
 			{
 				$this->response_content_type('image/jpeg');
-				webapp_image::captcha($format[1], ...$this['captcha_params'])->jpeg($this->io);
+				webapp_image::captcha($format[1], ...$this['captcha_params'])->jpeg($this->buffer);
 				return;
 			}
 			if ($random = $this->captcha_random())
@@ -694,7 +694,7 @@ abstract class webapp implements ArrayAccess, Stringable
 		if ($this['qrcode_echo'] && is_string($decode = $this->url64_decode($encode)) && strlen($decode) < $this['qrcode_maxdata'])
 		{
 			$this->response_content_type('image/png');
-			webapp_image::qrcode($decode, $this['qrcode_ecc'], $this['qrcode_size'])->png($this->io);
+			webapp_image::qrcode($decode, $this['qrcode_ecc'], $this['qrcode_size'])->png($this->buffer);
 			return;
 		}
 		return 404;
