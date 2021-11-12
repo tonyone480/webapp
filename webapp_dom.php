@@ -304,7 +304,7 @@ class webapp_html extends webapp_xml
 	{
 		return $this[0]->append('select')->options($values, ...$default);
 	}
-	function appenditer(iterable $iter, callable $map = NULL, Closure|string|array $before = NULL, Closure|string|array $after = NULL):static
+	function appenditer1(iterable $iter, callable $map = NULL, Closure|string|array $before = NULL, Closure|string|array $after = NULL):static
 	{
 		foreach ($iter as $data)
 		{
