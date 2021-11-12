@@ -79,8 +79,12 @@ class webapp_xml extends SimpleXMLElement
 		}
 		return $node->nodeType === XML_ELEMENT_NODE ? simplexml_import_dom($node, static::class) : $node;
 	}
-	function remove():void
+	function remove():static
 	{
+		$child = $this[0]->dom();
+		$parent = $child->parentNode;
+		$parent->removeChild($child);
+		return simplexml_import_dom($parent, static::class);
 		unset($this[0]);
 	}
 	function clear():string
@@ -300,79 +304,73 @@ class webapp_html extends webapp_xml
 	{
 		return $this[0]->append('select')->options($values, ...$default);
 	}
-	function appendnode(array $context):static
+	function appenditer(iterable $iter, callable $map = NULL, Closure|string|array $before = NULL, Closure|string|array $after = NULL):static
 	{
-		return $this[0]->append($context[0], array_slice($context, 1));
-	}
-	function appenditerable(iterable $context, string|array ...$extends):static
-	{
-		foreach ($context as $element)
+		foreach ($iter as $data)
 		{
-			if (is_array($element))
+			if (is_array($item = $map ? $map($data) : $data))
 			{
-				// $contents = NULL;
-				// if (array_key_exists('iterable', $element))
-				// {
-				// 	$contents = $element['iterable'];
-				// 	unset($element['iterable']);
-				// }
-				// $node = $this[0]->appendnode($element);
-				// if (is_iterable($contents))
-				// {
-				// 	foreach ($extends as $a)
-				// 	{
-				// 		if (is_array($a))
-				// 		{
-				// 			if (is_string($a[0]))
-				// 			{
-				// 				$node = $node->appendnode($a);
-				// 			}
-				// 			else
-				// 			{
-				// 				$node = $a[0]->call($node, $element);
-				// 			}
-				// 		}
-				// 		else
-				// 		{
-				// 			$node = $node->append($a);
-				// 		}
-				// 	}
-				// }
-
-
-				if (array_key_exists('iterable', $element) && is_iterable($element['iterable']))
+				$node = match (get_debug_type($before))
 				{
-					$contents = $element['iterable'];
-					unset($element['iterable']);
-					$node = $this[0]->appendnode($element);
-					foreach ($extends as $a)
-					{
-						if (is_array($a))
-						{
-							if (is_string($a[0]))
-							{
-								$node = $node->appendnode($a);
-							}
-							else
-							{
-								$node = $a[0]->call($node);
-							}
-						}
-						else
-						{
-							$node = $node->append($a);
-						}
-					}
-					$node->appenditerable($contents, ...$extends);
+					'Closure' => $before->call($this[0], $item),
+					'string' => $this[0]->append($before),
+					'array' => $this[0]->append($before[0], array_slice($before, 1)),
+					default => $this[0]
+				};
+				$iterable = NULL;
+				if (array_key_exists('iter', $item))
+				{
+					$iterable = $item['iter'];
+					unset($item['iter']);
 				}
-				else
+				$node = $node->append($item[0], array_slice($item, 1));
+				if (is_iterable($iterable))
 				{
-					$this[0]->appendnode($element);
+					$node = match (get_debug_type($after))
+					{
+						'Closure' => $after->call($node),
+						'string' => $node->append($after),
+						'array' => $node->append($after[0], array_slice($after, 1)),
+						default => $node
+					};
+					$node->appenditer($iterable, $map, $before, $after);
 				}
 			}
 		}
 		return $this[0];
 	}
+	function appenditerable(iterable $content, Closure|string|array ...$extends):static
+	{
+		foreach ($content as $element)
+		{
+			if (is_array($element))
+			{
+				$iterable = NULL;
+				if (array_key_exists('iterable', $element))
+				{
+					$iterable = $element['iterable'];
+					unset($element['iterable']);
+				}
+				$node = $this[0]->append($element[0], array_slice($element, 1));
+				if (is_iterable($iterable))
+				{
+					foreach ($extends as $extend)
+					{
+						$node = match (get_debug_type($extend))
+						{
+							'Closure' => $extend->call($node),
+							'string' => $node->append($extend),
+							'array' => $node->append($extend[0], array_slice($extend, 1)),
+							default => $node
+						};
+					}
+					$node->appenditerable($iterable, ...$extends);
+				}
+			}
+		}
+		return $this[0];
+	}
+
 	function appendtree(iterable $list, string $root = 'ul', string $child = 'li'):static
 	{
 		$node = &$this[0]->{$root}[];
@@ -464,7 +462,7 @@ class webapp_html extends webapp_xml
 	{
 		return new webapp_form($this[0], $action);
 	}
-	function table(iterable $data = [], closure $output = NULL, mixed ...$params):webapp_table
+	function table(iterable $data = [], Closure $output = NULL, mixed ...$params):webapp_table
 	{
 		return new webapp_table($this[0], $data, $output, ...$params);
 	}
@@ -854,7 +852,7 @@ class webapp_form
 class webapp_table
 {
 	public $xml, $tbody, $paging;
-	function __construct(webapp_html $node, iterable $data = [], closure $output = NULL, mixed ...$params)
+	function __construct(webapp_html $node, iterable $data = [], Closure $output = NULL, mixed ...$params)
 	{
 		$this->xml = &$node->table[];
 		$this->tbody = &$this->xml->tbody;
