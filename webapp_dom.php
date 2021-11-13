@@ -43,18 +43,21 @@ class webapp_xml extends SimpleXMLElement
 		}
 		return $xml;
 	}
-	function append(string $name, array|string $content = NULL):static
+	function append(string $name, array|string $contents = NULL):static
 	{
-		if (is_array($content))
+		if (is_array($contents))
 		{
 			$node = &$this[0]->{$name}[];
-			foreach ($content as $attribute => $value)
+			foreach ($contents as $attribute => $value)
 			{
-				$node[$attribute] = $value;
+				if (is_scalar($value))
+				{
+					$node[$attribute] = $value;
+				}
 			}
 			return $node;
 		}
-		return $this->addChild($name, $content);
+		return $this->addChild($name, $contents);
 	}
 	function insert(DOMNode|string $node, string $position = NULL)
 	{
@@ -304,40 +307,72 @@ class webapp_html extends webapp_xml
 	{
 		return $this[0]->append('select')->options($values, ...$default);
 	}
-	function appenditer1(iterable $iter, callable $map = NULL, Closure|string|array $before = NULL, Closure|string|array $after = NULL):static
+	function appenditer(iterable $iterator, Closure $generator):static
 	{
-		foreach ($iter as $data)
+		foreach ($iterator as $item)
 		{
-			if (is_array($item = $map ? $map($data) : $data))
+			[$node, $iter] = $generator->call($this[0], $item);
+			if (is_iterable($iter))
 			{
-				$node = match (get_debug_type($before))
-				{
-					'Closure' => $before->call($this[0], $item),
-					'string' => $this[0]->append($before),
-					'array' => $this[0]->append($before[0], array_slice($before, 1)),
-					default => $this[0]
-				};
-				$iterable = NULL;
-				if (array_key_exists('iter', $item))
-				{
-					$iterable = $item['iter'];
-					unset($item['iter']);
-				}
-				$node = $node->append($item[0], array_slice($item, 1));
-				if (is_iterable($iterable))
-				{
-					$node = match (get_debug_type($after))
-					{
-						'Closure' => $after->call($node),
-						'string' => $node->append($after),
-						'array' => $node->append($after[0], array_slice($after, 1)),
-						default => $node
-					};
-					$node->appenditer($iterable, $map, $before, $after);
-				}
+				$node->appenditer($iter, $generator);
 			}
 		}
 		return $this[0];
+	}
+	function appenditer(iterable $iterator, Closure $generator = NULL):static
+	{
+		$generator ??= fn(array $item):array => [$this->append($item[0], array_slice($item, 1)),
+			array_key_exists('iter', $item) && is_iterable($item['iter']) ? $item['iter'] : NULL];
+		foreach ($iterator as $item)
+		{
+			[$node, $iter] = $generator->call($this[0], $item);
+			if (is_iterable($iter))
+			{
+				$node->appenditer($iter, $generator);
+			}
+		}
+		return $this[0];
+		// foreach ($iter as $data)
+		// {
+		// 	$item = $map ? $map->call($this[0], $data) : $data;
+			
+		// 	if (is_array($item))
+		// 	{
+
+		// 	}
+
+		// 	var_dump( get_debug_type($item) );
+
+		// 	// if (is_array($item = $map ? $map($data) : $data))
+		// 	// {
+		// 	// 	$node = match (get_debug_type($before))
+		// 	// 	{
+		// 	// 		'Closure' => $before->call($this[0], $item),
+		// 	// 		'string' => $this[0]->append($before),
+		// 	// 		'array' => $this[0]->append($before[0], array_slice($before, 1)),
+		// 	// 		default => $this[0]
+		// 	// 	};
+		// 	// 	$iterable = NULL;
+		// 	// 	if (array_key_exists('iter', $item))
+		// 	// 	{
+		// 	// 		$iterable = $item['iter'];
+		// 	// 		unset($item['iter']);
+		// 	// 	}
+		// 	// 	$node = $node->append($item[0], array_slice($item, 1));
+		// 	// 	if (is_iterable($iterable))
+		// 	// 	{
+		// 	// 		$node = match (get_debug_type($after))
+		// 	// 		{
+		// 	// 			'Closure' => $after->call($node),
+		// 	// 			'string' => $node->append($after),
+		// 	// 			'array' => $node->append($after[0], array_slice($after, 1)),
+		// 	// 			default => $node
+		// 	// 		};
+		// 	// 		$node->appenditer($iterable, $map, $before, $after);
+		// 	// 	}
+		// 	// }
+		// }
+		// return $this[0];
 	}
 	function appenditerable(iterable $content, Closure|string|array ...$extends):static
 	{
