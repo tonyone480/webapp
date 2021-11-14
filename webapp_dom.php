@@ -21,7 +21,7 @@ class webapp_xml extends SimpleXMLElement
 	{
 		return $this[0]->dom()->appendChild(new DOMComment($value));
 	}
-	function entity(string $name)
+	function entity(string $name):DOMNode
 	{
 		return $this[0]->dom()->appendChild(new DOMEntityReference($name));
 	}
@@ -33,7 +33,7 @@ class webapp_xml extends SimpleXMLElement
 	{
 		return $this[0]->dom()->appendChild(new DOMText(...$values));
 	}
-	function xml(string $data = NULL):DOMNode
+	function xml(string $data):DOMNode
 	{
 		$dom = $this[0]->dom();
 		$xml = $dom->ownerDocument->createDocumentFragment();
@@ -100,26 +100,20 @@ class webapp_xml extends SimpleXMLElement
 	{
 		return $this[0]->xpath('..')[0] ?? $this[0];
 	}
-	// function attr($values = NULL)
-	// {
-	// 	if (func_num_args())
-	// 	{
-	// 		$node = $this[0];
-	// 		if (is_array($values))
-	// 		{
-	// 			foreach ($values as $name => $value)
-	// 			{
-	// 				$node[$name] = $value;
-	// 			}
-	// 			return $node;
-	// 		}
-	// 		return isset($node[$values]) ? (string)$node[$values] : NULL;
-	// 	}
-	// 	return ((array)$this[0]->attributes())['@attributes'] ?? [];
-	// }
-
-
-
+	function getattr(string $name = NULL):NULL|string|array
+	{
+		$attributes = ((array)$this[0]->attributes())['@attributes'] ?? [];
+		return is_string($name) ? $attributes[$name] ?? NULL : $attributes;
+	}
+	function setattr(string|array $name, string $value = NULL):static
+	{
+		$node = $this[0];
+		foreach (is_string($name) ? [$name => $value] : $name as $name => $value)
+		{
+			$node[$name] = $value;
+		}
+		return $node;
+	}
 	// function query(string $selector):array
 	// {
 	// 	$query = ['descendant::*'];
@@ -307,31 +301,58 @@ class webapp_html extends webapp_xml
 	{
 		return $this[0]->append('select')->options($values, ...$default);
 	}
-	function appenditer(iterable $iterator, Closure $generator):static
+	// function a($a)
+	// {
+	// 	return Closure::fromCallable([$this, 'iter'])->bindTo($a);
+	// }
+	function iter(iterable $contents, Closure $render)
 	{
-		foreach ($iterator as $item)
+		foreach ($contents as $item)
 		{
-			[$node, $iter] = $generator->call($this[0], $item);
-			if (is_iterable($iter))
+			if (is_array($context = $render->call($this[0], $item)))
 			{
-				$node->appenditer($iter, $generator);
+				[$node, $iter] = [...$context, NULL, NULL];
+				if ($node instanceof static && is_iterable($iter))
+				{
+					$node->iter($iter, $render);
+				}
 			}
 		}
 		return $this[0];
 	}
+	function nav(iterable $contents, bool $fold = FALSE)
+	{
+		return $this[0]->append('nav')->append('ul')->iter($contents, function(array $item) use ($fold)
+		{
+			$node = &$this->li[];
+			if (is_array($item[1]))
+			{
+				if ($fold)
+				{
+					$node = $node->details($item[0]);
+				}
+				return [$node->append('ul'), $item[1]];
+			}
+			$node->append('a', [$item[0], 'href' => $item[1]]);
+		})->parent();
+	}
+	
 	function appenditer(iterable $iterator, Closure $generator = NULL):static
 	{
-		$generator ??= fn(array $item):array => [$this->append($item[0], array_slice($item, 1)),
-			array_key_exists('iter', $item) && is_iterable($item['iter']) ? $item['iter'] : NULL];
-		foreach ($iterator as $item)
-		{
-			[$node, $iter] = $generator->call($this[0], $item);
-			if (is_iterable($iter))
-			{
-				$node->appenditer($iter, $generator);
-			}
-		}
-		return $this[0];
+		return $this[0]->iter($iterator, $generator ?? fn(array $item):array => [$this->append($item[0], array_slice($item, 1)), $item['iter'] ?? NULL]);
+		// $generator ??= fn(array $item):array => [$this->append($item[0], array_slice($item, 1)), $item['iter'] ?? NULL];
+		// foreach ($iterator as $item)
+		// {
+		// 	if (is_array($context = $generator->call($this[0], $item)))
+		// 	{
+		// 		[$node, $iter] = [...$context, NULL, NULL];
+		// 		if ($node instanceof static && is_iterable($iter))
+		// 		{
+		// 			$node->appenditer($iter, $generator);
+		// 		}
+		// 	}
+		// }
+		// return $this[0];
 		// foreach ($iter as $data)
 		// {
 		// 	$item = $map ? $map->call($this[0], $data) : $data;

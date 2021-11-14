@@ -514,7 +514,7 @@ abstract class webapp implements ArrayAccess, Stringable
 		return match($format ?? strtolower(strpos($type = $this->request_header('Content-Type'), ';') === FALSE ? $type : strstr($type, ';', TRUE)))
 		{
 			'multipart/form-data',
-			'application/x-www-form-urlencoded' => $this->io->request_formdata(FALSE),
+			'application/x-www-form-urlencoded' => $this->io->request_formdata(),
 			'application/json' => json_decode($this->io->request_content(), TRUE),
 			'application/xml' => $this->xml($this->io->request_content()),
 			default => $this->io->request_content()
@@ -522,7 +522,7 @@ abstract class webapp implements ArrayAccess, Stringable
 	}
 	function request_uploadedfile(string $name, int $maximum = 1):ArrayObject
 	{
-		if (array_key_exists($name, $this->uploadedfiles ??= $this->io->request_formdata(TRUE)) === FALSE || is_array($this->uploadedfiles[$name]))
+		if (array_key_exists($name, $this->uploadedfiles ??= $this->io->request_uploadedfile()) === FALSE || is_array($this->uploadedfiles[$name]))
 		{
 			$uploadedfiles = [];
 			if (array_key_exists($name, $this->uploadedfiles))
