@@ -43,7 +43,7 @@ class webapp_xml extends SimpleXMLElement
 		}
 		return $xml;
 	}
-	function iter(iterable $contents, Closure $iterator = NULL)
+	function iter(iterable $contents, Closure $iterator = NULL):static
 	{
 		$iterator ??= debug_backtrace(DEBUG_BACKTRACE_PROVIDE_OBJECT | DEBUG_BACKTRACE_IGNORE_ARGS, 3)[2]['object'];
 		foreach ($contents as $context)
@@ -68,28 +68,17 @@ class webapp_xml extends SimpleXMLElement
 		}
 		return $this->addChild($name, $contents);
 	}
-	function insert(DOMNode|string $node, string $position = NULL)
+	function insert(DOMNode|string $element, string $position = NULL):DOMNode
 	{
 		$dom = $this[0]->dom();
-		if (is_string($node))
+		$node = is_string($node) ? $dom->ownerDocument->createElement($node) : $element;
+		return match ($position)
 		{
-			$node = $dom->ownerDocument->createElement($node);
-		}
-		switch ($position)
-		{
-			case 'after'://插入到当前节点之后
-				$dom->parentNode->insertBefore($node, $dom->nextSibling);
-				break;
-			case 'before'://插入到当前节点之前
-				$dom->parentNode->insertBefore($node, $dom);
-				break;
-			case 'first'://插入到当前节点下开头
-				$dom->insertBefore($node, $dom->firstChild);
-				break;
-			default://插入到当前节点下末尾
-				$dom->appendChild($node);
-		}
-		return $node->nodeType === XML_ELEMENT_NODE ? simplexml_import_dom($node, static::class) : $node;
+			'after'		=> $dom->parentNode->insertBefore($node, $dom->nextSibling),	//插入到当前节点之后
+			'before'	=> $dom->parentNode->insertBefore($node, $dom),					//插入到当前节点之前
+			'first'		=> $dom->insertBefore($node, $dom->firstChild),					//插入到当前节点下开头
+			default		=> $dom->appendChild($node)										//插入到当前节点下末尾
+		};
 	}
 	function remove():static
 	{
@@ -122,6 +111,62 @@ class webapp_xml extends SimpleXMLElement
 			$node[$name] = $value;
 		}
 		return $node;
+	}
+	//以数组递归方式导入当前节点下所有内容
+	function import(iterable $values):static
+	{
+		foreach ($values as $key => $value)
+		{
+			$node = &$this[0]->{$key}[];
+			if (is_iterable($value))
+			{
+				$node->import($value);
+			}
+			else
+			{
+				$node[0] = $value;
+			}
+		}
+		return $this;
+	}
+	//以数组递归方式导出当前节点下所有内容
+	function export():array
+	{
+		$values = [];
+		if (strlen($content = trim($this[0])))
+		{
+			$values[] = preg_replace('/\s+/', ' ', $content);
+		}
+		$key = 0;
+		foreach ($this[0] as $name => $node)
+		{
+			if (isset($values[$name]))
+			{
+				if ($key === 0)
+				{
+					$values[$name] = [$values[$name]];
+				}
+				$value = &$values[$name];
+				$name = ++$key;
+			}
+			else
+			{
+				$value = &$values;
+			}
+			if ($node->count())
+			{
+				$value[$name] = $node->export();
+			}
+			else
+			{
+				$value[$name] = (string)$node;
+			}
+		}
+		return $values;
+	}
+	static function charsafe(string $content):string
+	{
+		return preg_replace('/[\x00-\x08\x0b-\x0c\x0e-\x1f]/', '', $content);
 	}
 	// function query(string $selector):array
 	// {
@@ -200,62 +245,6 @@ class webapp_xml extends SimpleXMLElement
 	// 	}
 	// 	return $this[0]->xpath(join($query));
 	// }
-	//以数组递归方式导入当前节点下所有内容
-	function import(iterable $values):static
-	{
-		foreach ($values as $key => $value)
-		{
-			$node = &$this[0]->{$key}[];
-			if (is_iterable($value))
-			{
-				$node->import($value);
-			}
-			else
-			{
-				$node[0] = $value;
-			}
-		}
-		return $this;
-	}
-	//以数组递归方式导出当前节点下所有内容
-	function export():array
-	{
-		$values = [];
-		if (strlen($content = trim($this[0])))
-		{
-			$values[] = preg_replace('/\s+/', ' ', $content);
-		}
-		$key = 0;
-		foreach ($this[0] as $name => $node)
-		{
-			if (isset($values[$name]))
-			{
-				if ($key === 0)
-				{
-					$values[$name] = [$values[$name]];
-				}
-				$value = &$values[$name];
-				$name = ++$key;
-			}
-			else
-			{
-				$value = &$values;
-			}
-			if ($node->count())
-			{
-				$value[$name] = $node->export();
-			}
-			else
-			{
-				$value[$name] = (string)$node;
-			}
-		}
-		return $values;
-	}
-	static function charsafe(string $content):string
-	{
-		return preg_replace('/[\x00-\x08\x0b-\x0c\x0e-\x1f]/', '', $content);
-	}
 }
 class webapp_html extends webapp_xml
 {
