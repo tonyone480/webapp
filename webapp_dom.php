@@ -301,22 +301,39 @@ class webapp_html extends webapp_xml
 	{
 		return $this[0]->append('select')->options($values, ...$default);
 	}
-	// function a($a)
-	// {
-	// 	return Closure::fromCallable([$this, 'iter'])->bindTo($a);
-	// }
-	function iter(iterable $contents, Closure $render)
+	function appendelement(array $context):static
 	{
+		return $this->append(array_shift($context), $context);
+	}
+	// function a(iterable $a, Closure $b)
+	// {
+	// 	fn()=>$b->call($this[0], 'iter' $a)
+	// 	return Closure::fromCallable(fn($a)=>[$this[0], 'iter'])();
+	// }
+	function iter(iterable $contents, Closure $render = NULL)
+	{
+		
+		print_r(debug_backtrace(DEBUG_BACKTRACE_PROVIDE_OBJECT, 1)[0]['args'][1]);
 		foreach ($contents as $item)
 		{
-			if (is_array($context = $render->call($this[0], $item)))
+			if ($render)
 			{
-				[$node, $iter] = [...$context, NULL, NULL];
-				if ($node instanceof static && is_iterable($iter))
-				{
-					$node->iter($iter, $render);
-				}
+				($render)->call($this[0], $item);
 			}
+			// else{
+			// 	print_r(debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1]['function']);
+			// }
+			
+			// if (is_array($context = $render->call($this[0], $item)))
+			// {
+			// 	# $a = $render->call($this[0], $item);
+			// 	# $a->call()
+			// 	[$node, $iter] = [...$context, NULL, NULL];
+			// 	if ($node instanceof static && is_iterable($iter))
+			// 	{
+			// 		$node->iter($iter, $render);
+			// 	}
+			// }
 		}
 		return $this[0];
 	}
