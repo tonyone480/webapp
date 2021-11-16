@@ -43,6 +43,15 @@ class webapp_xml extends SimpleXMLElement
 		}
 		return $xml;
 	}
+	function iter(iterable $contents, Closure $iterator = NULL)
+	{
+		$iterator ??= debug_backtrace(DEBUG_BACKTRACE_PROVIDE_OBJECT | DEBUG_BACKTRACE_IGNORE_ARGS, 3)[2]['object'];
+		foreach ($contents as $context)
+		{
+			$iterator->call($this[0], $context);
+		}
+		return $this[0];
+	}
 	function append(string $name, array|string $contents = NULL):static
 	{
 		if (is_array($contents))
@@ -284,77 +293,65 @@ class webapp_html extends webapp_xml
 		$node->text($comment);
 		return $node;
 	}
-	function options(iterable $values, string ...$default):static
-	{
-		foreach ($values as $value => $content)
-		{
-			if (is_iterable($content))
-			{
-				$this[0]->append('optgroup', ['label' => $value])->options($content, ...$default);
-				continue;
-			}
-			$this[0]->append('option', in_array($value, $default, TRUE) ? [$content, 'value' => $value, 'selected' => NULL] : [$content, 'value' => $value]);
-		}
-		return $this[0];
-	}
-	function select(iterable $values, string ...$default):static
-	{
-		return $this[0]->append('select')->options($values, ...$default);
-	}
+	// function options(iterable $values, string ...$default):static
+	// {
+	// 	foreach ($values as $value => $content)
+	// 	{
+	// 		if (is_iterable($content))
+	// 		{
+	// 			$this[0]->append('optgroup', ['label' => $value])->options($content, ...$default);
+	// 			continue;
+	// 		}
+	// 		$this[0]->append('option', in_array($value, $default, TRUE) ? [$content, 'value' => $value, 'selected' => NULL] : [$content, 'value' => $value]);
+	// 	}
+	// 	return $this[0];
+	// }
+	// function select(iterable $values, string ...$default):static
+	// {
+	// 	return $this[0]->append('select')->options($values, ...$default);
+	// }
 	function appendelement(array $context):static
 	{
 		return $this->append(array_shift($context), $context);
 	}
-	// function a(iterable $a, Closure $b)
-	// {
-	// 	fn()=>$b->call($this[0], 'iter' $a)
-	// 	return Closure::fromCallable(fn($a)=>[$this[0], 'iter'])();
-	// }
-	function iter(iterable $contents, Closure $render = NULL)
+	function appenditer(iterable $contents):static
 	{
-		
-		print_r(debug_backtrace(DEBUG_BACKTRACE_PROVIDE_OBJECT, 1)[0]['args'][1]);
-		foreach ($contents as $item)
+		return $this[0]->iter($contents, function(array $content)
 		{
-			if ($render)
+			$node = $this->append(array_shift($content), $content);
+			if (array_key_exists('iter', $content) && is_iterable($content['iter']))
 			{
-				($render)->call($this[0], $item);
+				$node->iter($content['iter']);
 			}
-			// else{
-			// 	print_r(debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1]['function']);
-			// }
-			
-			// if (is_array($context = $render->call($this[0], $item)))
-			// {
-			// 	# $a = $render->call($this[0], $item);
-			// 	# $a->call()
-			// 	[$node, $iter] = [...$context, NULL, NULL];
-			// 	if ($node instanceof static && is_iterable($iter))
-			// 	{
-			// 		$node->iter($iter, $render);
-			// 	}
-			// }
-		}
-		return $this[0];
+		});
 	}
-	function nav(iterable $contents, bool $fold = FALSE)
+	function atree(iterable $contents, bool $fold = FALSE)
 	{
-		return $this[0]->append('nav')->append('ul')->iter($contents, function(array $item) use ($fold)
+		return $this[0]->append('ul')->iter($contents, function(array $context) use($fold)
 		{
 			$node = &$this->li[];
-			if (is_array($item[1]))
+			if (is_iterable($context[1]))
 			{
 				if ($fold)
 				{
-					$node = $node->details($item[0]);
+					$node = $node->details($context[0]);
 				}
-				return [$node->append('ul'), $item[1]];
+				else
+				{
+					$node->append('span', $context[0]);
+				}
+				$node->append('ul')->iter($context[1]);
 			}
-			$node->append('a', [$item[0], 'href' => $item[1]]);
-		})->parent();
+			else
+			{
+				$context['href'] = $context[1];
+				unset($context[1]);
+				$node->append('a', $context);
+			}
+		});
 	}
 	
-	function appenditer(iterable $iterator, Closure $generator = NULL):static
+	function appenditer1(iterable $iterator, Closure $generator = NULL):static
 	{
 		return $this[0]->iter($iterator, $generator ?? fn(array $item):array => [$this->append($item[0], array_slice($item, 1)), $item['iter'] ?? NULL]);
 		// $generator ??= fn(array $item):array => [$this->append($item[0], array_slice($item, 1)), $item['iter'] ?? NULL];
@@ -473,31 +470,31 @@ class webapp_html extends webapp_xml
 		// }
 		return $node;
 	}
-	function atree(iterable $anchors):static
-	{
-		$node = &$this[0]->ul[];
-		foreach ($anchors as $attributes)
-		{
-			if (isset($attributes[1]))
-			{
-				$list = $attributes[1];
-				unset($attributes[1]);
-				$li = &$node->li[];
-				if (count($attributes) > 2)
-				{
-					$li[0] = $attributes[0];
-				}
-				else
-				{
-					$li->append('a', $attributes);
-				}
-				$li->atree($list);
-				continue;
-			}
-			$node->append('li')->append('a', $attributes);
-		}
-		return $node;
-	}
+	// function atree(iterable $anchors):static
+	// {
+	// 	$node = &$this[0]->ul[];
+	// 	foreach ($anchors as $attributes)
+	// 	{
+	// 		if (isset($attributes[1]))
+	// 		{
+	// 			$list = $attributes[1];
+	// 			unset($attributes[1]);
+	// 			$li = &$node->li[];
+	// 			if (count($attributes) > 2)
+	// 			{
+	// 				$li[0] = $attributes[0];
+	// 			}
+	// 			else
+	// 			{
+	// 				$li->append('a', $attributes);
+	// 			}
+	// 			$li->atree($list);
+	// 			continue;
+	// 		}
+	// 		$node->append('li')->append('a', $attributes);
+	// 	}
+	// 	return $node;
+	// }
 	function foldtree(string $summary, iterable $details):static
 	{
 		$node = $this[0]->details($summary);
