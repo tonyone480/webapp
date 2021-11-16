@@ -33,8 +33,7 @@ abstract class webapp implements ArrayAccess, Stringable
 			'request_method'	=> in_array($method = strtolower($io->request_method()), ['get', 'post', 'put', 'delete'], TRUE) ? $method : 'get',
 			'request_query'		=> $io->request_query(),
 			//Application
-			// 'app_rootdir'		=> __DIR__,
-			// 'app_locales'		=> __DIR__ . '/lib/local/en.php',
+			//'app_rootdir'		=> __DIR__,
 			'app_library'		=> __DIR__ . '/lib',
 			'app_resroot'		=> '/webapp/res',
 			'app_charset'		=> 'utf-8',
@@ -342,9 +341,9 @@ abstract class webapp implements ArrayAccess, Stringable
 		return inet_ntop(hex2bin($hex));
 	}
 	//---------------------
-	function library(string $function):mixed
+	function library(string $name):mixed
 	{
-		return include_once "{$this['app_library']}/{$function}/interface.php";
+		return include_once "{$this['app_library']}/{$name}/interface.php";
 	}
 	function resroot(string $filename = NULL):string
 	{
@@ -421,27 +420,17 @@ abstract class webapp implements ArrayAccess, Stringable
 	{
 		return preg_match_all('/[\x01-\x7f]|[\xc2-\xdf][\x80-\xbf]|\xe0[\xa0-\xbf][\x80-\xbf]|[\xe1-\xef][\x80-\xbf][\x80-\xbf]|\xf0[\x90-\xbf][\x80-\xbf][\x80-\xbf]|[\xf1-\xf7][\x80-\xbf][\x80-\xbf][\x80-\xbf]/', $content, $pattern) === FALSE ? [] : $pattern[0];
 	}
-	function cond(string $name = 'cond'):array
+	function callback(closure $echo, mixed ...$params):void
 	{
-		$cond = [];
-		preg_match_all('/(\w+\.(?:eq|ne|gt|ge|lt|le|lk|nl|in|ni))(?:\.([^\/]*))?/', $this->request_query($name), $values, PREG_SET_ORDER);
-		foreach ($values as $value)
+		$this['app_mapping'] = new class($this, $echo)
 		{
-			$cond[$value[1]] = array_key_exists(2, $value) ? urldecode($value[2]) : NULL;
-		}
-		return $cond;
-	}
-	function callback(closure $callable, mixed ...$params):void
-	{
-		$this['app_mapping'] = new class($callable)
-		{
-			function __construct(private closure $callable)
+			function __construct(private webapp $webapp, private closure $echo)
 			{
 				//毫无卵用
 			}
 			function __invoke(mixed ...$params):mixed
 			{
-				return ($this->callable)(...$params);
+				return $this->echo->call($this->webapp, ...$params);
 			}
 		};
 		$this['app_index'] = '__invoke';
@@ -481,9 +470,23 @@ abstract class webapp implements ArrayAccess, Stringable
 	{
 		return $this->io->request_ip();
 	}
-	function request_header(string $name):?string
+	function request_query(string $name):?string
 	{
-		return $this->io->request_header($name);
+		return preg_match('/^\w+$/', $name) && preg_match('/\,' . $name . '\:([\%\+\-\.\/\=\w]+)/', $this['request_query'], $query) ? $query[1] : NULL;
+	}
+	function request_cond(string $name = 'cond'):array
+	{
+		$cond = [];
+		preg_match_all('/(\w+\.(?:eq|ne|gt|ge|lt|le|lk|nl|in|ni))(?:\.([^\/]*))?/', $this->request_query($name), $values, PREG_SET_ORDER);
+		foreach ($values as $value)
+		{
+			$cond[$value[1]] = array_key_exists(2, $value) ? urldecode($value[2]) : NULL;
+		}
+		return $cond;
+	}
+	function request_replace(string $name, bool $append = FALSE):string
+	{
+		return '?'. (preg_match('/^\w+$/', $name) ? preg_replace('/\,'. $name .'\:(?:[\%\+\-\.\/\=\w]+)/', '', $this['request_query']) : $this['request_query']) . ($append ? ",{$name}:" : '');
 	}
 	function request_cookie(string $name):?string
 	{
@@ -493,13 +496,9 @@ abstract class webapp implements ArrayAccess, Stringable
 	{
 		return ($cookie = $this->request_cookie($name)) === NULL || ($content = $this->decrypt($cookie)) === NULL ? NULL : $content;
 	}
-	function request_query(string $name):?string
+	function request_header(string $name):?string
 	{
-		return preg_match('/^\w+$/', $name) && preg_match('/\,' . $name . '\:([\%\+\-\.\/\=\w]+)/', $this['request_query'], $query) ? $query[1] : NULL;
-	}
-	function request_query_remove(string $name, bool $append = FALSE):string
-	{
-		return '?'. (preg_match('/^\w+$/', $name) ? preg_replace('/\,'. $name .'\:(?:[\%\+\-\.\/\=\w]+)/', '', $this['request_query']) : $this['request_query']) . ($append ? ",{$name}:" : '');
+		return $this->io->request_header($name);
 	}
 	function request_device():string
 	{
@@ -593,13 +592,17 @@ abstract class webapp implements ArrayAccess, Stringable
 		return $this->uploadedfiles[$name];
 	}
 	//response
-	function response_sendfile(string $filename):bool
-	{
-		return $this->io->response_sendfile($filename);
-	}
 	function response_status(int $code, string $data = NULL):void
 	{
 		$this->callback(fn():int => [$code, $data === NULL || $this->print($data)][0]);
+	}
+	function response_cookie(string $name, string $value = NULL, int $expire = 0, string $path = NULL, string $domain = NULL, bool $secure = FALSE, bool $httponly = FALSE):void
+	{
+		$this->cookies[] = func_get_args();
+	}
+	function response_cookie_encrypt(string $name, string $value = NULL, mixed ...$params):void
+	{
+		$this->response_cookie($name, $value === NULL ? NULL : $this->encrypt($value), ...$params);
 	}
 	function response_header(string $name, string $value):void
 	{
@@ -614,14 +617,6 @@ abstract class webapp implements ArrayAccess, Stringable
 	{
 		$this->response_header('Refresh', strlen($url) ? "{$second}; url={$url}" : $second);
 	}
-	function response_cookie(string $name, string $value = NULL, int $expire = 0, string $path = NULL, string $domain = NULL, bool $secure = FALSE, bool $httponly = FALSE):void
-	{
-		$this->cookies[] = func_get_args();
-	}
-	function response_cookie_encrypt(string $name, string $value = NULL, mixed ...$params):void
-	{
-		$this->response_cookie($name, $value === NULL ? NULL : $this->encrypt($value), ...$params);
-	}
 	function response_cache_control(string $command):void
 	{
 		$this->response_header('Cache-Control', $command);
@@ -634,6 +629,10 @@ abstract class webapp implements ArrayAccess, Stringable
 	{
 		$this->response_content_type('application/force-download');
 		$this->response_header('Content-Disposition', 'attachment; filename=' . urlencode($basename));
+	}
+	function response_sendfile(string $filename):bool
+	{
+		return $this->io->response_sendfile($filename);
 	}
 	//append function
 	final function no_sign_in_admin(webapp_io $io, array $config = []):bool

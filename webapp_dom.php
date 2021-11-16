@@ -45,6 +45,7 @@ class webapp_xml extends SimpleXMLElement
 	}
 	function iter(iterable $contents, Closure $iterator = NULL):static
 	{
+		//神奇骚操作，未来某个PHP版本不会改了吧？
 		$iterator ??= debug_backtrace(DEBUG_BACKTRACE_PROVIDE_OBJECT | DEBUG_BACKTRACE_IGNORE_ARGS, 3)[2]['object'];
 		foreach ($contents as $context)
 		{
@@ -74,11 +75,19 @@ class webapp_xml extends SimpleXMLElement
 		$node = is_string($node) ? $dom->ownerDocument->createElement($node) : $element;
 		return match ($position)
 		{
-			'after'		=> $dom->parentNode->insertBefore($node, $dom->nextSibling),	//插入到当前节点之后
-			'before'	=> $dom->parentNode->insertBefore($node, $dom),					//插入到当前节点之前
-			'first'		=> $dom->insertBefore($node, $dom->firstChild),					//插入到当前节点下开头
-			default		=> $dom->appendChild($node)										//插入到当前节点下末尾
+			//插入到当前节点之后
+			'after' => $dom->parentNode->insertBefore($node, $dom->nextSibling),
+			//插入到当前节点之前
+			'before' => $dom->parentNode->insertBefore($node, $dom),
+			//插入到当前节点下开头
+			'first' => $dom->insertBefore($node, $dom->firstChild),
+			//插入到当前节点下末尾
+			default => $dom->appendChild($node)
 		};
+	}
+	function parent():static
+	{
+		return $this[0]->xpath('..')[0] ?? $this[0];
 	}
 	function remove():static
 	{
@@ -94,15 +103,13 @@ class webapp_xml extends SimpleXMLElement
 		$this[0] = NULL;
 		return $text;
 	}
-	function parent():static
-	{
-		return $this[0]->xpath('..')[0] ?? $this[0];
-	}
+	//获取属性
 	function getattr(string $name = NULL):NULL|string|array
 	{
 		$attributes = ((array)$this[0]->attributes())['@attributes'] ?? [];
 		return is_string($name) ? $attributes[$name] ?? NULL : $attributes;
 	}
+	//设置属性
 	function setattr(string|array $name, string $value = NULL):static
 	{
 		$node = $this[0];
@@ -632,7 +639,7 @@ class webapp_form
 					}
 					else
 					{
-						$name = 'captcha_decrypt';
+						$name = 'captcha';
 						break;
 					}
 				}
@@ -910,7 +917,7 @@ class webapp_form
 }
 class webapp_table
 {
-	public $xml, $tbody, $paging;
+	public webapp_html $xml, $tbody, $paging;
 	function __construct(webapp_html $node, iterable $data = [], Closure $output = NULL, mixed ...$params)
 	{
 		$this->xml = &$node->table[];
