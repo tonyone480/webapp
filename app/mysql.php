@@ -1,11 +1,11 @@
 <?php
-require __DIR__ . '/../webapp_for_sapi.php';
+require __DIR__ . '/../webapp_io_std.php';
 class webapp_mysql_api extends webapp_echo_json
 {
 	function __construct(webapp $webapp)
 	{
-		parent::__construct($webapp, ['success' => $webapp->mysql_connected()]);
-		$webapp->errors($this);
+		parent::__construct($webapp, ['connected' => $webapp->mysql_connected()]);
+		//$webapp->errors($this);
 	}
 	function post_console()
 	{
@@ -39,7 +39,7 @@ new class extends webapp
 {
 	function __construct()
 	{
-		if ($this->no_sign_in_admin(new sapi)) return;
+		if ($this->no_sign_in_admin(new io)) return;
 		if ($this['app_mapping'] === $this)
 		{
 			$this->app('webapp_echo_html')->title('MySQL Admin');
@@ -61,64 +61,76 @@ new class extends webapp
 			{
 				return $this['app_index'] = $this['app_index'] === 'post_home' ? 'post_home' : 'get_home';
 			}
-			$aside = $this->app->aside();
-
-			$charsets = array_column($this->mysql->all('show character set'), 'Charset');
-			$aside->append('div', ['style' => 'padding:0.6rem'])->select(array_combine($charsets, $charsets), $this['mysql_charset'])->attr([
+			$this->app->aside();
+			//$charset = $this->app->aside()->append('div', ['style' => 'padding:0.6rem'])->append();
+			
+			$mysql_charset = $this['mysql_charset'];
+			$this->app->aside->append('div', ['style' => 'padding:0.6rem'])->append('select', [
 				'style' => 'width:100%',
 				'onchange' => 'location.href=`?home/${this.value}`'
-			]);
-
-			$datatables = [];
-			foreach ($this->mysql->list('show databases') as $row)
+			])->iter($this->mysql->iter('show character set'), function(array $item) use($mysql_charset)
 			{
-				$datatables[] = [$row['Database'], 'href' => "?database/{$row['Database']}"];
+				$node = $this->append('option', [$item['Charset'], 'value' => $item['Charset']]);
+				if ($item['Charset'] === $mysql_charset)
+				{
+					$node['selected'] = NULL;
+				}
+			});
+			$mysql_database = $this['mysql_database'];
+			$this->app->aside->append('ul')->iter($this->mysql->iter('show databases'), function(array $item) use($mysql_database)
+			{
+				$node = &$this->li[];
+				$node->append('a', [$item['Database'], 'href' => "?database/{$item['Database']}"]);
+			});
+			
+			// $charsets = array_column($this->mysql->all('show character set'), 'Charset');
+			// $this->app->aside->append('div', ['style' => 'padding:0.6rem'])->select(array_combine($charsets, $charsets), $this['mysql_charset'])->setattr([
+			// 	'style' => 'width:100%',
+			// 	'onchange' => 'location.href=`?home/${this.value}`'
+			// ]);
+
+			// $datatables = [];
+			// foreach ($this->mysql->list('show databases') as $row)
+			// {
+			// 	$datatables[] = [$row['Database'], 'href' => "?database/{$row['Database']}"];
 				
-			}
-			$datatables[] = ['dasdwda', [
-				['Windows 98', 'href' => '#'],
-				['Windows 2000', 'href' => '#'],
-				['Windows Me', 'href' => '#']
-			]];
-			$aside->navbar($datatables);
+			// }
+			// $datatables[] = ['dasdwda', [
+			// 	['Windows 98', 'href' => '#'],
+			// 	['Windows 2000', 'href' => '#'],
+			// 	['Windows Me', 'href' => '#']
+			// ]];
+			// $aside->navbar($datatables);
 		}
 	}
 	function mysql_connected():bool
 	{
 		if (count($connect = json_decode($this->request_cookie_decrypt('mysql_connect'), TRUE) ?? []) === 3)
 		{
-			[$this['mysql_host'], $this['mysql_user'], $this['mysql_password'], $this['mysql_charset'], $this['mysql_database']
-			] = [...$connect, $this->request_cookie('mysql_charset') ?? $this['mysql_charset'], ''];
-			if (@$this->mysql->connect_errno === 0)
-			{
-				return TRUE;
-			}
+			[
+				$this['mysql_host'],
+				$this['mysql_user'],
+				$this['mysql_password'],
+				$this['mysql_database'],
+				$this['mysql_charset'],
+			] = [...$connect, '', $this->request_cookie('mysql_charset') ?? $this['mysql_charset']];
+			return @$this->mysql->connect_errno === 0;
 		}
 		return FALSE;
 	}
-	function datatable():string
-	{
-		return $this->request_query('datatable');
-	}
-	function selectdb(string $fullname):string
-	{
-		return count($select = explode('--', $fullname, 2)) > 1 && $this->mysql->select_db($select[0]) ? $select[1] : $fullname;
-	}
+	// function datatable():string
+	// {
+	// 	return $this->request_query('datatable');
+	// }
+	// function selectdb(string $fullname):string
+	// {
+	// 	return count($select = explode('--', $fullname, 2)) > 1 && $this->mysql->select_db($select[0]) ? $select[1] : $fullname;
+	// }
 	// function datatable(string $fullname = NULL):webapp_mysql_table
 	// {
 	// 	return $this->mysql->{$this->selectdb($fullname)};
 	// }
-	function get_test(string $hh, int $pp, $kk=1)
-	{
 
-		// preg_match_all('/\,(\w+)(?:\:([\%\+\-\.\/\=\w]+))?/', $this['request_query'], $parms, PREG_SET_ORDER | PREG_UNMATCHED_AS_NULL);
-
-
-		// $s = array_column($parms, 2, 1);
-		// print_r( $s );
-
-		var_dump($hh,$pp, $kk);
-	}
 	function post_home()
 	{
 		$this->response_location('?console');
@@ -154,8 +166,10 @@ new class extends webapp
 		//$form->fieldset();
 		
 	}
-	function get_database(string $dbname)
+	function get_database()
 	{
+		$this->app->
+		return;
 		$this->app->section->style[] = <<<STYLE
 table.mysql>thead>tr>td>span,
 table.mysql>tbody>tr>td>span,

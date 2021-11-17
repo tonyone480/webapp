@@ -60,8 +60,8 @@ class webapp_echo_html extends webapp_document
 	}
 	function aside(bool $before = FALSE):webapp_html
 	{
-		$this->aside = static::xmltype::toxml($this->section->insert('aside', 'first'));
-		$this->section = static::xmltype::toxml($this->aside->insert('section', $before ? 'before' : 'after'));
+		$this->aside = static::xmltype::from($this->section->insert('aside', 'first'));
+		$this->section = static::xmltype::from($this->aside->insert('section', $before ? 'before' : 'after'));
 		return $this->aside;
 	}
 

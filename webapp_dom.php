@@ -47,9 +47,9 @@ class webapp_xml extends SimpleXMLElement
 	{
 		//神奇骚操作，未来某个PHP版本不会改了吧？
 		$iterator ??= debug_backtrace(DEBUG_BACKTRACE_PROVIDE_OBJECT | DEBUG_BACKTRACE_IGNORE_ARGS, 3)[2]['object'];
-		foreach ($contents as $context)
+		foreach ($contents as $index => $value)
 		{
-			$iterator->call($this[0], $context);
+			$iterator->call($this[0], $value, $index);
 		}
 		return $this[0];
 	}
@@ -171,7 +171,7 @@ class webapp_xml extends SimpleXMLElement
 		}
 		return $values;
 	}
-	static function toxml(DOMNode $node):static
+	static function from(DOMNode $node):static
 	{
 		return simplexml_import_dom($node, static::class);
 	}
@@ -293,23 +293,23 @@ class webapp_html extends webapp_xml
 		$node->text($comment);
 		return $node;
 	}
-	// function options(iterable $values, string ...$default):static
-	// {
-	// 	foreach ($values as $value => $content)
-	// 	{
-	// 		if (is_iterable($content))
-	// 		{
-	// 			$this[0]->append('optgroup', ['label' => $value])->options($content, ...$default);
-	// 			continue;
-	// 		}
-	// 		$this[0]->append('option', in_array($value, $default, TRUE) ? [$content, 'value' => $value, 'selected' => NULL] : [$content, 'value' => $value]);
-	// 	}
-	// 	return $this[0];
-	// }
-	// function select(iterable $values, string ...$default):static
-	// {
-	// 	return $this[0]->append('select')->options($values, ...$default);
-	// }
+	function options(iterable $contents, string ...$default):static
+	{
+		foreach ($contents as $value => $content)
+		{
+			if (is_iterable($content))
+			{
+				$this[0]->append('optgroup', ['label' => $value])->options($content, ...$default);
+				continue;
+			}
+			$this[0]->append('option', in_array($value, $default, TRUE) ? [$content, 'value' => $value, 'selected' => NULL] : [$content, 'value' => $value]);
+		}
+		return $this[0];
+	}
+	function select(iterable $values, string ...$default):static
+	{
+		return $this[0]->append('select')->options($values, ...$default);
+	}
 	function appendelement(array $context):static
 	{
 		return $this->append(array_shift($context), $context);
@@ -759,7 +759,7 @@ class webapp_form
 			if ($this->context instanceof webapp_html)
 			{
 				$this->fields['captcha_encrypt']['value'] = $random = $webapp->captcha_random();
-				$this->fieldset()->attr([
+				$this->fieldset()->setattr([
 					'style' => "height:{$webapp['captcha_params'][1]}px;background:url(?captcha/{$random}) no-repeat center",
 					'onckick' => ''
 				]);
@@ -813,7 +813,7 @@ class webapp_form
 						$node->optgroup($attributes['optgroup']);
 						unset($attributes['optgroup']);
 					}
-					return $this->fields[$rename] = $node->attr($attributes);
+					return $this->fields[$rename] = $node->setattr($attributes);
 				}
 			default:
 				return $this->{$typename === 'file' ? 'files' : 'fields'}[$rename] = $this->fieldset->append('input', ['type' => $typename, 'name' => $alias] + $attributes);

@@ -134,7 +134,7 @@ abstract class webapp implements ArrayAccess, Stringable
 			{
 				$this->io->response_header("{$key}: {$value}");
 			}
-			if (property_exists($this, 'io'))
+			if (property_exists($this, 'buffer'))
 			{
 				if ($this['gzip_level']
 					&& stripos($this->request_header('Accept-Encoding'), 'gzip') !== FALSE
