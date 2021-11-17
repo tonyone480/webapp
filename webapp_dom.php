@@ -72,7 +72,7 @@ class webapp_xml extends SimpleXMLElement
 	function insert(DOMNode|string $element, string $position = NULL):DOMNode
 	{
 		$dom = $this[0]->dom();
-		$node = is_string($node) ? $dom->ownerDocument->createElement($node) : $element;
+		$node = is_string($element) ? $dom->ownerDocument->createElement($element) : $element;
 		return match ($position)
 		{
 			//插入到当前节点之后
@@ -170,6 +170,10 @@ class webapp_xml extends SimpleXMLElement
 			}
 		}
 		return $values;
+	}
+	static function toxml(DOMNode $node):static
+	{
+		return simplexml_import_dom($node, static::class);
 	}
 	static function charsafe(string $content):string
 	{
@@ -528,20 +532,20 @@ class webapp_html extends webapp_xml
 	{
 		return new webapp_form($this[0], $action);
 	}
-	function table(iterable $data = [], Closure $output = NULL, mixed ...$params):webapp_table
+	function table(iterable $contents = [], Closure $output = NULL, mixed ...$params):webapp_table
 	{
-		return new webapp_table($this[0], $data, $output, ...$params);
+		return new webapp_table($this[0], $contents, $output, ...$params);
 	}
 }
 class webapp_document extends DOMDocument implements Stringable
 {
 	const xmltype = 'webapp_xml';
-	// function __construct(string $version = '1.0', string $encoding = NULL, string $root)
-	// {
-	// 	parent::__construct($version, $encoding);
-	// 	$this->appendChild($this->createElement($root));
-	// 	$this->xml(TRUE);
-	// }
+	function __construct(string $root, string $encoding = NULL, string $version = '1.0')
+	{
+		parent::__construct($version, $encoding);
+		$this->appendChild($this->createElement($root));
+		$this->xml(TRUE);
+	}
 	function __toString():string
 	{
 		return $this->saveXML();

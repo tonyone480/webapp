@@ -1,20 +1,8 @@
 <?php
 trait webapp_echo
 {
-	private $webapp;
+	protected webapp $webapp;
 	abstract function __toString():string;
-	function __invoke(webapp $webapp, bool $initialize = FALSE, mixed ...$params):webapp
-	{
-		if ($this->webapp === NULL)
-		{
-			$this->webapp = $webapp;
-			if ($initialize)
-			{
-				parent::__construct(...$params);
-			}
-		}
-		return $this->webapp;
-	}
 	function __get(string $name):mixed
 	{
 		return $this->{$name} = &$this->webapp->{$name};
@@ -27,9 +15,10 @@ trait webapp_echo
 class webapp_echo_json extends ArrayObject implements Stringable
 {
 	use webapp_echo;
-	function __construct(webapp $webapp, array $data = [])
+	function __construct(protected webapp $webapp, array|object $array = [])
 	{
-		$this($webapp, TRUE, $data, ArrayObject::STD_PROP_LIST)->response_content_type('application/json');
+		$webapp->response_content_type('application/json');
+		parent::__construct($array, ArrayObject::STD_PROP_LIST);
 	}
 	function __toString():string
 	{
@@ -40,9 +29,9 @@ class webapp_echo_html extends webapp_document
 {
 	use webapp_echo;
 	const xmltype = 'webapp_html';
-	function __construct(webapp $webapp, string $data = NULL)
+	function __construct(protected webapp $webapp, string $data = NULL)
 	{
-		$this($webapp)->response_content_type("text/html; charset={$webapp['app_charset']}");
+		$webapp->response_content_type("text/html; charset={$webapp['app_charset']}");
 		if ($data)
 		{
 			str_starts_with($data, '<') ? $this->loadHTML($data) : $this->loadHTMLFile($data);
@@ -69,7 +58,12 @@ class webapp_echo_html extends webapp_document
 	{
 		$this->xml->head->title = $title;
 	}
-
+	function aside(bool $before = FALSE):webapp_html
+	{
+		$this->aside = static::xmltype::toxml($this->section->insert('aside', 'first'));
+		$this->section = static::xmltype::toxml($this->aside->insert('section', $before ? 'before' : 'after'));
+		return $this->aside;
+	}
 
 
 	function xpath(string $expression):array
@@ -77,12 +71,7 @@ class webapp_echo_html extends webapp_document
 		return iterator_to_array((new DOMXPath($this))->evaluate($expression));
 	}
 
-	function aside(bool $after = FALSE):webapp_html
-	{
-		$this->aside = $this->article->section->append('aside');
-		$this->section = $this->aside->insert('section', $after ? 'before' : 'after');
-		return $this->aside;
-	}
+
 
 
 
@@ -102,18 +91,21 @@ class webapp_echo_html extends webapp_document
 class webapp_echo_xml extends webapp_document
 {
 	use webapp_echo;
-	function __construct(webapp $webapp)
+	function __construct(protected webapp $webapp, string ...$params)
 	{
-		$this($webapp, TRUE)->response_content_type('application/xml');
+		$webapp->response_content_type('application/xml');
+		if ($params)
+		{
+			parent::__construct(...$params);
+		}
 	}
 }
-class webapp_echo_xls extends webapp_document
+class webapp_echo_xls extends webapp_echo_xml
 {
-	use webapp_echo;
 	function __construct(webapp $webapp)
 	{
-		$this($webapp, TRUE)->response_content_type('application/xml');
-		// $this($webapp, TRUE)->response_content_type('application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+		parent::__construct($webapp);
+		#$webapp->response_content_type('application/vnd.openxmlformats-officedocument.wordprocessingml.document');
 		$this->loadXML("<?xml version='1.0' encoding='{$webapp['app_charset']}'?><?mso-application progid='Excel.Sheet'?><Workbook/>");
 		$this->xml->attr([
 			'xmlns' => 'urn:schemas-microsoft-com:office:spreadsheet',
