@@ -7,9 +7,9 @@ class webapp_mysql extends mysqli
 	function __construct(string $host = 'p:127.0.0.1:3306', string $user = 'root', string $password = '', string $database = 'mysql', private string $maptable = 'webapp_maptable_')
 	{
 		$this->init();
-		//$this->options(MYSQLI_CLIENT_INTERACTIVE, 10);
 		//$this->options(MYSQLI_OPT_CONNECT_TIMEOUT, 1);
 		$this->real_connect($host, $user, $password, $database);
+		//$this->real_connect($host, $user, $password, $database, flags: MYSQLI_CLIENT_FOUND_ROWS | MYSQLI_CLIENT_INTERACTIVE);
 	}
 	function __destruct()
 	{

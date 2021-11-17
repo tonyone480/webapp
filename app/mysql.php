@@ -1,4 +1,7 @@
 <?php
+echo urlencode('asda.dwd');
+
+exit;
 require __DIR__ . '/../webapp_io_std.php';
 class webapp_mysql_api extends webapp_echo_json
 {
@@ -62,8 +65,6 @@ new class extends webapp
 				return $this['app_index'] = $this['app_index'] === 'post_home' ? 'post_home' : 'get_home';
 			}
 			$this->app->aside();
-			//$charset = $this->app->aside()->append('div', ['style' => 'padding:0.6rem'])->append();
-			
 			$mysql_charset = $this['mysql_charset'];
 			$this->app->aside->append('div', ['style' => 'padding:0.6rem'])->append('select', [
 				'style' => 'width:100%',
@@ -82,31 +83,13 @@ new class extends webapp
 				$node = &$this->li[];
 				$node->append('a', [$item['Database'], 'href' => "?database/{$item['Database']}"]);
 			});
-			
-			// $charsets = array_column($this->mysql->all('show character set'), 'Charset');
-			// $this->app->aside->append('div', ['style' => 'padding:0.6rem'])->select(array_combine($charsets, $charsets), $this['mysql_charset'])->setattr([
-			// 	'style' => 'width:100%',
-			// 	'onchange' => 'location.href=`?home/${this.value}`'
-			// ]);
-
-			// $datatables = [];
-			// foreach ($this->mysql->list('show databases') as $row)
-			// {
-			// 	$datatables[] = [$row['Database'], 'href' => "?database/{$row['Database']}"];
-				
-			// }
-			// $datatables[] = ['dasdwda', [
-			// 	['Windows 98', 'href' => '#'],
-			// 	['Windows 2000', 'href' => '#'],
-			// 	['Windows Me', 'href' => '#']
-			// ]];
-			// $aside->navbar($datatables);
 		}
 	}
 	function mysql_connected():bool
 	{
 		if (count($connect = json_decode($this->request_cookie_decrypt('mysql_connect'), TRUE) ?? []) === 3)
 		{
+			//$this->request_query('db')
 			[
 				$this['mysql_host'],
 				$this['mysql_user'],
@@ -168,7 +151,7 @@ new class extends webapp
 	}
 	function get_database()
 	{
-		$this->app->
+	
 		return;
 		$this->app->section->style[] = <<<STYLE
 table.mysql>thead>tr>td>span,
