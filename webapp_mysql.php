@@ -43,9 +43,9 @@ class webapp_mysql extends mysqli implements IteratorAggregate
 	{
 		return $this->use_result()->fetch_array($mode);
 	}
-	function value(int $index = 0):string
+	function value(int $index = 0):?string
 	{
-		return $this->array(MYSQLI_NUM)[$index];
+		return $this->array(MYSQLI_NUM)[$index] ?? NULL;
 	}
 	function all(int $mode = MYSQLI_ASSOC):array
 	{
@@ -94,7 +94,7 @@ class webapp_mysql extends mysqli implements IteratorAggregate
 					case '?': $command[] = (string)$formats[$index++]; break;
 					case 'a': $command[] = $this->quote((string)$formats[$index++]); break;
 					case 's': $command[] = $this->escape((string)$formats[$index++]); break;
-					case 'd': $command[] = intval($formats[$index++]); break;
+					case 'i': $command[] = intval($formats[$index++]); break;
 					case 'f': $command[] = floatval($formats[$index++]); break;
 					case 'v': $values = [];
 						foreach ($formats[$index++] as $key => $value)
@@ -262,10 +262,10 @@ abstract class webapp_mysql_table implements IteratorAggregate, Countable, Strin
 		return match ($name)
 		{
 			'tablename' => $this->tablename,
-			'primary' => $this->primary ??=
-				($this->mysql)('SHOW FIELDS FROM ?a WHERE ?a=?s', $this->tablename, 'Key', 'PRI')->array()['Field'] ??
-				($this->mysql)('SHOW FIELDS FROM ?a WHERE ?a=?s', $this->tablename, 'Key', 'UNI')->array()['Field'] ?? NULL,
-			'create' => ($this->mysql)('SHOW CREATE TABLE ?a', $this->tablename)->array()
+			'primary' => $this->primary =
+				($this->mysql)('SHOW FIELDS FROM ?a WHERE ?a=?s', $this->tablename, 'Key', 'PRI')->value() ??
+				($this->mysql)('SHOW FIELDS FROM ?a WHERE ?a=?s', $this->tablename, 'Key', 'UNI')->value(),
+			'create' => ($this->mysql)('SHOW CREATE TABLE ?a', $this->tablename)->value(1)
 		};
 	}
 	function a()
@@ -302,9 +302,9 @@ abstract class webapp_mysql_table implements IteratorAggregate, Countable, Strin
 	{
 		return $this->getIterator()->array($mode);
 	}
-	function value(int $index = 0):string
+	function value(int $index = 0):?string
 	{
-		return $this->array(MYSQLI_NUM)[$index];
+		return $this->array(MYSQLI_NUM)[$index] ?? NULL;
 	}
 	function all(int $mode = MYSQLI_ASSOC):array
 	{
