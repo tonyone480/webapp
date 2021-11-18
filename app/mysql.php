@@ -1,8 +1,17 @@
 <?php
-echo urlencode('asda.dwd');
+require __DIR__ . '/../webapp_io_std.php';
+$a = new webapp_mysql;
+
+$a->select_db('gzh');
+$t = $a->gzh_issue;
+
+// var_dump( $t->update(['time' => 0]) );
+
+var_dump($t );
+
+
 
 exit;
-require __DIR__ . '/../webapp_io_std.php';
 class webapp_mysql_api extends webapp_echo_json
 {
 	function __construct(webapp $webapp)

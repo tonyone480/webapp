@@ -1,15 +1,14 @@
 <?php
-class webapp_mysql extends mysqli
+class webapp_mysql extends mysqli implements IteratorAggregate
 {
 	public array $errors = [];
-	//private $conninfo, $host, $user;
-	function __construct(string $host = 'p:127.0.0.1:3306', string $user = 'root', string $password = '', string $database = 'mysql', private string $maptable = 'webapp_maptable_')
+	function __construct(string $host = 'p:127.0.0.1:3306', string $user = 'root', string $password = NULL, string $database = NULL, private string $maptable = 'webapp_maptable_')
 	{
 		$this->init();
-		#?ini_set('mysqli.reconnect', TRUE);
+		//ini_set('mysqli.reconnect', TRUE);
 		//$this->options(MYSQLI_OPT_CONNECT_TIMEOUT, 1);
-		$this->real_connect($host, $user, $password, $database);
-		//$this->real_connect($host, $user, $password, $database, flags: MYSQLI_CLIENT_FOUND_ROWS | MYSQLI_CLIENT_INTERACTIVE);
+		//$this->real_connect($host, $user, $password, $database);
+		$this->real_connect($host, $user, $password, $database, flags: MYSQLI_CLIENT_FOUND_ROWS | MYSQLI_CLIENT_INTERACTIVE);
 	}
 	function __destruct()
 	{
@@ -23,15 +22,38 @@ class webapp_mysql extends mysqli
 	{
 		return ($this->{$tablename})(...$cond);
 	}
-	function __invoke(...$query):bool
+	function __invoke(...$query):static
 	{
 		//var_dump($this->sprintf(...$query));
-		if ($this->real_query($this->sprintf(...$query)))
+		if ($this->real_query($this->sprintf(...$query)) === FALSE)
 		{
-			return TRUE;
+			$this->errors[] = $this->error;
 		}
-		$this->errors[] = $this->error;
-		return FALSE;
+		return $this;
+	}
+	function getIterator():Traversable
+	{
+		return $this->store_result();
+	}
+	function object(string $class = 'stdClass', array $constructor_args = []):object
+	{
+		return $this->use_result()->fetch_object($class, $constructor_args);
+	}
+	function array(int $mode = MYSQLI_ASSOC):array
+	{
+		return $this->use_result()->fetch_array($mode);
+	}
+	function value():string
+	{
+		return $this->array(MYSQLI_NUM)[0];
+	}
+	function all(int $mode = MYSQLI_ASSOC):array
+	{
+		return $this->use_result()->fetch_all($mode);
+	}
+	function column(string $key, string $index = NULL):array
+	{
+		return array_column($this->all(), $key, $index);
 	}
 	private function quote(string $name):string
 	{
@@ -99,28 +121,8 @@ class webapp_mysql extends mysqli
 		}
 		return $query;
 	}
-	function scalar(...$query)
-	{
-		return $this(...$query) ? $this->use_result()->fetch_row()[0] : NULL;
-	}
-	function row(...$query):array
-	{
-		return $this(...$query) ? ($this->use_result()->fetch_assoc() ?? []) : [];
-	}
-	function all(...$query):array
-	{
-		return $this(...$query) ? $this->use_result()->fetch_all(MYSQLI_ASSOC) : [];
-	}
-	function iter(...$query):iterable
-	{
-		if ($this(...$query))
-		{
-			foreach ($this->store_result() as $row)
-			{
-				yield $row;
-			}
-		}
-	}
+	
+
 	function sync(Closure $submit, ...$params):bool
 	{
 		if ($this->autocommit(FALSE))
@@ -214,23 +216,35 @@ class webapp_mysql extends mysqli
 			}
 		};
 	}
-	function table(string $name, string $primary = NULL):webapp_mysql_table
+	function table(string $name):webapp_mysql_table
 	{
-		return new class($this, $name, $primary) extends webapp_mysql_table
+		return new class($this, $name) extends webapp_mysql_table
 		{
-			function __construct(webapp_mysql $mysql, string $name, string $primary = NULL)
+			function __construct(webapp_mysql $mysql, string $name)
 			{
-				$this->tablename = $name;
-				if (strlen($primary))
-				{
-					$this->primary = $primary;
-				}
 				parent::__construct($mysql);
+				$this->tablename = $name;
 			}
 		};
 	}
+	function kill(int $pid = NULL):bool
+	{
+		return parent::kill($pid ?? $this->thread_id);
+	}
+	function processlist():iterable
+	{
+		return $this('SHOW PROCESSLIST');
+	}
 
-
+	
+	
+	
+	
+	
+	// function all(...$query):array
+	// {
+	// 	return $this(...$query) ? $this->use_result()->fetch_all(MYSQLI_ASSOC) : [];
+	// }
 
 
 	// function engines(bool $all = FALSE)
@@ -249,21 +263,34 @@ class webapp_mysql extends mysqli
 }
 abstract class webapp_mysql_table implements IteratorAggregate, Countable, Stringable
 {
-	private $cond, $paging, $fields = '*';
-	protected $mysql, $tablename, $targetname = 'webapp_mysql_target';
-	function __construct(webapp_mysql $mysql)
+	private string $cond;
+	private array $paging;
+	private array|string $fields = '*';
+	protected string $tablename, $primary;
+	function __construct(protected webapp_mysql $mysql)
 	{
-		$this->mysql = $mysql;
+		//var_dump($this->primary);
 	}
 	function __isset(string $name):bool
 	{
 		return property_exists($this, $name);
 	}
+	function a()
+	{
+		var_dump($this->primary);
+	}
 	function __get(string $name)
 	{
+		var_dump('--');
+		// return match ($name)
+		// {
+		// 	'tablename' => $this->tablename,
+		// 	'primary' => $this->primary ??=
+		// 		$this->mysql->row('SHOW FIELDS FROM ?a WHERE ?a=?s', $this->tablename, 'Key', 'PRI')['Field'] ??
+		// 		$this->mysql->row('SHOW FIELDS FROM ?a WHERE ?a=?s', $this->tablename, 'Key', 'UNI')['Field'] ?? NULL
+		// };
 		switch ($name)
 		{
-			case 'mysql': return $this->mysql;
 			case 'tablename': return $this->tablename();
 			case 'primary': return $this->primary();
 			case 'paging': return $this->paging;
@@ -281,19 +308,22 @@ abstract class webapp_mysql_table implements IteratorAggregate, Countable, Strin
 	}
 	function __invoke(...$cond):static
 	{
-		return [$this, $this->cond = $this->mysql->sprintf(...$cond)][0];
+		$this->cond = $this->mysql->sprintf(...$cond);
+		return $this;
 	}
 	function __toString():string
 	{
+		//修改
 		return [is_string($this->cond) ? " {$this->cond}" : (string)$this->cond, $this->cond = NULL, $this->fields = '*'][0];
+	}
+	function count(string &$cond = NULL):int
+	{
+		$cond = $this->cond;
+		return intval(($this->mysql)('SELECT SQL_NO_CACHE COUNT(1) FROM ?a?? LIMIT 1', $this->tablename, (string)$this)->value());
 	}
 	function getIterator():Traversable
 	{
-		return $this->mysql->list('SELECT ?? FROM ?a??', $this->fields, $this->tablename, (string)$this);
-	}
-	function count(?string &$cond = NULL):int
-	{
-		return [$cond = $this->cond, intval($this->mysql->scalar('SELECT SQL_NO_CACHE COUNT(1) FROM ?a?? LIMIT 1', $this->tablename, (string)$this))][1];
+		return ($this->mysql)('SELECT ?? FROM ?a??', $this->fields, $this->tablename, (string)$this);
 	}
 	function &tablename():string
 	{
@@ -309,33 +339,15 @@ abstract class webapp_mysql_table implements IteratorAggregate, Countable, Strin
 		}
 		return $this->primary;
 	}
-	function fieldinfo()
+
+
+	function append($data):int
 	{
-		$fields = [];
-		foreach ($this->mysql->list('SHOW FULL COLUMNS FROM ?a', $this->tablename) as $info)
-		{
-			$fields[$info['Field']] = array_change_key_case($info);
-		}
-	
-		print_r($fields);
-		// array_change_key_case()
-		// $fields = [];
-		// foreach ($this->mysql->list('SHOW FULL COLUMNS FROM ?a', $this->tablename) as $field)
-		// {
-		// 	print_r($field);
-		// }
-	}
-	function mysql(...$query):bool
-	{
-		return ($this->mysql)(...$query);
+		return $this->insert($data) ? $this->mysql->insert_id : 0;
 	}
 	function insert($data):bool
 	{
 		return $this->mysql('INSERT INTO ?a SET ??', $this->tablename, $this->mysql->sprintf(...is_array($data) ? ['?v', $data] : func_get_args())) && $this->mysql->affected_rows === 1;
-	}
-	function append($data):int
-	{
-		return $this->insert($data) ? $this->mysql->insert_id : 0;
 	}
 	function delete(...$query):int
 	{
@@ -343,7 +355,7 @@ abstract class webapp_mysql_table implements IteratorAggregate, Countable, Strin
 	}
 	function update($data):int
 	{
-		return $this->mysql('UPDATE ?a SET ????', $this->tablename, $this->mysql->sprintf(...is_array($data) ? ['?v', $data] : func_get_args()), (string)$this) ? intval(substr($this->mysql->info, 14)) : -1;
+		return $this->mysql('UPDATE ?a SET ????', $this->tablename, $this->mysql->sprintf(...is_array($data) ? ['?v', $data] : func_get_args()), (string)$this) ? $this->mysql->affected_rows : -1;
 	}
 	function select($fields):static
 	{
@@ -358,14 +370,18 @@ abstract class webapp_mysql_table implements IteratorAggregate, Countable, Strin
 		$this->paging['rows'] = $rows;
 		return $this(join(' ', [$this->paging['cond'], 'LIMIT', "{$this->paging['skip']},{$rows}"]));
 	}
-	function column(string ...$keys):array
-	{
-		return array_column($this->select($keys)->all, ...$keys);
-	}
+	// function column(string ...$keys):array
+	// {
+	// 	return array_column($this->select($keys)->all, ...$keys);
+	// }
 
-	function target($mixed = NULL):webapp_mysql_target
+	// function target($mixed = NULL):webapp_mysql_target
+	// {
+	// 	return new $this->targetname($this, $mixed);
+	// }
+	function fieldinfo()
 	{
-		return new $this->targetname($this, $mixed);
+		return ($this->mysql)('SHOW FULL COLUMNS FROM ?a', $this->tablename);
 	}
 	function rename(string $name):bool
 	{
