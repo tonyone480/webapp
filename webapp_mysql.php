@@ -1,5 +1,4 @@
 <?php
-#?ini_set('mysqli.reconnect', TRUE);
 class webapp_mysql extends mysqli
 {
 	public array $errors = [];
@@ -7,6 +6,7 @@ class webapp_mysql extends mysqli
 	function __construct(string $host = 'p:127.0.0.1:3306', string $user = 'root', string $password = '', string $database = 'mysql', private string $maptable = 'webapp_maptable_')
 	{
 		$this->init();
+		#?ini_set('mysqli.reconnect', TRUE);
 		//$this->options(MYSQLI_OPT_CONNECT_TIMEOUT, 1);
 		$this->real_connect($host, $user, $password, $database);
 		//$this->real_connect($host, $user, $password, $database, flags: MYSQLI_CLIENT_FOUND_ROWS | MYSQLI_CLIENT_INTERACTIVE);
