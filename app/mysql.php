@@ -5,12 +5,10 @@ $a = new webapp_mysql;
 $a->select_db('gzh');
 $t = $a->gzh_issue;
 
-// var_dump( $t->update(['time' => 0]) );
-
-var_dump($t );
+//var_dump( $t->update(['time' => 0]) );
 
 
-
+var_dump( $t->value(5) );
 exit;
 class webapp_mysql_api extends webapp_echo_json
 {

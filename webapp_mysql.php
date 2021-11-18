@@ -43,9 +43,9 @@ class webapp_mysql extends mysqli implements IteratorAggregate
 	{
 		return $this->use_result()->fetch_array($mode);
 	}
-	function value():string
+	function value(int $index = 0):string
 	{
-		return $this->array(MYSQLI_NUM)[0];
+		return $this->array(MYSQLI_NUM)[$index];
 	}
 	function all(int $mode = MYSQLI_ASSOC):array
 	{
@@ -222,8 +222,9 @@ class webapp_mysql extends mysqli implements IteratorAggregate
 		{
 			function __construct(webapp_mysql $mysql, string $name)
 			{
-				parent::__construct($mysql);
+				unset($this->primary);
 				$this->tablename = $name;
+				parent::__construct($mysql);
 			}
 		};
 	}
@@ -235,18 +236,6 @@ class webapp_mysql extends mysqli implements IteratorAggregate
 	{
 		return $this('SHOW PROCESSLIST');
 	}
-
-	
-	
-	
-	
-	
-	// function all(...$query):array
-	// {
-	// 	return $this(...$query) ? $this->use_result()->fetch_all(MYSQLI_ASSOC) : [];
-	// }
-
-
 	// function engines(bool $all = FALSE)
 	// {
 
@@ -256,55 +245,32 @@ class webapp_mysql extends mysqli implements IteratorAggregate
 	// {
 
 	// }
-	// function databases()
-	// {
-		
-	// }
+
 }
 abstract class webapp_mysql_table implements IteratorAggregate, Countable, Stringable
 {
-	private string $cond;
-	private array $paging;
-	private array|string $fields = '*';
-	protected string $tablename, $primary;
+	private array $paging = [];
+	private string $cond = '', $fields = '*';
+	protected ?string $tablename, $primary;
 	function __construct(protected webapp_mysql $mysql)
 	{
-		//var_dump($this->primary);
 	}
-	function __isset(string $name):bool
-	{
-		return property_exists($this, $name);
-	}
-	function a()
-	{
-		var_dump($this->primary);
-	}
+
 	function __get(string $name)
 	{
 		var_dump('--');
-		// return match ($name)
-		// {
-		// 	'tablename' => $this->tablename,
-		// 	'primary' => $this->primary ??=
-		// 		$this->mysql->row('SHOW FIELDS FROM ?a WHERE ?a=?s', $this->tablename, 'Key', 'PRI')['Field'] ??
-		// 		$this->mysql->row('SHOW FIELDS FROM ?a WHERE ?a=?s', $this->tablename, 'Key', 'UNI')['Field'] ?? NULL
-		// };
-		switch ($name)
+		return match ($name)
 		{
-			case 'tablename': return $this->tablename();
-			case 'primary': return $this->primary();
-			case 'paging': return $this->paging;
-			case 'scalar':
-			case 'row':
-				if (preg_match('/LIMIT\s+\d+(?:,\d+)?$/i', $this->cond) === 0)
-				{
-					$this->cond .= ' LIMIT 1';
-				}
-			case 'all':
-				return $this->mysql->{$name}('SELECT ?? FROM ?a??', $this->fields, $this->tablename, (string)$this);
-
-			case 'create': return $this->mysql->row('SHOW CREATE TABLE ?a', $this->tablename)['Create Table'];
-		}
+			'tablename' => $this->tablename,
+			'primary' => $this->primary ??=
+				($this->mysql)('SHOW FIELDS FROM ?a WHERE ?a=?s', $this->tablename, 'Key', 'PRI')->array()['Field'] ??
+				($this->mysql)('SHOW FIELDS FROM ?a WHERE ?a=?s', $this->tablename, 'Key', 'UNI')->array()['Field'] ?? NULL,
+			'create' => ($this->mysql)('SHOW CREATE TABLE ?a', $this->tablename)->array()
+		};
+	}
+	function a()
+	{
+		return $this->primary; 
 	}
 	function __invoke(...$cond):static
 	{
@@ -313,8 +279,11 @@ abstract class webapp_mysql_table implements IteratorAggregate, Countable, Strin
 	}
 	function __toString():string
 	{
-		//修改
-		return [is_string($this->cond) ? " {$this->cond}" : (string)$this->cond, $this->cond = NULL, $this->fields = '*'][0];
+		//return [$this->cond, $this->cond = '', $this->fields = '*'][0];
+		$cond = $this->cond;
+		$this->cond = '';
+		$this->fields = '*';
+		return $cond;
 	}
 	function count(string &$cond = NULL):int
 	{
@@ -325,6 +294,28 @@ abstract class webapp_mysql_table implements IteratorAggregate, Countable, Strin
 	{
 		return ($this->mysql)('SELECT ?? FROM ?a??', $this->fields, $this->tablename, (string)$this);
 	}
+	function object(string $class = 'stdClass', array $constructor_args = []):object
+	{
+		return $this->getIterator()->object($class, $constructor_args);
+	}
+	function array(int $mode = MYSQLI_ASSOC):array
+	{
+		return $this->getIterator()->array($mode);
+	}
+	function value(int $index = 0):string
+	{
+		return $this->array(MYSQLI_NUM)[$index];
+	}
+	function all(int $mode = MYSQLI_ASSOC):array
+	{
+		return $this->getIterator()->all($mode);
+	}
+	function column(string $key, string $index = NULL):array
+	{
+		return array_column($this->all(), $key, $index);
+	}
+
+
 	function &tablename():string
 	{
 		return $this->tablename;
