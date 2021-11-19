@@ -18,9 +18,9 @@ class webapp_mysql extends mysqli implements IteratorAggregate
 	{
 		return $this->{$name} = class_exists($tablename = $this->maptable . $name, FALSE) ? new $tablename($this) : $this->table($name);
 	}
-	function __call(string $tablename, array $cond):webapp_mysql_table
+	function __call(string $tablename, array $conditionals):webapp_mysql_table
 	{
-		return ($this->{$tablename})(...$cond);
+		return ($this->{$tablename})(...$conditionals);
 	}
 	function __invoke(...$query):static
 	{
@@ -63,41 +63,33 @@ class webapp_mysql extends mysqli implements IteratorAggregate
 	{
 		return '\'' . $this->real_escape_string($value) . '\'';
 	}
-	// function unique_array(array $values):array
-	// {
-	// 	$merge = [];
-	// 	return array_walk_recursive($values, function(string $value) use(&$merge)
-	// 	{
-	// 		$merge[] = $value;
-	// 	}) ? array_unique($merge) : [];
-	// }
-	function sprintf(string $query, ...$formats):string
+	function sprintf(string $format, ...$values):string
 	{
-		if ($formats)
+		if ($values)
 		{
 			$index = 0;
 			$offset = 0;
 			$command = [];
-			$length = strlen($query);
-			while (($pos = strpos($query, '?', $offset)) !== FALSE && $pos < $length && array_key_exists($index, $formats))
+			$length = strlen($format);
+			while (($pos = strpos($format, '?', $offset)) !== FALSE && $pos < $length && array_key_exists($index, $values))
 			{
-				$command[] = substr($query, $offset, $pos - $offset);
-				switch ($query[$pos + 1])
+				$command[] = substr($format, $offset, $pos - $offset);
+				switch ($format[$pos + 1])
 				{
 					case 'A':
 					case 'S':
-						if (is_array($formats[$index]))
+						if (is_array($values[$index]))
 						{
-							$command[] = join(',', array_map([$this, $query[$pos + 1] === 'A' ? 'quote' : 'escape'], $formats[$index++]));
+							$command[] = join(',', array_map([$this, $format[$pos + 1] === 'A' ? 'quote' : 'escape'], $values[$index++]));
 							break;
 						}
-					case '?': $command[] = (string)$formats[$index++]; break;
-					case 'a': $command[] = $this->quote((string)$formats[$index++]); break;
-					case 's': $command[] = $this->escape((string)$formats[$index++]); break;
-					case 'i': $command[] = intval($formats[$index++]); break;
-					case 'f': $command[] = floatval($formats[$index++]); break;
+					case '?': $command[] = (string)$values[$index++]; break;
+					case 'a': $command[] = $this->quote((string)$values[$index++]); break;
+					case 's': $command[] = $this->escape((string)$values[$index++]); break;
+					case 'i': $command[] = intval($values[$index++]); break;
+					case 'f': $command[] = floatval($values[$index++]); break;
 					case 'v': $values = [];
-						foreach ($formats[$index++] as $key => $value)
+						foreach ($values[$index++] as $key => $value)
 						{
 							switch (TRUE)
 							{
@@ -109,17 +101,17 @@ class webapp_mysql extends mysqli implements IteratorAggregate
 						}
 						$command[] = join(',', $values);
 						break;
-					default: $command[] = substr($query, $pos, 2);
+					default: $command[] = substr($format, $pos, 2);
 				}
 				$offset = $pos + 2;
 			}
 			if ($offset < $length)
 			{
-				$command[] = substr($query, $offset);
+				$command[] = substr($format, $offset);
 			}
 			return join($command);
 		}
-		return $query;
+		return $format;
 	}
 	
 
@@ -228,6 +220,15 @@ class webapp_mysql extends mysqli implements IteratorAggregate
 			}
 		};
 	}
+	
+	function query(string $query, mixed ...$x):string
+	{
+
+	}
+	function prepare(string $query):string
+	{
+
+	}
 	function kill(int $pid = NULL):bool
 	{
 		return parent::kill($pid ?? $this->thread_id);
@@ -267,10 +268,6 @@ abstract class webapp_mysql_table implements IteratorAggregate, Countable, Strin
 				($this->mysql)('SHOW FIELDS FROM ?a WHERE ?a=?s', $this->tablename, 'Key', 'UNI')->value(),
 			'create' => ($this->mysql)('SHOW CREATE TABLE ?a', $this->tablename)->value(1)
 		};
-	}
-	function a()
-	{
-		return $this->primary; 
 	}
 	function __invoke(...$cond):static
 	{
@@ -348,9 +345,10 @@ abstract class webapp_mysql_table implements IteratorAggregate, Countable, Strin
 	{
 		return $this->mysql('UPDATE ?a SET ????', $this->tablename, $this->mysql->sprintf(...is_array($data) ? ['?v', $data] : func_get_args()), (string)$this) ? $this->mysql->affected_rows : -1;
 	}
-	function select($fields):static
+	function select(array|string $fields):static
 	{
-		return [$this, $this->fields = $this->mysql->sprintf('?A', $fields)][0];
+		$this->fields = $this->mysql->sprintf('?A', $fields);
+		return $this;
 	}
 	function paging(int $index, int $rows = 21):static
 	{

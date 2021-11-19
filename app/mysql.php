@@ -1,15 +1,18 @@
 <?php
 require __DIR__ . '/../webapp_io_std.php';
 $a = new webapp_mysql;
-//var_dump($a('select CONVERT(1+1, UNSIGNED INTEGER), null')->value(1));
-
 $a->select_db('gzh');
+
 $t = $a->gzh_issue;
+//var_dump( $t->update(['time' => 0]) );
 
-// var_dump( $t->update(['time' => 0]) );
+foreach ($t->select(['key','time']) as $p)
+{
+	print_r($p);
+}
 
 
-var_dump( $t->create );
+//var_dump( $a->sprintf('select now(?S)', ['as' => 'ee']) );
 exit;
 class webapp_mysql_api extends webapp_echo_json
 {
