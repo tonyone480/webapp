@@ -3,13 +3,15 @@ require __DIR__ . '/../webapp_io_std.php';
 $a = new webapp_mysql;
 $a->select_db('gzh');
 
-$t = $a->gzh_issue;
+var_dump($a->prepare('asdwd'));
+
+//$t = $a->gzh_issue;
 //var_dump( $t->update(['time' => 0]) );
 
-foreach ($t->select(['key','time']) as $p)
-{
-	print_r($p);
-}
+// foreach ($t->select(['key','time']) as $p)
+// {
+// 	print_r($p);
+// }
 
 
 //var_dump( $a->sprintf('select now(?S)', ['as' => 'ee']) );

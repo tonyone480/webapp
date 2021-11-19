@@ -220,14 +220,13 @@ class webapp_mysql extends mysqli implements IteratorAggregate
 			}
 		};
 	}
-	
-	function query(string $query, mixed ...$x):string
+	function real_query(string $format, mixed ...$values):bool
 	{
-
+		return parent::real_query($this->sprintf($format, ...$values));
 	}
-	function prepare(string $query):string
+	function prepare(string $format, ...$values):string
 	{
-
+		return $format;
 	}
 	function kill(int $pid = NULL):bool
 	{
