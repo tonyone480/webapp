@@ -22,13 +22,9 @@ class webapp_mysql extends mysqli implements IteratorAggregate
 	{
 		return ($this->{$tablename})(...$conditionals);
 	}
-	function __invoke(...$query):static
+	function __invoke(string $query, NULL|string|iterable ...$values):static
 	{
-		//var_dump($this->sprintf(...$query));
-		if ($this->real_query($this->sprintf(...$query)) === FALSE)
-		{
-			$this->errors[] = $this->error;
-		}
+		$this->real_query($query, ...$values);
 		return $this;
 	}
 	function getIterator():Traversable
@@ -63,24 +59,24 @@ class webapp_mysql extends mysqli implements IteratorAggregate
 	{
 		return '\'' . $this->real_escape_string($value) . '\'';
 	}
-	function sprintf(string $format, ...$values):string
+	function format(string $query, NULL|string|iterable ...$values):string
 	{
 		if ($values)
 		{
 			$index = 0;
 			$offset = 0;
 			$command = [];
-			$length = strlen($format);
-			while (($pos = strpos($format, '?', $offset)) !== FALSE && $pos < $length && array_key_exists($index, $values))
+			$length = strlen($query);
+			while (($pos = strpos($query, '?', $offset)) !== FALSE && $pos < $length && array_key_exists($index, $values))
 			{
-				$command[] = substr($format, $offset, $pos - $offset);
-				switch ($format[$pos + 1])
+				$command[] = substr($query, $offset, $pos - $offset);
+				switch ($query[$pos + 1])
 				{
 					case 'A':
 					case 'S':
 						if (is_array($values[$index]))
 						{
-							$command[] = join(',', array_map([$this, $format[$pos + 1] === 'A' ? 'quote' : 'escape'], $values[$index++]));
+							$command[] = join(',', array_map([$this, $query[$pos + 1] === 'A' ? 'quote' : 'escape'], $values[$index++]));
 							break;
 						}
 					case '?': $command[] = (string)$values[$index++]; break;
@@ -88,30 +84,37 @@ class webapp_mysql extends mysqli implements IteratorAggregate
 					case 's': $command[] = $this->escape((string)$values[$index++]); break;
 					case 'i': $command[] = intval($values[$index++]); break;
 					case 'f': $command[] = floatval($values[$index++]); break;
-					case 'v': $values = [];
+					case 'v': $contents = [];
 						foreach ($values[$index++] as $key => $value)
 						{
-							switch (TRUE)
+							$contents[] = $this->quote($key) . '=' . match (get_debug_type($value))
 							{
-								case is_string($value):		$values[] = $this->quote($key) . '=' . $this->escape($value); continue 2;
-								case is_numeric($value):	$values[] = $this->quote($key) . '=' . $value; continue 2;
-								case is_null($value):		$values[] = $this->quote($key) . '=NULL'; continue 2;
-								//case is_array($value):		$values[] = $this->quote($key) . '=' . $this->escape(json_encode($value, JSON_UNESCAPED_UNICODE)); continue 2;
-							}
+								'null' => '=NULL',
+								'bool' => intval($value),
+								'int', 'float' => $value,
+								default => $this->escape($value)
+							};
+							// switch (TRUE)
+							// {
+							// 	case is_string($value):		$contents[] = $this->quote($key) . '=' . $this->escape($value); continue 2;
+							// 	case is_numeric($value):	$contents[] = $this->quote($key) . '=' . $value; continue 2;
+							// 	case is_null($value):		$contents[] = $this->quote($key) . '=NULL'; continue 2;
+							// 	//case is_array($value):		$contents[] = $this->quote($key) . '=' . $this->escape(json_encode($value, JSON_UNESCAPED_UNICODE)); continue 2;
+							// }
 						}
-						$command[] = join(',', $values);
+						$command[] = join(',', $contents);
 						break;
-					default: $command[] = substr($format, $pos, 2);
+					default: $command[] = substr($query, $pos, 2);
 				}
 				$offset = $pos + 2;
 			}
 			if ($offset < $length)
 			{
-				$command[] = substr($format, $offset);
+				$command[] = substr($query, $offset);
 			}
 			return join($command);
 		}
-		return $format;
+		return $query;
 	}
 	
 
@@ -220,13 +223,15 @@ class webapp_mysql extends mysqli implements IteratorAggregate
 			}
 		};
 	}
-	function real_query(string $format, mixed ...$values):bool
+	function real_query(string $query, NULL|string|iterable ...$values):bool
 	{
-		return parent::real_query($this->sprintf($format, ...$values));
-	}
-	function prepare(string $format, ...$values):string
-	{
-		return $format;
+		//var_dump($this->format($query, ...$values));
+		if (parent::real_query($this->format($query, ...$values)))
+		{
+			return TRUE;
+		}
+		$this->errors[] = $this->error;
+		return FALSE;
 	}
 	function kill(int $pid = NULL):bool
 	{
@@ -254,10 +259,7 @@ abstract class webapp_mysql_table implements IteratorAggregate, Countable, Strin
 	protected ?string $tablename, $primary;
 	function __construct(protected webapp_mysql $mysql)
 	{
-
-		asda
 	}
-
 	function __get(string $name)
 	{
 		var_dump('--');
@@ -270,9 +272,9 @@ abstract class webapp_mysql_table implements IteratorAggregate, Countable, Strin
 			'create' => ($this->mysql)('SHOW CREATE TABLE ?a', $this->tablename)->value(1)
 		};
 	}
-	function __invoke(...$cond):static
+	function __invoke(...$conditionals):static
 	{
-		$this->cond = $this->mysql->sprintf(...$cond);
+		$this->cond = $this->mysql->format(...$conditionals);
 		return $this;
 	}
 	function __toString():string
@@ -334,9 +336,9 @@ abstract class webapp_mysql_table implements IteratorAggregate, Countable, Strin
 	{
 		return $this->insert($data) ? $this->mysql->insert_id : 0;
 	}
-	function insert($data):bool
+	function insert(iterable|string $data):bool
 	{
-		return $this->mysql('INSERT INTO ?a SET ??', $this->tablename, $this->mysql->sprintf(...is_array($data) ? ['?v', $data] : func_get_args())) && $this->mysql->affected_rows === 1;
+		return ($this->mysql)('INSERT INTO ?a SET ??', $this->tablename, $this->mysql->format(...is_iterable($data) ? ['?v', $data] : func_get_args())) && $this->mysql->affected_rows === 1;
 	}
 	function delete(...$query):int
 	{
@@ -348,7 +350,7 @@ abstract class webapp_mysql_table implements IteratorAggregate, Countable, Strin
 	}
 	function select(array|string $fields):static
 	{
-		$this->fields = $this->mysql->sprintf('?A', $fields);
+		$this->fields = $this->mysql->format('?A', $fields);
 		return $this;
 	}
 	function paging(int $index, int $rows = 21):static
