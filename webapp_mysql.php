@@ -45,7 +45,7 @@ class webapp_mysql extends mysqli implements IteratorAggregate
 	}
 	function value(int $index = 0):?string
 	{
-		return $this->array(MYSQLI_NUM)[$index];
+		return $this->array(MYSQLI_NUM)[$index] ?? NULL;
 	}
 	function all(int $mode = MYSQLI_ASSOC):array
 	{
@@ -254,6 +254,8 @@ abstract class webapp_mysql_table implements IteratorAggregate, Countable, Strin
 	protected ?string $tablename, $primary;
 	function __construct(protected webapp_mysql $mysql)
 	{
+
+		asda
 	}
 
 	function __get(string $name)
