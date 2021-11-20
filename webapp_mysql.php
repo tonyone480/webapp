@@ -89,7 +89,7 @@ class webapp_mysql extends mysqli implements IteratorAggregate
 						{
 							$contents[] = $this->quote($key) . '=' . match (get_debug_type($value))
 							{
-								'null' => '=NULL',
+								'null' => 'NULL',
 								'bool' => intval($value),
 								'int', 'float' => $value,
 								default => $this->escape($value)
