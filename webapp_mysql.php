@@ -45,7 +45,7 @@ class webapp_mysql extends mysqli implements IteratorAggregate
 	}
 	function value(int $index = 0):?string
 	{
-		return $this->array(MYSQLI_NUM)[$index] ?? NULL;
+		return $this->array(MYSQLI_NUM)[$index];
 	}
 	function all(int $mode = MYSQLI_ASSOC):array
 	{
