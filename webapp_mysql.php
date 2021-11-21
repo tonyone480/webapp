@@ -59,8 +59,51 @@ class webapp_mysql extends mysqli implements IteratorAggregate
 	{
 		return '\'' . $this->real_escape_string($value) . '\'';
 	}
+	private function iterator(iterable $contents):string
+	{
+		$query = [];
+		foreach ($contents as $key => $value)
+		{
+			$query[] = $this->quote($key) . '=' . match (get_debug_type($value))
+			{
+				'null' => 'NULL',
+				'bool' => intval($value),
+				'int', 'float' => $value,
+				default => $this->escape($value)
+			};
+			// switch (TRUE)
+			// {
+			// 	case is_string($value):		$contents[] = $this->quote($key) . '=' . $this->escape($value); continue 2;
+			// 	case is_numeric($value):	$contents[] = $this->quote($key) . '=' . $value; continue 2;
+			// 	case is_null($value):		$contents[] = $this->quote($key) . '=NULL'; continue 2;
+			// 	//case is_array($value):		$contents[] = $this->quote($key) . '=' . $this->escape(json_encode($value, JSON_UNESCAPED_UNICODE)); continue 2;
+			// }
+		}
+		return join(',', $query);
+	}
 	function format(string $query, NULL|string|iterable ...$values):string
 	{
+		$offset = 0;
+		$command = [];
+		foreach ($values as $value)
+		{
+			if (($pos = strpos($query, '?', $offset)) !== FALSE)
+			{
+				$command[] = substr($query, $offset, $pos - $offset) . match ($query[$pos + 1])
+				{
+					'i' => intval($values[$index++]),
+					'f' => floatval($values[$index++]),
+					'a' => $this->quote($values[$index++]),
+					's' => $this->escape($values[$index++]),
+					'v' => $this->iterator($values[$index++]),
+					'?', 'A', 'S' => is_iterable($values[$index]) ? join(',', array_map([$this, $query[$pos + 1] === 'A' ? 'quote' : 'escape'],
+						is_array($values[$index]) ? $values[$index++] : iterator_to_array($values[$index++]))) : (string)$values[$index++],
+					default => substr($query, $pos, 2)
+				};
+				continue;
+			}
+			break;
+		}
 		if ($values)
 		{
 			$index = 0;
@@ -69,43 +112,17 @@ class webapp_mysql extends mysqli implements IteratorAggregate
 			$length = strlen($query);
 			while (($pos = strpos($query, '?', $offset)) !== FALSE && $pos < $length && array_key_exists($index, $values))
 			{
-				$command[] = substr($query, $offset, $pos - $offset);
-				switch ($query[$pos + 1])
+				$command[] = substr($query, $offset, $pos - $offset) . match ($query[$pos + 1])
 				{
-					case 'A':
-					case 'S':
-						if (is_array($values[$index]))
-						{
-							$command[] = join(',', array_map([$this, $query[$pos + 1] === 'A' ? 'quote' : 'escape'], $values[$index++]));
-							break;
-						}
-					case '?': $command[] = (string)$values[$index++]; break;
-					case 'a': $command[] = $this->quote((string)$values[$index++]); break;
-					case 's': $command[] = $this->escape((string)$values[$index++]); break;
-					case 'i': $command[] = intval($values[$index++]); break;
-					case 'f': $command[] = floatval($values[$index++]); break;
-					case 'v': $contents = [];
-						foreach ($values[$index++] as $key => $value)
-						{
-							$contents[] = $this->quote($key) . '=' . match (get_debug_type($value))
-							{
-								'null' => 'NULL',
-								'bool' => intval($value),
-								'int', 'float' => $value,
-								default => $this->escape($value)
-							};
-							// switch (TRUE)
-							// {
-							// 	case is_string($value):		$contents[] = $this->quote($key) . '=' . $this->escape($value); continue 2;
-							// 	case is_numeric($value):	$contents[] = $this->quote($key) . '=' . $value; continue 2;
-							// 	case is_null($value):		$contents[] = $this->quote($key) . '=NULL'; continue 2;
-							// 	//case is_array($value):		$contents[] = $this->quote($key) . '=' . $this->escape(json_encode($value, JSON_UNESCAPED_UNICODE)); continue 2;
-							// }
-						}
-						$command[] = join(',', $contents);
-						break;
-					default: $command[] = substr($query, $pos, 2);
-				}
+					'i' => intval($values[$index++]),
+					'f' => floatval($values[$index++]),
+					'a' => $this->quote($values[$index++]),
+					's' => $this->escape($values[$index++]),
+					'v' => $this->iterator($values[$index++]),
+					'?', 'A', 'S' => is_iterable($values[$index]) ? join(',', array_map([$this, $query[$pos + 1] === 'A' ? 'quote' : 'escape'],
+						is_array($values[$index]) ? $values[$index++] : iterator_to_array($values[$index++]))) : (string)$values[$index++],
+					default => substr($query, $pos, 2)
+				};
 				$offset = $pos + 2;
 			}
 			if ($offset < $length)
@@ -272,7 +289,7 @@ abstract class webapp_mysql_table implements IteratorAggregate, Countable, Strin
 			'create' => ($this->mysql)('SHOW CREATE TABLE ?a', $this->tablename)->value(1)
 		};
 	}
-	function __invoke(...$conditionals):static
+	function __invoke(mixed ...$conditionals):static
 	{
 		$this->cond = $this->mysql->format(...$conditionals);
 		return $this;
@@ -281,8 +298,8 @@ abstract class webapp_mysql_table implements IteratorAggregate, Countable, Strin
 	{
 		//return [$this->cond, $this->cond = '', $this->fields = '*'][0];
 		$cond = $this->cond;
-		$this->cond = '';
 		$this->fields = '*';
+		$this->cond = '';
 		return $cond;
 	}
 	function count(string &$cond = NULL):int
@@ -316,37 +333,38 @@ abstract class webapp_mysql_table implements IteratorAggregate, Countable, Strin
 	}
 
 
-	function &tablename():string
-	{
-		return $this->tablename;
-	}
-	function &primary():string
-	{
-		if (property_exists($this, 'primary') === FALSE)
-		{
-			$this->primary =
-				$this->mysql->row('SHOW FIELDS FROM ?a WHERE ?a=?s', $this->tablename, 'Key', 'PRI')['Field'] ??
-				$this->mysql->row('SHOW FIELDS FROM ?a WHERE ?a=?s', $this->tablename, 'Key', 'UNI')['Field'] ?? NULL;
-		}
-		return $this->primary;
-	}
+	// function &tablename():string
+	// {
+	// 	return $this->tablename;
+	// }
+	// function &primary():string
+	// {
+	// 	if (property_exists($this, 'primary') === FALSE)
+	// 	{
+	// 		$this->primary =
+	// 			$this->mysql->row('SHOW FIELDS FROM ?a WHERE ?a=?s', $this->tablename, 'Key', 'PRI')['Field'] ??
+	// 			$this->mysql->row('SHOW FIELDS FROM ?a WHERE ?a=?s', $this->tablename, 'Key', 'UNI')['Field'] ?? NULL;
+	// 	}
+	// 	return $this->primary;
+	// }
 
 
-	function append($data):int
+	function append(mixed ...$params):int
 	{
-		return $this->insert($data) ? $this->mysql->insert_id : 0;
+		$this->insert(...$params);
+		return $this->mysql->insert_id;
 	}
 	function insert(iterable|string $data):bool
 	{
-		return ($this->mysql)('INSERT INTO ?a SET ??', $this->tablename, $this->mysql->format(...is_iterable($data) ? ['?v', $data] : func_get_args())) && $this->mysql->affected_rows === 1;
+		return ($this->mysql)('INSERT INTO ?a SET ??', $this->tablename, $this->mysql->format(...is_iterable($data) ? ['?v', $data] : func_get_args()))->affected_rows === 1;
 	}
-	function delete(...$query):int
+	function delete(mixed ...$conditionals):int
 	{
-		return $this->mysql('DELETE FROM ?a??', $this->tablename, (string)($query ? $this(...$query) : $this)) ? $this->mysql->affected_rows : -1;
+		return ($this->mysql)('DELETE FROM ?a??', $this->tablename, (string)($conditionals ? $this(...$conditionals) : $this))->affected_rows;
 	}
-	function update($data):int
+	function update(iterable|string $data):int
 	{
-		return $this->mysql('UPDATE ?a SET ????', $this->tablename, $this->mysql->sprintf(...is_array($data) ? ['?v', $data] : func_get_args()), (string)$this) ? $this->mysql->affected_rows : -1;
+		return ($this->mysql)('UPDATE ?a SET ????', $this->tablename, $this->mysql->format(...is_iterable($data) ? ['?v', $data] : func_get_args()), (string)$this)->affected_rows;
 	}
 	function select(array|string $fields):static
 	{
