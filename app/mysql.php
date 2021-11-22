@@ -1,8 +1,11 @@
 <?php
+
 require __DIR__ . '/../webapp_io_std.php';
 $a = new webapp_mysql;
 
+
 $a->select_db('gzh');
+
 
 // var_dump( $a->gzh_issue->append([
 // 	'key' => 'zzR9UA5EOPBS',
@@ -15,7 +18,9 @@ $a->select_db('gzh');
 //     'answer' => '阿萨大大'
 // ]) );
 
-var_dump( $a->gzh_issue->delete('where `key`="123"') );
+print_r( $a->processlist()->fields() );
+print_r( $a->all() );
+print_r($a);
 
 
 // foreach ($a->gzh_issue('where time>-1') as $p)

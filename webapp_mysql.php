@@ -2,6 +2,7 @@
 class webapp_mysql extends mysqli implements IteratorAggregate
 {
 	public array $errors = [];
+	private mysqli_result $result;
 	function __construct(string $host = 'p:127.0.0.1:3306', string $user = 'root', string $password = NULL, string $database = NULL, private string $maptable = 'webapp_maptable_')
 	{
 		$this->init();
@@ -22,9 +23,9 @@ class webapp_mysql extends mysqli implements IteratorAggregate
 	{
 		return ($this->{$tablename})(...$conditionals);
 	}
-	function __invoke(string $query, NULL|string|iterable ...$values):static
+	function __invoke(mixed ...$commands):static
 	{
-		$this->real_query($query, ...$values);
+		$this->real_query(...$commands);
 		return $this;
 	}
 	function getIterator():Traversable
@@ -71,71 +72,83 @@ class webapp_mysql extends mysqli implements IteratorAggregate
 				'int', 'float' => $value,
 				default => $this->escape($value)
 			};
-			// switch (TRUE)
-			// {
-			// 	case is_string($value):		$contents[] = $this->quote($key) . '=' . $this->escape($value); continue 2;
-			// 	case is_numeric($value):	$contents[] = $this->quote($key) . '=' . $value; continue 2;
-			// 	case is_null($value):		$contents[] = $this->quote($key) . '=NULL'; continue 2;
-			// 	//case is_array($value):		$contents[] = $this->quote($key) . '=' . $this->escape(json_encode($value, JSON_UNESCAPED_UNICODE)); continue 2;
-			// }
 		}
 		return join(',', $query);
 	}
-	function format(string $query, NULL|string|iterable ...$values):string
+	function format(string $query, iterable|string|int|float|bool ...$values):string
 	{
 		$offset = 0;
-		$command = [];
+		$buffer = [];
+		$length = strlen($query);
 		foreach ($values as $value)
 		{
 			if (($pos = strpos($query, '?', $offset)) !== FALSE)
 			{
-				$command[] = substr($query, $offset, $pos - $offset) . match ($query[$pos + 1])
+				$buffer[] = substr($query, $offset, $pos - $offset) . match ($query[$pos + 1])
 				{
-					'i' => intval($values[$index++]),
-					'f' => floatval($values[$index++]),
-					'a' => $this->quote($values[$index++]),
-					's' => $this->escape($values[$index++]),
-					'v' => $this->iterator($values[$index++]),
-					'?', 'A', 'S' => is_iterable($values[$index]) ? join(',', array_map([$this, $query[$pos + 1] === 'A' ? 'quote' : 'escape'],
-						is_array($values[$index]) ? $values[$index++] : iterator_to_array($values[$index++]))) : (string)$values[$index++],
+					'i' => intval($value),
+					'f' => floatval($value),
+					'a' => $this->quote($value),
+					's' => $this->escape($value),
+					'v' => $this->iterator($value),
+					'?', 'A', 'S' => is_iterable($value) ? join(',', array_map([$this, $query[$pos + 1] === 'A' ? 'quote' : 'escape'],
+						is_array($value) ? $value : iterator_to_array($value))) : (string)$value,
 					default => substr($query, $pos, 2)
 				};
+				$offset = $pos + 2;
 				continue;
 			}
 			break;
 		}
-		if ($values)
+		if ($offset < $length)
 		{
-			$index = 0;
-			$offset = 0;
-			$command = [];
-			$length = strlen($query);
-			while (($pos = strpos($query, '?', $offset)) !== FALSE && $pos < $length && array_key_exists($index, $values))
-			{
-				$command[] = substr($query, $offset, $pos - $offset) . match ($query[$pos + 1])
-				{
-					'i' => intval($values[$index++]),
-					'f' => floatval($values[$index++]),
-					'a' => $this->quote($values[$index++]),
-					's' => $this->escape($values[$index++]),
-					'v' => $this->iterator($values[$index++]),
-					'?', 'A', 'S' => is_iterable($values[$index]) ? join(',', array_map([$this, $query[$pos + 1] === 'A' ? 'quote' : 'escape'],
-						is_array($values[$index]) ? $values[$index++] : iterator_to_array($values[$index++]))) : (string)$values[$index++],
-					default => substr($query, $pos, 2)
-				};
-				$offset = $pos + 2;
-			}
-			if ($offset < $length)
-			{
-				$command[] = substr($query, $offset);
-			}
-			return join($command);
+			$buffer[] = substr($query, $offset);
 		}
-		return $query;
+		return join($buffer);
+		// if ($values)
+		// {
+		// 	$index = 0;
+		// 	$offset = 0;
+		// 	$buffer = [];
+		// 	$length = strlen($query);
+		// 	while (($pos = strpos($query, '?', $offset)) !== FALSE && $pos < $length && array_key_exists($index, $values))
+		// 	{
+		// 		$buffer[] = substr($query, $offset, $pos - $offset) . match ($query[$pos + 1])
+		// 		{
+		// 			'i' => intval($values[$index++]),
+		// 			'f' => floatval($values[$index++]),
+		// 			'a' => $this->quote($values[$index++]),
+		// 			's' => $this->escape($values[$index++]),
+		// 			'v' => $this->iterator($values[$index++]),
+		// 			'?', 'A', 'S' => is_iterable($values[$index]) ? join(',', array_map([$this, $query[$pos + 1] === 'A' ? 'quote' : 'escape'],
+		// 				is_array($values[$index]) ? $values[$index++] : iterator_to_array($values[$index++]))) : (string)$values[$index++],
+		// 			default => substr($query, $pos, 2)
+		// 		};
+		// 		$offset = $pos + 2;
+		// 	}
+		// 	if ($offset < $length)
+		// 	{
+		// 		$buffer[] = substr($query, $offset);
+		// 	}
+		// 	return join($buffer);
+		// }
+		// return $query;
 	}
-	
+	function real_query(mixed ...$commands):bool
+	{
+		if (parent::real_query($this->format(...$commands)))
+		{
+			return TRUE;
+		}
+		$this->errors[] = $this->error;
+		return FALSE;
+	}
+	function kill(int $pid = NULL):bool
+	{
+		return parent::kill($pid ?? $this->thread_id);
+	}
 
-	function sync(Closure $submit, ...$params):bool
+	function sync(Closure $submit, mixed ...$params):bool
 	{
 		if ($this->autocommit(FALSE))
 		{
@@ -228,6 +241,11 @@ class webapp_mysql extends mysqli implements IteratorAggregate
 			}
 		};
 	}
+	function fields(bool $detailed = FALSE):array
+	{
+		$fields = $this->use_result()->fetch_fields();
+		return $detailed ? $fields : array_column($fields, 'name');
+	}
 	function table(string $name):webapp_mysql_table
 	{
 		return new class($this, $name) extends webapp_mysql_table
@@ -240,34 +258,15 @@ class webapp_mysql extends mysqli implements IteratorAggregate
 			}
 		};
 	}
-	function real_query(string $query, NULL|string|iterable ...$values):bool
-	{
-		//var_dump($this->format($query, ...$values));
-		if (parent::real_query($this->format($query, ...$values)))
-		{
-			return TRUE;
-		}
-		$this->errors[] = $this->error;
-		return FALSE;
-	}
-	function kill(int $pid = NULL):bool
-	{
-		return parent::kill($pid ?? $this->thread_id);
-	}
-	function processlist():iterable
-	{
-		return $this('SHOW PROCESSLIST');
-	}
-	// function engines(bool $all = FALSE)
-	// {
 
-	// 	print_r( $this->all('SHOW STORAGE ENGINES') );
-	// }
-	// function tables()
-	// {
-
-	// }
-
+	function show(mixed ...$commands):static
+	{
+		return $this('SHOW ' . $this->format(...$commands));
+	}
+	function processlist():static
+	{
+		return $this->show('PROCESSLIST');
+	}
 }
 abstract class webapp_mysql_table implements IteratorAggregate, Countable, Stringable
 {
