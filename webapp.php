@@ -1,5 +1,5 @@
 <?php
-declare(strict_types=1);
+#declare(strict_types=1);
 require 'webapp_client.php';
 require 'webapp_dom.php';
 require 'webapp_echo.php';

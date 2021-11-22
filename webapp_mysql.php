@@ -242,7 +242,7 @@ class webapp_mysql extends mysqli implements IteratorAggregate
 	}
 	function result(array &$fields = NULL, bool $detailed = FALSE):iterable
 	{
-		$result = $this->store_result();
+		$result = $this->getIterator();
 		$fields = $detailed ? $result->fetch_fields() : array_column($result->fetch_fields(), 'name');
 		return $result;
 	}

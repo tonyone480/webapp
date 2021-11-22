@@ -4,7 +4,7 @@ require __DIR__ . '/../webapp_io_std.php';
 $a = new webapp_mysql;
 
 
-$a->select_db('gzh');
+// $a->select_db('gzh');
 
 
 // var_dump( $a->gzh_issue->append([
@@ -87,6 +87,7 @@ new class extends webapp
 					]]
 				]]
 			]);
+			return;
 			if ($this->mysql_connected() === FALSE || $this['app_index'] === 'get_home')
 			{
 				return $this['app_index'] = $this['app_index'] === 'post_home' ? 'post_home' : 'get_home';
