@@ -18,9 +18,8 @@ $a->select_db('gzh');
 //     'answer' => '阿萨大大'
 // ]) );
 
-print_r( $a->processlist()->fields() );
-print_r( $a->all() );
-print_r($a);
+print_r( $a->processlist()->result($o, TRUE) );
+print_r( $o );
 
 
 // foreach ($a->gzh_issue('where time>-1') as $p)

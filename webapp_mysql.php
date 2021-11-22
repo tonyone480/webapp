@@ -2,7 +2,6 @@
 class webapp_mysql extends mysqli implements IteratorAggregate
 {
 	public array $errors = [];
-	private mysqli_result $result;
 	function __construct(string $host = 'p:127.0.0.1:3306', string $user = 'root', string $password = NULL, string $database = NULL, private string $maptable = 'webapp_maptable_')
 	{
 		$this->init();
@@ -241,10 +240,11 @@ class webapp_mysql extends mysqli implements IteratorAggregate
 			}
 		};
 	}
-	function fields(bool $detailed = FALSE):array
+	function result(array &$fields = NULL, bool $detailed = FALSE):iterable
 	{
-		$fields = $this->use_result()->fetch_fields();
-		return $detailed ? $fields : array_column($fields, 'name');
+		$result = $this->store_result();
+		$fields = $detailed ? $result->fetch_fields() : array_column($result->fetch_fields(), 'name');
+		return $result;
 	}
 	function table(string $name):webapp_mysql_table
 	{
