@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 class webapp_mysql extends mysqli implements IteratorAggregate
 {
 	public array $errors = [];
@@ -41,7 +42,7 @@ class webapp_mysql extends mysqli implements IteratorAggregate
 	}
 	function value(int $index = 0):?string
 	{
-		return $this->array(MYSQLI_NUM)[$index] ?? NULL;
+		return $this->array(MYSQLI_NUM)[$index];
 	}
 	function all(int $mode = MYSQLI_ASSOC):array
 	{
@@ -276,16 +277,16 @@ abstract class webapp_mysql_table implements IteratorAggregate, Countable, Strin
 	function __construct(protected webapp_mysql $mysql)
 	{
 	}
-	function __get(string $name)
+	function __get(string $name):?string
 	{
-		var_dump('--');
 		return match ($name)
 		{
 			'tablename' => $this->tablename,
 			'primary' => $this->primary =
-				($this->mysql)('SHOW FIELDS FROM ?a WHERE ?a=?s', $this->tablename, 'Key', 'PRI')->value() ??
-				($this->mysql)('SHOW FIELDS FROM ?a WHERE ?a=?s', $this->tablename, 'Key', 'UNI')->value(),
-			'create' => ($this->mysql)('SHOW CREATE TABLE ?a', $this->tablename)->value(1)
+				($this->mysql)('SHOW FIELDS FROM ?a WHERE ?a=?s', $this->tablename, 'Key', 'PRI')->array()['Key'] ??
+				($this->mysql)('SHOW FIELDS FROM ?a WHERE ?a=?s', $this->tablename, 'Key', 'UNI')->value()['Key'] ?? NULL,
+			'create' => ($this->mysql)('SHOW CREATE TABLE ?a', $this->tablename)->value(1),
+			default => 1.1
 		};
 	}
 	function __invoke(mixed ...$conditionals):static
@@ -320,7 +321,7 @@ abstract class webapp_mysql_table implements IteratorAggregate, Countable, Strin
 	}
 	function value(int $index = 0):?string
 	{
-		return $this->array(MYSQLI_NUM)[$index] ?? NULL;
+		return $this->array(MYSQLI_NUM)[$index];
 	}
 	function all(int $mode = MYSQLI_ASSOC):array
 	{

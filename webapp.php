@@ -1,5 +1,5 @@
 <?php
-#declare(strict_types=1);
+declare(strict_types=1);
 require 'webapp_client.php';
 require 'webapp_dom.php';
 require 'webapp_echo.php';
@@ -89,7 +89,7 @@ abstract class webapp implements ArrayAccess, Stringable
 					if (preg_match_all('/\,(\w+)(?:\:([\%\+\-\.\/\=\w]+))?/', $this['request_query'], $params, PREG_SET_ORDER | PREG_UNMATCHED_AS_NULL))
 					{
 						$parameters = array_column($params, 2, 1);
-						foreach (array_slice($method->getParameters(), $this['app_mapping'] === $this) as $parameter)
+						foreach (array_slice($method->getParameters(), intval($this['app_mapping'] === $this)) as $parameter)
 						{
 							if (array_key_exists($parameter->name, $parameters))
 							{
@@ -97,6 +97,7 @@ abstract class webapp implements ArrayAccess, Stringable
 								{
 									'int' => intval($parameters[$parameter->name]),
 									'float' => floatval($parameters[$parameter->name]),
+									//'string' => urldecode($parameters[$parameter->name]),
 									default => $parameters[$parameter->name]
 								};
 								continue;
@@ -113,7 +114,7 @@ abstract class webapp implements ArrayAccess, Stringable
 						$object = property_exists($this, 'app') ? $this->app : $reflex;
 						if ($object !== $this && method_exists($object, '__toString'))
 						{
-							$this->print($object);
+							$this->print((string)$object);
 						}
 						break 2;
 					}
@@ -131,9 +132,9 @@ abstract class webapp implements ArrayAccess, Stringable
 			{
 				$this->io->response_cookie(...$values);
 			}
-			foreach ($this->headers as $key => $value)
+			foreach ($this->headers as $name => $value)
 			{
-				$this->io->response_header("{$key}: {$value}");
+				$this->io->response_header("{$name}: {$value}");
 			}
 			if (property_exists($this, 'buffer'))
 			{
@@ -142,7 +143,7 @@ abstract class webapp implements ArrayAccess, Stringable
 					&& stream_filter_append($this->buffer, 'zlib.deflate', STREAM_FILTER_READ, ['level' => $this['gzip_level'], 'window' => 31, 'memory' => 9])) {
 					$this->io->response_header('Content-Encoding: gzip');
 				}
-				$this->io->response_content($this);
+				$this->io->response_content((string)$this);
 				unset($this->buffer);
 			}
 		}
@@ -247,15 +248,24 @@ abstract class webapp implements ArrayAccess, Stringable
 	{
 		for ($buffer = [], $length = strlen($data), $i = 0; $i < $length;)
 		{
-			$value = ord($data[$i++]) << 16 | ord($data[$i++] ?? NULL) << 8 | ord($data[$i++] ?? NULL);
+			$value = ord($data[$i++]) << 16;
 			$buffer[] = self::key[$value >> 18 & 63];
+			if ($i < $length)
+			{
+				$value |= ord($data[$i++]) << 8;
+				$buffer[] = self::key[$value >> 12 & 63];
+				if ($i < $length)
+				{
+					$value |= ord($data[$i++]);
+					$buffer[] = self::key[$value >> 6 & 63];
+					$buffer[] = self::key[$value & 63];
+					continue;
+				}
+				$buffer[] = self::key[$value >> 6 & 63];
+				break;
+			}
 			$buffer[] = self::key[$value >> 12 & 63];
-			$buffer[] = self::key[$value >> 6 & 63];
-			$buffer[] = self::key[$value & 63];
-		}
-		if ($modulo = $length % 3)
-		{
-			array_splice($buffer, -(3 - $modulo));
+			break;
 		}
 		return join($buffer);
 	}
@@ -616,7 +626,7 @@ abstract class webapp implements ArrayAccess, Stringable
 	}
 	function response_refresh(int $second = 0, string $url = NULL):void
 	{
-		$this->response_header('Refresh', strlen($url) ? "{$second}; url={$url}" : $second);
+		$this->response_header('Refresh', $url === NULL ? (string)$second : "{$second}; url={$url}");
 	}
 	function response_cache_control(string $command):void
 	{

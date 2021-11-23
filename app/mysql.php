@@ -1,7 +1,6 @@
 <?php
-
 require __DIR__ . '/../webapp_io_std.php';
-$a = new webapp_mysql;
+// $a = new webapp_mysql;
 
 
 // $a->select_db('gzh');
@@ -18,8 +17,8 @@ $a = new webapp_mysql;
 //     'answer' => '阿萨大大'
 // ]) );
 
-print_r( $a->processlist()->result($o, TRUE) );
-print_r( $o );
+//print_r( $a->gzh_issue->asd );
+
 
 
 // foreach ($a->gzh_issue('where time>-1') as $p)
@@ -29,7 +28,7 @@ print_r( $o );
 
 
 //var_dump( $a->sprintf('select now(?S)', ['as' => 'ee']) );
-exit;
+
 class webapp_mysql_api extends webapp_echo_json
 {
 	function __construct(webapp $webapp)
@@ -147,8 +146,10 @@ new class extends webapp
 		$this->response_location('?console');
 		$this->response_cookie_encrypt('mysql_connect', json_encode(array_values($this->request_content()), JSON_UNESCAPED_UNICODE));
 	}
-	function get_home(string $charset = NULL)
+	function get_home(string $charset = NULL, int $id = null)
 	{
+		var_dump($charset, $id);
+		return;
 		if (is_string($charset))
 		{
 			$this->response_location($this->request_referer() ?? '?home');
