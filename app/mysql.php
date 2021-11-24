@@ -1,9 +1,23 @@
 <?php
-var_dump(0x4);
-var_dump(0x2);
+require __DIR__ . '/../webapp_io_std.php';
+header('Content-Type: text/html');
+for ($i=0;$i<360;$i++) {
+$rgb=webapp_image::hslcolor($i/360, 1, .5);
+echo '<div style="background-color:#'.webapp_image::colorhex($rgb).';height:1px;"></div>';
+}
+
+
+
 
 exit;
-require __DIR__ . '/../webapp_io_std.php';
+
+
+
+for ($i = 0; $i < 360; $i++)
+{
+	echo join(',', webapp_image::hslcolor($i) ), "\n";
+}
+
 // $a = new webapp_mysql;
 
 
