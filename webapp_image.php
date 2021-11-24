@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-class webapp_image
+class webapp_image implements IteratorAggregate
 {
 	private
 	$colors = [0, 0xffffff],
@@ -11,6 +11,16 @@ class webapp_image
 	{
 		$this->width = imagesx($image);
 		$this->height = imagesy($image);
+	}
+	function getIterator():Traversable
+	{
+		for ($y = 0; $y < $this->height; ++$y)
+		{
+			for ($x = 0; $x < $this->width; ++$x)
+			{
+				yield $x => $y;
+			}
+		}
 	}
 	function colorat(int $x, int $y, string $name = NULL):static
 	{
@@ -206,17 +216,7 @@ class webapp_image
 
 
 
-
-
-	static function colorhex(int $value):string
-	{
-		return str_pad(dechex($value), 8, '0', STR_PAD_LEFT);
-	} 
-	static function color8bit(int $value):int
-	{
-		return $value >> 5 & 0x4 | $value >> 6 & 0x2 | $value >> 7;
-	}
-	static function hslcolor(float $hue, float $saturation, float $lightness = 0.5):int
+	static function hsl_decode(float $hue, float $saturation = 1, float $lightness = 0.5):int
 	{
 		if ($saturation)
 		{
@@ -236,7 +236,35 @@ class webapp_image
 		}
 		return 0;
 	}
+	static function octbit_encode(int $value):int
+	{
+		return (($value >> 22) & 0b11) << 4 | (($value >> 14) & 0b11) << 2 | ($value >> 6) & 0b11;
+	}
+	static function octbit_decode(int $value):int
+	{
+		return static::hsl_decode(abs($value % 255) / 255);
+	}
+	static function hex_encode(int $value):string
+	{
+		return str_pad(dechex($value), 6, '0', STR_PAD_LEFT);
+	}
+	static function hex_decode(string $value):int
+	{
+		return hexdec($value);
+	}
 
+
+	function octbit()
+	{
+		foreach ($this as $x => $y)
+		{
+			$color = static::octbit_encode(imagecolorat($this->image, $x, $y));
+			imagesetpixel($this->image, $x, $y, static::octbit_decode($color));
+		}
+		
+		
+		
+	}
 
 
 

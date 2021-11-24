@@ -1,22 +1,22 @@
 <?php
 require __DIR__ . '/../webapp_io_std.php';
-header('Content-Type: text/html');
-for ($i=0;$i<360;$i++) {
-$rgb=webapp_image::hslcolor($i/360, 1, .5);
-echo '<div style="background-color:#'.webapp_image::colorhex($rgb).';height:1px;"></div>';
-}
+// header('Content-Type: text/html');
+// for ($i=0;$i<360;$i++) {
+// $rgb=webapp_image::octbit_decode($i);
+// echo '<div style="background-color:#'.webapp_image::hex_encode($rgb).';height:1px;"></div>';
+// }
 
 
 
 
-exit;
+// exit;
 
 
 
-for ($i = 0; $i < 360; $i++)
-{
-	echo join(',', webapp_image::hslcolor($i) ), "\n";
-}
+// for ($i = 0; $i < 360; $i++)
+// {
+// 	echo join(',', webapp_image::hslcolor($i) ), "\n";
+// }
 
 // $a = new webapp_mysql;
 
@@ -87,6 +87,7 @@ new class extends webapp
 	function __construct()
 	{
 		if ($this->no_sign_in_admin(new io)) return;
+		var_dump($this->url64_encode('你好啊PHP!'));
 		if ($this['app_mapping'] === $this)
 		{
 			$this->app('webapp_echo_html')->title('MySQL Admin');
