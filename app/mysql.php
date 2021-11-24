@@ -1,4 +1,8 @@
 <?php
+var_dump(0x4);
+var_dump(0x2);
+
+exit;
 require __DIR__ . '/../webapp_io_std.php';
 // $a = new webapp_mysql;
 

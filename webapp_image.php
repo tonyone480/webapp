@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 class webapp_image
 {
 	private
@@ -202,6 +203,43 @@ class webapp_image
 	{
 		return (new static(imagecreatetruecolor($width, $height)))->color(1)->fill(0, 0)->color(0);
 	}
+
+
+
+
+
+	static function colorhex(int $value):string
+	{
+		return str_pad(dechex($value), 8, '0', STR_PAD_LEFT);
+	} 
+	static function color8bit(int $value):int
+	{
+		return $value >> 5 & 0x4 | $value >> 6 & 0x2 | $value >> 7;
+	}
+	static function hslcolor(float $hue, float $saturation, float $lightness = 0.5):int
+	{
+		if ($saturation)
+		{
+			$color = fn($p, $q, $t) => (($t < 0 ? $t += 1 : $t) > 1 ? $t -= 1 : $t) ? match (TRUE)
+			{
+				$t < 1 / 6 => $p + ($q - $p) * 6 * $t,
+				$t < 1 / 2 => $q,
+				$t < 2 / 3 => $p + ($q - $p) * (2 / 3 - $t) * 6,
+				default => $p
+			} : 0;
+			$q = $lightness < 0.5 ? $lightness * (1 + $saturation) : $lightness + $saturation - $lightness * $saturation;
+			$p = 2 * $lightness - $q;
+			$r = $color($p, $q, $hue + 1 / 3);
+			$g = $color($p, $q, $hue);
+			$b = $color($p, $q, $hue - 1 / 3);
+			return round($r * 255) << 16 | round($g * 255) << 8 | round($b * 255);
+		}
+		return 0;
+	}
+
+
+
+
 	static function captcha(array $contents, int $width, int $height, string $font, int $size)
 	{
 		$offset = 0;
