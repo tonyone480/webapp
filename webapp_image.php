@@ -237,6 +237,10 @@ class webapp_image implements IteratorAggregate
 		return 0;
 	}
 	# https://m.656463.com/wenda/ruhehuode8weiyanse_351
+	static function randomcolor():int
+	{
+		return hexdec(bin2hex(random_bytes(3)));
+	}
 	static function octbit_encode(int $value):int
 	{
 		return ($value >> 22) & 0x3 | ($value >> 14) & 0x3 | ($value >> 6) & 0x3;
