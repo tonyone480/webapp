@@ -236,13 +236,16 @@ class webapp_image implements IteratorAggregate
 		}
 		return 0;
 	}
+	# https://m.656463.com/wenda/ruhehuode8weiyanse_351
 	static function octbit_encode(int $value):int
 	{
-		return (($value >> 22) & 0b11) << 4 | (($value >> 14) & 0b11) << 2 | ($value >> 6) & 0b11;
+		return ($value >> 22) & 0x3 | ($value >> 14) & 0x3 | ($value >> 6) & 0x3;
+		//return (($value >> 22) & 0b11) << 4 | (($value >> 14) & 0b11) << 2 | ($value >> 6) & 0b11;
 	}
 	static function octbit_decode(int $value):int
 	{
-		return static::hsl_decode(abs($value % 255) / 255);
+		return (($value >> 4) & 0x3) * 64 << 16 | (($value >> 2) & 0x3) * 64 << 8 | ($value & 0x3) * 64;
+		//return static::hsl_decode(abs($value % 255) / 255);
 	}
 	static function hex_encode(int $value):string
 	{
