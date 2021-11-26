@@ -27,6 +27,117 @@ abstract class webapp implements ArrayAccess, Stringable
 	const version = '4.7a', key = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz-';
 	private array $errors = [], $headers = [], $cookies = [], $configs, $uploadedfiles;
 	private static array $library = [];
+	static function library(string $name):mixed
+	{
+		return static::$library[$name] ??= require __DIR__ . "/lib/{$name}/interface.php";
+	}
+	static function time33(string $data):int
+	{
+		for ($hash = 5381, $i = strlen($data); $i;)
+		{
+			$hash = (($hash << 5) + $hash) + ord($data[--$i]) & 0x0fffffffffffffff;
+		}
+		return $hash;
+	}
+	static function hash(string $data, bool $care = FALSE):string
+	{
+		for ($code = static::time33($data), $hash = [], [$i, $n, $b] = $care ? [10, 6, 63] : [12, 5, 31]; $i;)
+		{
+			$hash[] = self::key[$code >> --$i * $n & $b];
+		}
+		return join($hash);
+	}
+	static function url64encode(string $data):string
+	{
+		for ($buffer = [], $length = strlen($data), $i = 0; $i < $length;)
+		{
+			$value = ord($data[$i++]) << 16;
+			$buffer[] = self::key[$value >> 18 & 63];
+			if ($i < $length)
+			{
+				$value |= ord($data[$i++]) << 8;
+				$buffer[] = self::key[$value >> 12 & 63];
+				if ($i < $length)
+				{
+					$value |= ord($data[$i++]);
+					$buffer[] = self::key[$value >> 6 & 63];
+					$buffer[] = self::key[$value & 63];
+					continue;
+				}
+				$buffer[] = self::key[$value >> 6 & 63];
+				break;
+			}
+			$buffer[] = self::key[$value >> 12 & 63];
+			break;
+		}
+		return join($buffer);
+	}
+	static function url64decode(string $data):?string
+	{
+		do
+		{
+			if (rtrim($data, self::key))
+			{
+				break;
+			}
+			for ($buffer = [], $length = strlen($data), $i = 0; $i < $length;)
+			{
+				$value = strpos(self::key, $data[$i++]) << 18;
+				if ($i < $length)
+				{
+					$value |= strpos(self::key, $data[$i++]) << 12;
+					$buffer[] = chr($value >> 16 & 255);
+					if ($i < $length)
+					{
+						$value |= strpos(self::key, $data[$i++]) << 6;
+						$buffer[] = chr($value >> 8 & 255);
+						if ($i < $length)
+						{
+							$buffer[] = chr($value | strpos(self::key, $data[$i++]) & 255);
+						}
+					}
+					continue;
+				}
+				break 2;
+			}
+			return join($buffer);
+		} while (0);
+		return NULL;
+	}
+	static function encrypt(string $data):?string
+	{
+		return is_string($binary = openssl_encrypt($data, 'aes-128-gcm', static::key, OPENSSL_RAW_DATA, md5(static::key, TRUE), $tag)) ? static::url64encode($tag . $binary) : NULL;
+	}
+	static function decrypt(string $data):?string
+	{
+		return strlen($data) > 20
+			&& is_string($binary = static::url64decode($data))
+			&& is_string($result = openssl_decrypt(substr($binary, 16), 'aes-128-gcm', static::key, OPENSSL_RAW_DATA, md5(static::key, TRUE), substr($binary, 0, 16))) ? $result : NULL;
+	}
+	static function signature(string $username, string $password, string $additional = NULL):?string
+	{
+		return static::encrypt(pack('VCCa*', time(), strlen($username), strlen($password), $username . $password . $additional));
+	}
+	static function authorize(callable $authenticate, string $signature = NULL):bool
+	{
+		if (is_string($signature) && strlen($data = static::decrypt($signature)) > 5)
+		{
+			$hi = unpack('Vst/Cul/Cpl', $data);
+			$acc = unpack("a{$hi['ul']}uid/a{$hi['pl']}pwd/a*add", $data, 6);
+			return $authenticate($acc['uid'], $acc['pwd'], $hi['st'], $acc['add']);
+		}
+		return FALSE;
+	}
+	function hash_time33(string $data, bool $care = FALSE):string
+	{
+		for ($hash = 5381, $i = strlen($data); $i; $hash = (($hash << 5) + $hash) + ord($data[--$i]) & 0x0fffffffffffffff);
+		if ($care) while ($i < 10) $code[] = self::key[$hash >> $i++ * 6 & 63];
+		else while ($i < 12) $code[] = self::key[$hash >> $i++ * 5 & 31];
+		return join($code);
+	}
+
+	
+
 	function __construct(private webapp_io $io, array $config = [])
 	{
 		$this->webapp = $this;
@@ -159,7 +270,9 @@ abstract class webapp implements ArrayAccess, Stringable
 	// }
 	function __call(string $name, array $params):mixed
 	{
-		return method_exists($this->app, $name) ? $this->app->{$name}(...$params) : throw new error;
+
+		var_dump(method_exists($this->app, $name));
+		//return method_exists($this->app, $name) ? $this->app->{$name}(...$params) : throw new error;
 	}
 	function __get(string $name):mixed
 	{
@@ -238,106 +351,12 @@ abstract class webapp implements ArrayAccess, Stringable
 		}
 		return is_object($this['app_mapping']) ? $this['app_mapping'] : $this['app_mapping'] = new $this['app_mapping']($this);
 	}
-	static function time33(string $data):int
-	{
-		for ($hash = 5381, $i = strlen($data); $i;)
-		{
-			$hash = (($hash << 5) + $hash) + ord($data[--$i]) & 0x0fffffffffffffff;
-		}
-		return $hash;
-	}
-	static function hash(string $data, bool $care = FALSE):string
-	{
-		$hash = static::time33($data);
-	}
-	function hash_time33(string $data, bool $care = FALSE):string
-	{
-		for ($hash = 5381, $i = strlen($data); $i; $hash = (($hash << 5) + $hash) + ord($data[--$i]) & 0x0fffffffffffffff);
-		if ($care) while ($i < 10) $code[] = self::key[$hash >> $i++ * 6 & 63];
-		else while ($i < 12) $code[] = self::key[$hash >> $i++ * 5 & 31];
-		return join($code);
-	}
-	function url64_encode(string $data):string
-	{
-		for ($buffer = [], $length = strlen($data), $i = 0; $i < $length;)
-		{
-			$value = ord($data[$i++]) << 16;
-			$buffer[] = self::key[$value >> 18 & 63];
-			if ($i < $length)
-			{
-				$value |= ord($data[$i++]) << 8;
-				$buffer[] = self::key[$value >> 12 & 63];
-				if ($i < $length)
-				{
-					$value |= ord($data[$i++]);
-					$buffer[] = self::key[$value >> 6 & 63];
-					$buffer[] = self::key[$value & 63];
-					continue;
-				}
-				$buffer[] = self::key[$value >> 6 & 63];
-				break;
-			}
-			$buffer[] = self::key[$value >> 12 & 63];
-			break;
-		}
-		return join($buffer);
-	}
-	function url64_decode(string $data):?string
-	{
-		do
-		{
-			if (rtrim($data, self::key))
-			{
-				break;
-			}
-			for ($buffer = [], $length = strlen($data), $i = 0; $i < $length;)
-			{
-				$value = strpos(self::key, $data[$i++]) << 18;
-				if ($i < $length)
-				{
-					$value |= strpos(self::key, $data[$i++]) << 12;
-					$buffer[] = chr($value >> 16 & 255);
-					if ($i < $length)
-					{
-						$value |= strpos(self::key, $data[$i++]) << 6;
-						$buffer[] = chr($value >> 8 & 255);
-						if ($i < $length)
-						{
-							$buffer[] = chr($value | strpos(self::key, $data[$i++]) & 255);
-						}
-					}
-					continue;
-				}
-				break 2;
-			}
-			return join($buffer);
-		} while (0);
-		return NULL;
-	}
-	function encrypt(string $data):?string
-	{
-		return is_string($binary = openssl_encrypt($data, 'aes-128-gcm', static::key, OPENSSL_RAW_DATA, md5(static::key, TRUE), $tag)) ? $this->url64_encode($tag . $binary) : NULL;
-	}
-	function decrypt(string $data):?string
-	{
-		return strlen($data) > 20
-			&& is_string($binary = $this->url64_decode($data))
-			&& is_string($result = openssl_decrypt(substr($binary, 16), 'aes-128-gcm', static::key, OPENSSL_RAW_DATA, md5(static::key, TRUE), substr($binary, 0, 16))) ? $result : NULL;
-	}
-	function signature(string $username, string $password, string $additional = NULL):?string
-	{
-		return $this->encrypt(pack('VCCa*', time(), strlen($username), strlen($password), $username . $password . $additional));
-	}
-	function authorize(closure $authenticate, string $signature = NULL):bool
-	{
-		if (is_string($signature) && strlen($data = $this->decrypt($signature)) > 5)
-		{
-			$hi = unpack('Vst/Cul/Cpl', $data);
-			$acc = unpack("a{$hi['ul']}uid/a{$hi['pl']}pwd/a*add", $data, 6);
-			return $authenticate->call($this, $acc['uid'], $acc['pwd'], $hi['st'], $acc['add']);
-		}
-		return FALSE;
-	}
+
+
+
+
+
+
 	function authorization(closure $authenticate = NULL):bool
 	{
 		return $authenticate
@@ -365,10 +384,7 @@ abstract class webapp implements ArrayAccess, Stringable
 		return inet_ntop(hex2bin($hex));
 	}
 	//---------------------
-	static function library(string $name):mixed
-	{
-		return static::$library[$name] ??= require "lib/{$name}/interface.php";
-	}
+
 	function resroot(string $filename = NULL):string
 	{
 		return "{$this['app_resroot']}/{$filename}";
