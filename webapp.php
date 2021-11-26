@@ -238,6 +238,18 @@ abstract class webapp implements ArrayAccess, Stringable
 		}
 		return is_object($this['app_mapping']) ? $this['app_mapping'] : $this['app_mapping'] = new $this['app_mapping']($this);
 	}
+	static function time33(string $data):int
+	{
+		for ($hash = 5381, $i = strlen($data); $i;)
+		{
+			$hash = (($hash << 5) + $hash) + ord($data[--$i]) & 0x0fffffffffffffff;
+		}
+		return $hash;
+	}
+	static function hash(string $data, bool $care = FALSE):string
+	{
+		$hash = static::time33($data);
+	}
 	function hash_time33(string $data, bool $care = FALSE):string
 	{
 		for ($hash = 5381, $i = strlen($data); $i; $hash = (($hash << 5) + $hash) + ord($data[--$i]) & 0x0fffffffffffffff);
