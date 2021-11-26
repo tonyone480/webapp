@@ -1,5 +1,5 @@
 <?php
-if (class_exists('qrstr', FALSE) === FALSE)
+if (class_exists('qrdata', FALSE) === FALSE)
 {
 	define('QR_MODE_8', 2);
 	// Levels of error correction.
@@ -40,60 +40,84 @@ if (class_exists('qrstr', FALSE) === FALSE)
 	include 'qrrsblock.php';
 	include 'qrrawcode.php';
 	include 'qrframefiller.php';
-}
-return function(string $string, int $level):array
-{
-	// switch (1)
-	// {
-	// 	case preg_match('/^[0-9]+$/', $data): $mode = QR_MODE_NUM; break;
-	// 	case preg_match('/^[0-9A-Z\$%\*\+\–\.\/\: ]+$/', $data): $mode = QR_MODE_AN; break;
-	// 	default: $mode = QR_MODE_8;
-	// }
-	$input = new QRinput(0, $level);
-	$input->append(QR_MODE_8, strlen($string), str_split($string));
-
-	$raw = new QRrawcode($input);
-
-	$version = $raw->version;
-	$width = QRspec::getWidth($version);
-	$frame = QRspec::newFrame($version);
-
-	$filler = new QRFrameFiller($width, $frame);
-	if(is_null($filler)) {
-		return NULL;
-	}
-
-	// inteleaved data and ecc codes
-	for($i=0; $i<$raw->dataLength + $raw->eccLength; $i++) {
-		$code = $raw->getCode();
-		$bit = 0x80;
-		for($j=0; $j<8; $j++) {
-			$addr = $filler->next();
-			$filler->setFrameAt($addr, 0x02 | (($bit & $code) != 0));
-			$bit = $bit >> 1;
+	class qrcode implements IteratorAggregate, Countable
+	{
+		private array $data;
+		function __construct(string $string, int $level)
+		{
+			// switch (1)
+			// {
+			// 	case preg_match('/^[0-9]+$/', $data): $mode = QR_MODE_NUM; break;
+			// 	case preg_match('/^[0-9A-Z\$%\*\+\–\.\/\: ]+$/', $data): $mode = QR_MODE_AN; break;
+			// 	default: $mode = QR_MODE_8;
+			// }
+			$input = new QRinput(0, $level);
+			$input->append(QR_MODE_8, strlen($string), str_split($string));
+	
+			$raw = new QRrawcode($input);
+	
+			$version = $raw->version;
+			$width = QRspec::getWidth($version);
+			$frame = QRspec::newFrame($version);
+	
+			$filler = new QRFrameFiller($width, $frame);
+			if(is_null($filler)) {
+				return NULL;
+			}
+	
+			// inteleaved data and ecc codes
+			for($i=0; $i<$raw->dataLength + $raw->eccLength; $i++) {
+				$code = $raw->getCode();
+				$bit = 0x80;
+				for($j=0; $j<8; $j++) {
+					$addr = $filler->next();
+					$filler->setFrameAt($addr, 0x02 | (($bit & $code) != 0));
+					$bit = $bit >> 1;
+				}
+			}
+			
+			unset($raw);
+			
+			// remainder bits
+			$j = QRspec::getRemainder($version);
+			for($i=0; $i<$j; $i++) {
+				$addr = $filler->next();
+				$filler->setFrameAt($addr, 0x02);
+			}
+			
+			$frame = $filler->frame;
+			unset($filler);
+			
+			
+			// masking
+			$maskObj = new QRmask();
+			$this->data = $maskObj->mask($width, $frame, $input->getErrorCorrectionLevel());
+			// $masked = $maskObj->mask($width, $frame, $input->getErrorCorrectionLevel());
+	
+			// $this->version = $version;
+			// $this->width = $width;
+			// $this->data = $masked;
+			
+			// return $masked;
+		}
+		function getIterator():Traversable
+		{
+			$size = count($this);
+			for ($y = 0; $y < $size; ++$y)
+			{
+				for ($x = 0; $x < $size; ++$x)
+				{
+					if (ord($this->data[$x][$y]) & 1)
+					{
+						yield $x => $y;
+					}
+				}
+			}
+		}
+		function count():int
+		{
+			return count($this->data);
 		}
 	}
-	
-	unset($raw);
-	
-	// remainder bits
-	$j = QRspec::getRemainder($version);
-	for($i=0; $i<$j; $i++) {
-		$addr = $filler->next();
-		$filler->setFrameAt($addr, 0x02);
-	}
-	
-	$frame = $filler->frame;
-	unset($filler);
-	
-	
-	// masking
-	$maskObj = new QRmask();
-	$masked = $maskObj->mask($width, $frame, $input->getErrorCorrectionLevel());
-
-	// $this->version = $version;
-	// $this->width = $width;
-	// $this->data = $masked;
-	
-	return $masked;
-};
+}
+return fn(string $data, int $level):qrcode => new qrcode($data, $level);

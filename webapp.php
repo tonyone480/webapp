@@ -26,6 +26,7 @@ abstract class webapp implements ArrayAccess, Stringable
 {
 	const version = '4.7a', key = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz-';
 	private array $errors = [], $headers = [], $cookies = [], $configs, $uploadedfiles;
+	private static array $library = [];
 	function __construct(private webapp_io $io, array $config = [])
 	{
 		$this->webapp = $this;
@@ -352,27 +353,17 @@ abstract class webapp implements ArrayAccess, Stringable
 		return inet_ntop(hex2bin($hex));
 	}
 	//---------------------
-	function library(string $name):mixed
+	static function library(string $name):mixed
 	{
-		return include_once "{$this['app_library']}/{$name}/interface.php";
+		return static::$library[$name] ??= require "lib/{$name}/interface.php";
 	}
 	function resroot(string $filename = NULL):string
 	{
 		return "{$this['app_resroot']}/{$filename}";
 	}
-	function qrcode(string $data, int $ecclevel = 0):iterable
+	function qrcode(string $data, int $level = 0):iterable
 	{
-		$size = count($data = $this->library('qrcode')($data, $ecclevel));
-		for ($y = 0; $y < $size; ++$y)
-		{
-			for ($x = 0; $x < $size; ++$x)
-			{
-				if (ord($data[$x][$y]) & 1)
-				{
-					yield $x => $y;
-				}
-			}
-		}
+		return static::library('qrcode')($data, $level);
 	}
 	//----------------
 	function http(string $url, int $timeout = 4):webapp_client_http
@@ -719,7 +710,7 @@ abstract class webapp implements ArrayAccess, Stringable
 		if ($this['qrcode_echo'] && is_string($decode = $this->url64_decode($encode)) && strlen($decode) < $this['qrcode_maxdata'])
 		{
 			$this->response_content_type('image/png');
-			webapp_image::qrcode($decode, $this['qrcode_ecc'], $this['qrcode_size'])->png($this->buffer);
+			webapp_image::qrcode($this->qrcode($decode, $this['qrcode_ecc']), $this['qrcode_size'])->png($this->buffer);
 			return;
 		}
 		return 404;

@@ -1,5 +1,6 @@
 <?php
 require __DIR__ . '/../webapp_io_std.php';
+
 // header('Content-Type: text/html');
 // for ($i=0;$i<360;$i++) {
 // $rgb=webapp_image::octbit_decode($i);
@@ -166,20 +167,21 @@ new class extends webapp
 	}
 	function get_home(string $charset = NULL)
 	{
-		$this->app('webapp_echo_svg');
-		$this->app->xml->setattr([
-			'viewBox' => '0 0 100 100',
-			'version' => 1.1,
-			'xmlns' => 'http://www.w3.org/2000/svg'
-		]);
-		//$this->app->xml->append('defs')->append('style', ['type' => 'text/css'])->cdata('rect{fill:#00f;}');
+		var_dump($this->url64_encode('asdasdas'));
+		// $this->app('webapp_echo_svg');
+		// $this->app->xml->setattr([
+		// 	'viewBox' => '0 0 100 100',
+		// 	'version' => 1.1,
+		// 	'xmlns' => 'http://www.w3.org/2000/svg'
+		// ]);
+		// //$this->app->xml->append('defs')->append('style', ['type' => 'text/css'])->cdata('rect{fill:#00f;}');
 
-		foreach ($this->qrcode('http://q.fusenpack.com/qr/zOmy5z2w') as $x => $y)
-		{
-			$this->app->xml->append('rect', ['x' => $x, 'y' => $y, 'width' => 1, 'height' => 1, 'style' => 'border:none']);
-			//<rect x="2" y="2" width="7" height="1"/><rect x="10" y="2" width="5" height="1"/>
-			//var_dump($k);
-		}
+		// foreach ($this->qrcode('http://q.fusenpack.com/qr/zOmy5z2w') as $x => $y)
+		// {
+		// 	$this->app->xml->append('rect', ['x' => $x, 'y' => $y, 'width' => 1, 'height' => 1, 'style' => 'border:none']);
+		// 	//<rect x="2" y="2" width="7" height="1"/><rect x="10" y="2" width="5" height="1"/>
+		// 	//var_dump($k);
+		// }
 
 		
 		return;

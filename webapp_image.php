@@ -31,7 +31,7 @@ class webapp_image implements IteratorAggregate
 		}
 		return $this;
 	}
-	function color(string $name, int $red = 0, int $green = 0, int $blue = 0, float $alpha = 0):static
+	function color(string|int $name, int $red = 0, int $green = 0, int $blue = 0, float $alpha = 0):static
 	{
 		if (func_num_args() > 4)
 		{
@@ -317,20 +317,29 @@ class webapp_image implements IteratorAggregate
 		}
 		return $image;
 	}
-	static function qrcode(string $data, int $ecclevel = 0, int $pixel = 4, int $margin = 2):static
+	static function qrcode(iterable $draw, int $pixel = 4, int $margin = 2):static
 	{
-		$size = count($data = (include __DIR__ . '/lib/qrcode/interface.php')($data, $ecclevel));
-		$image = static::create($resize = $size + $margin * 2, $resize);
-		for ($x = 0; $x < $size; ++$x)
+		$image = static::create($resize = count($draw) + $margin * 2, $resize);
+		foreach ($draw as $x => $y)
 		{
-			for ($y = 0; $y < $size; ++$y)
-			{
-				if (ord($data[$x][$y]) & 1)
-				{
-					$image->pixel($x + $margin, $y + $margin);
-				}
-			}
+			$image->pixel($x + $margin, $y + $margin);
 		}
 		return $image->resize($resize *= $pixel, $resize);
 	}
+	// static function qrcode(string $data, int $ecclevel = 0, int $pixel = 4, int $margin = 2):static
+	// {
+	// 	$size = count($data = (include __DIR__ . '/lib/qrcode/interface.php')($data, $ecclevel));
+	// 	$image = static::create($resize = $size + $margin * 2, $resize);
+	// 	for ($x = 0; $x < $size; ++$x)
+	// 	{
+	// 		for ($y = 0; $y < $size; ++$y)
+	// 		{
+	// 			if (ord($data[$x][$y]) & 1)
+	// 			{
+	// 				$image->pixel($x + $margin, $y + $margin);
+	// 			}
+	// 		}
+	// 	}
+	// 	return $image->resize($resize *= $pixel, $resize);
+	// }
 }
