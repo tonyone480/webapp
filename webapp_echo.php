@@ -100,6 +100,21 @@ class webapp_echo_xml extends webapp_document
 		}
 	}
 }
+class webapp_echo_svg extends webapp_document
+{
+	use webapp_echo;
+	function __construct(protected webapp $webapp)
+	{
+		$webapp->response_content_type('image/svg+xml');
+		parent::__construct('svg');
+		// <svg width="410" height="410" viewBox="0 0 41 41" xmlns="http://www.w3.org/2000/svg" version="1.1">
+		// <defs><style type="text/css"><![CDATA[ rect{fill:#00f;}]]></style></defs>
+		// <title>qr2svg</title>
+		// <desc>SVG generated from QR - http://www.marcqualie.com/projects/qr2svg</desc>
+		// <rect x="2" y="2" width="7" height="1"/><rect x="10" y="2" width="5" height="1"/>
+	}
+	
+}
 class webapp_echo_xls extends webapp_echo_xml
 {
 	function __construct(webapp $webapp)

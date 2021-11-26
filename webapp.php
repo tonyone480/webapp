@@ -360,6 +360,20 @@ abstract class webapp implements ArrayAccess, Stringable
 	{
 		return "{$this['app_resroot']}/{$filename}";
 	}
+	function qrcode(string $data, int $ecclevel = 0):iterable
+	{
+		$size = count($data = $this->library('qrcode')($data, $ecclevel));
+		for ($y = 0; $y < $size; ++$y)
+		{
+			for ($x = 0; $x < $size; ++$x)
+			{
+				if (ord($data[$x][$y]) & 1)
+				{
+					yield $x => $y;
+				}
+			}
+		}
+	}
 	//----------------
 	function http(string $url, int $timeout = 4):webapp_client_http
 	{

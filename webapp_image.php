@@ -251,22 +251,26 @@ class webapp_image implements IteratorAggregate
 		return (($value >> 4) & 0x3) * 64 << 16 | (($value >> 2) & 0x3) * 64 << 8 | ($value & 0x3) * 64;
 		//return static::hsl_decode(abs($value % 255) / 255);
 	}
-	static function hex_encode(int $value):string
+	static function hex_encode(int $color):string
 	{
-		return str_pad(dechex($value), 6, '0', STR_PAD_LEFT);
+		return str_pad(dechex($color), 8, '0', STR_PAD_LEFT);
 	}
-	static function hex_decode(string $value):int
+	static function hex_decode(string $color):int
 	{
-		return hexdec($value);
+		return hexdec($color);
 	}
 
 
 	function octbit()
 	{
+		$i = 0;
 		foreach ($this as $x => $y)
 		{
-			$color = static::octbit_encode(imagecolorat($this->image, $x, $y));
-			imagesetpixel($this->image, $x, $y, static::octbit_decode($color));
+			$c = imagecolorat($this->image, $x, $y);
+			echo static::hex_encode($c), "\n";
+			if (++$i > 100) break;
+			//$color = static::octbit_encode(imagecolorat($this->image, $x, $y));
+			//imagesetpixel($this->image, $x, $y, static::octbit_decode($color));
 		}
 		
 		
