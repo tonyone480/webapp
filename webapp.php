@@ -47,7 +47,36 @@ abstract class webapp implements ArrayAccess, Stringable
 		}
 		return join($hash);
 	}
-	static function url64encode(string $data):string
+	static function iphex(string $ip):string
+	{
+		return str_pad(bin2hex(inet_pton($ip)), 32, '0', STR_PAD_LEFT);
+	}
+	static function hexip(string $hex):string
+	{
+		return inet_ntop(hex2bin($hex));
+	}
+	static function random(int $length):string
+	{
+		return random_bytes($length);
+	}
+	// static function debugtime(?float &$time = 0):float
+	// {
+	// 	return $time = microtime(TRUE) - $time;
+	// }
+	// static function splitchar(string $content):array
+	// {
+	// 	return preg_match_all('/[\x01-\x7f]|[\xc2-\xdf][\x80-\xbf]|\xe0[\xa0-\xbf][\x80-\xbf]|[\xe1-\xef][\x80-\xbf][\x80-\xbf]|\xf0[\x90-\xbf][\x80-\xbf][\x80-\xbf]|[\xf1-\xf7][\x80-\xbf][\x80-\xbf][\x80-\xbf]/', $content, $pattern) === FALSE ? [] : $pattern[0];
+	// }
+	static function  __callStatic(string $name, array $params)
+	{
+		return is_callable(self::$library[$name] ??= require __DIR__ . "/lib/{$name}/interface.php")
+			? self::$library[$name](...$params) : self::$library[$name];
+	}
+	static function time(int $fix = 0):int
+	{
+		return time() + $fix;
+	}
+	static function url64_encode(string $data):string
 	{
 		for ($buffer = [], $length = strlen($data), $i = 0; $i < $length;)
 		{
@@ -72,7 +101,7 @@ abstract class webapp implements ArrayAccess, Stringable
 		}
 		return join($buffer);
 	}
-	static function url64decode(string $data):?string
+	static function url64_decode(string $data):?string
 	{
 		do
 		{
@@ -104,54 +133,7 @@ abstract class webapp implements ArrayAccess, Stringable
 		} while (0);
 		return NULL;
 	}
-	static function encrypt(string $data):?string
-	{
-		return is_string($binary = openssl_encrypt($data, 'aes-128-gcm', static::key, OPENSSL_RAW_DATA, md5(static::key, TRUE), $tag)) ? static::url64encode($tag . $binary) : NULL;
-	}
-	static function decrypt(string $data):?string
-	{
-		return strlen($data) > 20
-			&& is_string($binary = static::url64decode($data))
-			&& is_string($result = openssl_decrypt(substr($binary, 16), 'aes-128-gcm', static::key, OPENSSL_RAW_DATA, md5(static::key, TRUE), substr($binary, 0, 16))) ? $result : NULL;
-	}
-	static function signature(string $username, string $password, string $additional = NULL):?string
-	{
-		return static::encrypt(pack('VCCa*', time(), strlen($username), strlen($password), $username . $password . $additional));
-	}
-	static function authorize(callable $authenticate, string $signature = NULL):bool
-	{
-		if (is_string($signature) && strlen($data = static::decrypt($signature)) > 5)
-		{
-			$hi = unpack('Vst/Cul/Cpl', $data);
-			$acc = unpack("a{$hi['ul']}uid/a{$hi['pl']}pwd/a*add", $data, 6);
-			return $authenticate($acc['uid'], $acc['pwd'], $hi['st'], $acc['add']);
-		}
-		return FALSE;
-	}
-	static function iphex(string $ip):string
-	{
-		return str_pad(bin2hex(inet_pton($ip)), 32, '0', STR_PAD_LEFT);
-	}
-	static function hexip(string $hex):string
-	{
-		return inet_ntop(hex2bin($hex));
-	}
-	static function random(int $length):string
-	{
-		return random_bytes($length);
-	}
-	static function qrcode(string $data, int $level = 0):iterable
-	{
-		return static::library('qrcode')($data, $level);
-	}
-	static function debugtime(float &$clock = 0):float
-	{
-		return $time = microtime(TRUE) - $time;
-	}
-	static function splitchar(string $content):array
-	{
-		return preg_match_all('/[\x01-\x7f]|[\xc2-\xdf][\x80-\xbf]|\xe0[\xa0-\xbf][\x80-\xbf]|[\xe1-\xef][\x80-\xbf][\x80-\xbf]|\xf0[\x90-\xbf][\x80-\xbf][\x80-\xbf]|[\xf1-\xf7][\x80-\xbf][\x80-\xbf][\x80-\xbf]/', $content, $pattern) === FALSE ? [] : $pattern[0];
-	}
+
 
 	function __construct(private webapp_io $io, array $config = [])
 	{
@@ -162,7 +144,6 @@ abstract class webapp implements ArrayAccess, Stringable
 			'request_query'		=> $io->request_query(),
 			//Application
 			//'app_rootdir'		=> __DIR__,
-			'app_library'		=> __DIR__ . '/lib',
 			'app_resroot'		=> '/webapp/res',
 			'app_charset'		=> 'utf-8',
 			'app_mapping'		=> 'webapp_mapping_',
@@ -283,12 +264,12 @@ abstract class webapp implements ArrayAccess, Stringable
 	// {
 	// 	return $this->errors;
 	// }
-	function __call(string $name, array $params):mixed
-	{
+	// function __call(string $name, array $params):mixed
+	// {
 
-		var_dump(method_exists($this->app, $name));
-		//return method_exists($this->app, $name) ? $this->app->{$name}(...$params) : throw new error;
-	}
+	// 	var_dump(method_exists($this->app, $name));
+	// 	//return method_exists($this->app, $name) ? $this->app->{$name}(...$params) : throw new error;
+	// }
 	function __get(string $name):mixed
 	{
 		if ($this->offsetExists($name))
@@ -366,25 +347,43 @@ abstract class webapp implements ArrayAccess, Stringable
 		}
 		return is_object($this['app_mapping']) ? $this['app_mapping'] : $this['app_mapping'] = new $this['app_mapping']($this);
 	}
-
-
-
-
-
-
-	function authorization(closure $authenticate = NULL):bool
+	function encrypt(string $data):?string
+	{
+		return is_string($binary = openssl_encrypt($data, 'aes-128-gcm', static::key, OPENSSL_RAW_DATA, md5(static::key, TRUE), $tag)) ? static::url64_encode($tag . $binary) : NULL;
+	}
+	function decrypt(string $data):?string
+	{
+		return strlen($data) > 20
+			&& is_string($binary = static::url64_decode($data))
+			&& is_string($result = openssl_decrypt(substr($binary, 16), 'aes-128-gcm', static::key, OPENSSL_RAW_DATA, md5(static::key, TRUE), substr($binary, 0, 16))) ? $result : NULL;
+	}
+	function signature(string $username, string $password, string $additional = NULL):?string
+	{
+		return $this->encrypt(pack('VCCa*', time(), strlen($username), strlen($password), $username . $password . $additional));
+	}
+	function authorize(?string $signature, Closure $authenticate):bool
+	{
+		if (is_string($signature) && strlen($data = $this->decrypt($signature)) > 5)
+		{
+			$hi = unpack('Vst/Cul/Cpl', $data);
+			$acc = unpack("a{$hi['ul']}uid/a{$hi['pl']}pwd/a*add", $data, 6);
+			return $authenticate->call($this, $acc['uid'], $acc['pwd'], $hi['st'], $acc['add']);
+		}
+		return FALSE;
+	}
+	function authorization(Closure $authenticate = NULL):bool
 	{
 		return $authenticate
-			? $this->authorize($authenticate, $this->request_header('Authorization'))
+			? $this->authorize($this->request_header('Authorization'), $authenticate)
 			: $this->admin($this->request_header('Authorization'));
 	}
 	function admin(string $signature = NULL):bool
 	{
-		return $this->authorize(fn(string $username, string $password, int $signtime):bool =>
-			$signtime + $this['admin_expire'] > time()
-			&& $username === $this['admin_username']
-			&& $password === $this['admin_password']
-		, func_num_args() ? $signature : $this->request_cookie($this['admin_cookie']));
+		return $this->authorize(func_num_args() ? $signature : $this->request_cookie($this['admin_cookie']),
+			fn(string $username, string $password, int $signtime):bool =>
+				$signtime + $this['admin_expire'] > time()
+				&& $username === $this['admin_username']
+				&& $password === $this['admin_password']);
 	}
 
 	//---------------------
@@ -697,7 +696,7 @@ abstract class webapp implements ArrayAccess, Stringable
 		else
 		{
 			webapp_echo_html::form_sign_in($this->app('webapp_echo_html')->xml->body->article->section);
-			$this->title('Sign In Admin');
+			$this->app->title('Sign In Admin');
 		}
 		$this->response_status(200);
 		return TRUE;

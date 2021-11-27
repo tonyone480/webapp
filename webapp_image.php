@@ -82,7 +82,7 @@ class webapp_image implements IteratorAggregate
 		imagestring($this->image, $font, $x, $y, $word, $this->color);
 		return $this;
 	}
-	function text(int $x, int $y, string $word, string $font, int $size = 24, int $angle = 0):static
+	function text(int $x, int $y, string $word, string $font, float $size = 24, float $angle = 0):static
 	{
 		imagettftext($this->image, $size, $angle, $x, $y, $this->color, $font, $word);
 		return $this;
@@ -303,12 +303,12 @@ class webapp_image implements IteratorAggregate
 				'size' => $fixsize
 			])['width'];
 		}
-		$offset = ($width - $offset) * 0.5;
+		$offset = intval(($width - $offset) * 0.5);
 		$image = static::create($width, $height);
 		foreach ($writing as $write)
 		{
 			$image->text($offset + $write['left'],
-				($image->height - $write['height']) * 0.5 + $write['top'],
+				intval(($image->height - $write['height']) * 0.5) + $write['top'],
 				$write['code'],
 				$font,
 				$write['size'],
