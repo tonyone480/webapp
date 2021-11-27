@@ -26,10 +26,10 @@ abstract class webapp implements ArrayAccess, Stringable
 {
 	const version = '4.7a', key = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz-';
 	private array $errors = [], $headers = [], $cookies = [], $configs, $uploadedfiles;
-	private static array $library = [];
+	protected static array $library = [];
 	static function library(string $name):mixed
 	{
-		return static::$library[$name] ??= require __DIR__ . "/lib/{$name}/interface.php";
+		return self::$library[$name] ??= require __DIR__ . "/lib/{$name}/interface.php";
 	}
 	static function time33(string $data):int
 	{
@@ -128,15 +128,30 @@ abstract class webapp implements ArrayAccess, Stringable
 		}
 		return FALSE;
 	}
-	function hash_time33(string $data, bool $care = FALSE):string
+	static function iphex(string $ip):string
 	{
-		for ($hash = 5381, $i = strlen($data); $i; $hash = (($hash << 5) + $hash) + ord($data[--$i]) & 0x0fffffffffffffff);
-		if ($care) while ($i < 10) $code[] = self::key[$hash >> $i++ * 6 & 63];
-		else while ($i < 12) $code[] = self::key[$hash >> $i++ * 5 & 31];
-		return join($code);
+		return str_pad(bin2hex(inet_pton($ip)), 32, '0', STR_PAD_LEFT);
 	}
-
-	
+	static function hexip(string $hex):string
+	{
+		return inet_ntop(hex2bin($hex));
+	}
+	static function random(int $length):string
+	{
+		return random_bytes($length);
+	}
+	static function qrcode(string $data, int $level = 0):iterable
+	{
+		return static::library('qrcode')($data, $level);
+	}
+	static function debugtime(float &$clock = 0):float
+	{
+		return $time = microtime(TRUE) - $time;
+	}
+	static function splitchar(string $content):array
+	{
+		return preg_match_all('/[\x01-\x7f]|[\xc2-\xdf][\x80-\xbf]|\xe0[\xa0-\xbf][\x80-\xbf]|[\xe1-\xef][\x80-\xbf][\x80-\xbf]|\xf0[\x90-\xbf][\x80-\xbf][\x80-\xbf]|[\xf1-\xf7][\x80-\xbf][\x80-\xbf][\x80-\xbf]/', $content, $pattern) === FALSE ? [] : $pattern[0];
+	}
 
 	function __construct(private webapp_io $io, array $config = [])
 	{
@@ -371,28 +386,14 @@ abstract class webapp implements ArrayAccess, Stringable
 			&& $password === $this['admin_password']
 		, func_num_args() ? $signature : $this->request_cookie($this['admin_cookie']));
 	}
-	function random(int $length):string
-	{
-		return random_bytes($length);
-	}
-	function iphex(string $ip):string
-	{
-		return str_pad(bin2hex(inet_pton($ip)), 32, 0, STR_PAD_LEFT);
-	}
-	function hexip(string $hex):string
-	{
-		return inet_ntop(hex2bin($hex));
-	}
+
 	//---------------------
 
 	function resroot(string $filename = NULL):string
 	{
 		return "{$this['app_resroot']}/{$filename}";
 	}
-	function qrcode(string $data, int $level = 0):iterable
-	{
-		return static::library('qrcode')($data, $level);
-	}
+
 	//----------------
 	function http(string $url, int $timeout = 4):webapp_client_http
 	{
@@ -456,14 +457,7 @@ abstract class webapp implements ArrayAccess, Stringable
 	}
 	function sqlite():webapp_sqlite{}
 	function redis():webapp_redis{}
-	function debugtime(?float &$time = 0):float
-	{
-		return $time = microtime(TRUE) - $time;
-	}
-	function charsplit(string $content):array
-	{
-		return preg_match_all('/[\x01-\x7f]|[\xc2-\xdf][\x80-\xbf]|\xe0[\xa0-\xbf][\x80-\xbf]|[\xe1-\xef][\x80-\xbf][\x80-\xbf]|\xf0[\x90-\xbf][\x80-\xbf][\x80-\xbf]|[\xf1-\xf7][\x80-\xbf][\x80-\xbf][\x80-\xbf]/', $content, $pattern) === FALSE ? [] : $pattern[0];
-	}
+
 	function callback(closure $echo, mixed ...$params):void
 	{
 		$this['app_mapping'] = new class($this, $echo)
@@ -708,11 +702,6 @@ abstract class webapp implements ArrayAccess, Stringable
 		$this->response_status(200);
 		return TRUE;
 	}
-	function get_home()
-	{
-		$this->app('webapp_echo_html')->header['style'] = 'font-size:2rem';
-		$this->app->header->text('Welcome in WebApp Framework');
-	}
 	function get_captcha(string $random = NULL)
 	{
 		if ($this['captcha_echo'])
@@ -738,27 +727,30 @@ abstract class webapp implements ArrayAccess, Stringable
 		if ($this['qrcode_echo'] && is_string($decode = $this->url64_decode($encode)) && strlen($decode) < $this['qrcode_maxdata'])
 		{
 			$this->response_content_type('image/png');
-			webapp_image::qrcode($this->qrcode($decode, $this['qrcode_ecc']), $this['qrcode_size'])->png($this->buffer);
+			webapp_image::qrcode(static::library('qrcode')($decode, $this['qrcode_ecc']), $this['qrcode_size'])->png($this->buffer);
 			return;
 		}
 		return 404;
 	}
 	//这个函数在不久的将来会被移除
+	function get_home()
+	{
+		$this->app('webapp_echo_html')->header['style'] = 'font-size:2rem';
+		$this->app->header->text('Welcome in WebApp Framework');
+	}
 	function get_scss(string $filename)
 	{
-		if (file_exists($scss = __DIR__ . "/res/ps/{$filename}.scss"))
+		if (file_exists($input = __DIR__ . "/res/ps/{$filename}.scss"))
 		{
 			$this->response_content_type('text/css');
 			$this->response_cache_control('no-cache');
-			if (filemtime($scss) > filemtime($css = __DIR__ . "/res/ps/{$filename}.css"))
+			if (filemtime($input) > filemtime($output = __DIR__ . "/res/ps/{$filename}.css"))
 			{
-				// include 'lib/scss/scss.php';
-				// $a = new Leafo\ScssPhp\Compiler;
-				$app = $this->library('scss');
-				$app->setFormatter('Leafo\ScssPhp\Formatter\Expanded');
-				file_put_contents($css, $app->compile(file_get_contents($scss)));
+				$scss = $this->library('scss');
+				$scss->setFormatter('Leafo\ScssPhp\Formatter\Expanded');
+				file_put_contents($output, $scss->compile(file_get_contents($input)));
 			}
-			$this->response_sendfile($css);
+			$this->response_sendfile($output);
 			return;
 		}
 		return 404;

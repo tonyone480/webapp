@@ -322,24 +322,8 @@ class webapp_image implements IteratorAggregate
 		$image = static::create($resize = count($draw) + $margin * 2, $resize);
 		foreach ($draw as $x => $y)
 		{
-			$image->pixel($x + $margin, $y + $margin);
+			$image->pixel($margin + $x, $margin + $y);
 		}
 		return $image->resize($resize *= $pixel, $resize);
 	}
-	// static function qrcode(string $data, int $ecclevel = 0, int $pixel = 4, int $margin = 2):static
-	// {
-	// 	$size = count($data = (include __DIR__ . '/lib/qrcode/interface.php')($data, $ecclevel));
-	// 	$image = static::create($resize = $size + $margin * 2, $resize);
-	// 	for ($x = 0; $x < $size; ++$x)
-	// 	{
-	// 		for ($y = 0; $y < $size; ++$y)
-	// 		{
-	// 			if (ord($data[$x][$y]) & 1)
-	// 			{
-	// 				$image->pixel($x + $margin, $y + $margin);
-	// 			}
-	// 		}
-	// 	}
-	// 	return $image->resize($resize *= $pixel, $resize);
-	// }
 }
