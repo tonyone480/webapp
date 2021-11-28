@@ -27,6 +27,10 @@ abstract class webapp implements ArrayAccess, Stringable
 	const version = '4.7a', key = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz-';
 	private array $errors = [], $headers = [], $cookies = [], $configs, $uploadedfiles;
 	protected static array $library = [];
+	static function __callStatic(string $name, array $arguments)
+	{
+		return (self::$library[$name] ??= require __DIR__ . "/lib/{$name}/interface.php")(...$arguments);
+	}
 	static function library(string $name):mixed
 	{
 		return self::$library[$name] ??= require __DIR__ . "/lib/{$name}/interface.php";
@@ -67,11 +71,7 @@ abstract class webapp implements ArrayAccess, Stringable
 	// {
 	// 	return preg_match_all('/[\x01-\x7f]|[\xc2-\xdf][\x80-\xbf]|\xe0[\xa0-\xbf][\x80-\xbf]|[\xe1-\xef][\x80-\xbf][\x80-\xbf]|\xf0[\x90-\xbf][\x80-\xbf][\x80-\xbf]|[\xf1-\xf7][\x80-\xbf][\x80-\xbf][\x80-\xbf]/', $content, $pattern) === FALSE ? [] : $pattern[0];
 	// }
-	static function  __callStatic(string $name, array $params)
-	{
-		return is_callable(self::$library[$name] ??= require __DIR__ . "/lib/{$name}/interface.php")
-			? self::$library[$name](...$params) : self::$library[$name];
-	}
+
 	static function time(int $fix = 0):int
 	{
 		return time() + $fix;

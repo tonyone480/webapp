@@ -21,4 +21,4 @@ include __DIR__ . '/Parser.php';
 include __DIR__ . '/Type.php';
 include __DIR__ . '/Util.php';
 include __DIR__ . '/Version.php';
-return new Leafo\ScssPhp\Compiler;
+return fn() => new Leafo\ScssPhp\Compiler;
