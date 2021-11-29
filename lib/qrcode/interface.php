@@ -117,4 +117,4 @@ class qrcode implements IteratorAggregate, Countable
 		return count($this->data);
 	}
 }
-return fn(string $data, int $level):qrcode => new qrcode($data, $level);
+return fn(string $data, int $level) => new qrcode($data, $level);

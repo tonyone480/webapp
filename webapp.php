@@ -26,14 +26,14 @@ abstract class webapp implements ArrayAccess, Stringable
 {
 	const version = '4.7a', key = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz-';
 	private array $errors = [], $headers = [], $cookies = [], $configs, $uploadedfiles;
-	protected static array $library = [];
-	static function __callStatic(string $name, array $arguments)
+	protected static array $interfaces = [];
+	static function __callStatic(string $name, array $arguments):mixed
 	{
-		return (self::$library[$name] ??= require __DIR__ . "/lib/{$name}/interface.php")(...$arguments);
+		return (self::$interfaces[$name] ??= require __DIR__ . "/lib/{$name}/interface.php")(...$arguments);
 	}
-	static function library(string $name):mixed
+	static function time(int $fix = 0):int
 	{
-		return self::$library[$name] ??= require __DIR__ . "/lib/{$name}/interface.php";
+		return time() + $fix;
 	}
 	static function time33(string $data):int
 	{
@@ -72,10 +72,7 @@ abstract class webapp implements ArrayAccess, Stringable
 	// 	return preg_match_all('/[\x01-\x7f]|[\xc2-\xdf][\x80-\xbf]|\xe0[\xa0-\xbf][\x80-\xbf]|[\xe1-\xef][\x80-\xbf][\x80-\xbf]|\xf0[\x90-\xbf][\x80-\xbf][\x80-\xbf]|[\xf1-\xf7][\x80-\xbf][\x80-\xbf][\x80-\xbf]/', $content, $pattern) === FALSE ? [] : $pattern[0];
 	// }
 
-	static function time(int $fix = 0):int
-	{
-		return time() + $fix;
-	}
+
 	static function url64_encode(string $data):string
 	{
 		for ($buffer = [], $length = strlen($data), $i = 0; $i < $length;)
@@ -726,7 +723,7 @@ abstract class webapp implements ArrayAccess, Stringable
 		if ($this['qrcode_echo'] && is_string($decode = $this->url64_decode($encode)) && strlen($decode) < $this['qrcode_maxdata'])
 		{
 			$this->response_content_type('image/png');
-			webapp_image::qrcode(static::library('qrcode')($decode, $this['qrcode_ecc']), $this['qrcode_size'])->png($this->buffer);
+			webapp_image::qrcode(static::qrcode($decode, $this['qrcode_ecc']), $this['qrcode_size'])->png($this->buffer);
 			return;
 		}
 		return 404;
