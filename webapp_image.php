@@ -2,12 +2,8 @@
 declare(strict_types=1);
 class webapp_image implements IteratorAggregate
 {
-	private
-	$colors = [0, 0xffffff],
-	$color = 0,
-	$width,
-	$height;
-	function __construct(private $image)
+	private $width, $height;
+	function __construct(private GdImage $image)
 	{
 		$this->width = imagesx($image);
 		$this->height = imagesy($image);
@@ -22,64 +18,60 @@ class webapp_image implements IteratorAggregate
 			}
 		}
 	}
+	function colorallocate(int $red, int $green, int $blue):int
+	{
+		return imagecolorallocate($this->image, $red, $green, $blue);
+	}
+	function colorallocatealpha(int $red, int $green, int $blue, int $alpha):int
+	{
+		return imagecolorallocatealpha($this->image, $red, $green, $blue, $alpha);
+	}
 	function colorat(int $x, int $y):int
 	{
 		return imagecolorat($this->image, $x, $y);
 	}
-	function color(string|int $name, int $red = 0, int $green = 0, int $blue = 0, float $alpha = 0):static
+	function arc(int $x, int $y, int $width, int $height, int $start, int $end, int $color, int $style = NULL)
 	{
-		if (func_num_args() > 4)
-		{
-			$this->colors[$name] = $this->color = $alpha
-				? imagecolorallocate($this->image, $red, $green, $blue)
-				: imagecolorallocatealpha($this->image, $red, $green, $blue, intval(127 * $alpha));
-		}
-		else
-		{
-			if (array_key_exists($name, $this->colors))
-			{
-				$this->color = $this->colors[$name];
-			}
-		}
+		($style === NULL ? 'imagearc' : 'imagefilledarc')($this->image, ...func_get_args());
 		return $this;
 	}
-	function fill(int $x, int $y):static
+	function fill(int $x, int $y, int $color):static
 	{
-		imagefill($this->image, $x, $y, $this->color);
+		imagefill($this->image, $x, $y, $color);
 		return $this;
 	}
-	function line(int $x0, int $y0, int $x1, int $y1):static
+	function line(int $from_x, int $from_y, int $to_x, int $to_y, int $color):static
 	{
-		imageline($this->image, $x0, $y0, $x1, $y1, $this->color);
+		imageline($this->image, $from_x, $from_y, $to_x, $to_y, $color);
 		return $this;
 	}
-	function pixel(int $x, int $y):static
+	function setpixel(int $x, int $y, int $color):static
 	{
-		imagesetpixel($this->image, $x, $y, $this->color);
+		imagesetpixel($this->image, $x, $y, $color);
 		return $this;
 	}
-	function polygon(array $points, bool $filled = FALSE, bool $open = FALSE):static
+	// function polygon(array $points, bool $filled = FALSE, bool $open = FALSE):static
+	// {
+	// 	($filled ? 'imagefilledpolygon' : ($open ? 'imageopenpolygon' : 'imagepolygon'))($this->image, $points, count($points), $this->color);
+	// 	return $this;
+	// }
+	// function rectangle(int $x0, int $y0, int $x1, int $y1, bool $filled = FALSE):static
+	// {
+	// 	($filled ? 'imagefilledrectangle' : 'imagerectangle')($this->image, $x0, $y0, $x1, $y1, $this->color);
+	// 	return $this;
+	// }
+	// function square(int $x, int $y, int $size, bool $filled = FALSE):static
+	// {
+	// 	return $this->rectangle($x, $y, $x + $size, $y + $size, $filled);
+	// }
+	// function string(int $x, int $y, string $word, int $font = 4):static
+	// {
+	// 	imagestring($this->image, $font, $x, $y, $word, $this->color);
+	// 	return $this;
+	// }
+	function ttftext(float $size, float $angle, int $x, int $y, int $color, string $fontfile, string $text):static
 	{
-		($filled ? 'imagefilledpolygon' : ($open ? 'imageopenpolygon' : 'imagepolygon'))($this->image, $points, count($points), $this->color);
-		return $this;
-	}
-	function rectangle(int $x0, int $y0, int $x1, int $y1, bool $filled = FALSE):static
-	{
-		($filled ? 'imagefilledrectangle' : 'imagerectangle')($this->image, $x0, $y0, $x1, $y1, $this->color);
-		return $this;
-	}
-	function square(int $x, int $y, int $size, bool $filled = FALSE):static
-	{
-		return $this->rectangle($x, $y, $x + $size, $y + $size, $filled);
-	}
-	function string(int $x, int $y, string $word, int $font = 4):static
-	{
-		imagestring($this->image, $font, $x, $y, $word, $this->color);
-		return $this;
-	}
-	function text(int $x, int $y, string $word, string $font, float $size = 24, float $angle = 0):static
-	{
-		imagettftext($this->image, $size, $angle, $x, $y, $this->color, $font, $word);
+		imagettftext($this->image, $size, $angle, $x, $y, $color, $fontfile, $text);
 		return $this;
 	}
 	function resize(int $width, int $height):static
@@ -93,9 +85,9 @@ class webapp_image implements IteratorAggregate
 		return $this;
 	}
 	//将真彩色图像转换为调色板图像
-	function palette(int $color = 255, bool $dithered = TRUE):static
+	function truecolortopalette(bool $dither = TRUE, int $ncolors = 255):static
 	{
-		imagetruecolortopalette($this->image, $dithered, $color);
+		imagetruecolortopalette($this->image, $dither, $ncolors);
 		return $this;
 	}
 	//对图像使用过滤器
@@ -164,6 +156,35 @@ class webapp_image implements IteratorAggregate
 	{
 		return $this->filter(IMG_FILTER_PIXELATE, $block, $advanced);
 	}
+	function colortone(int $bit, int $length = -1):array
+	{
+		[$colors, $bit] = match ($bit)
+		{
+			8 => [array_fill(0, 255, 0), 8],
+			4 => [array_fill(0, 16, 0), 4],
+			default => [[0, 0], 1]
+		};
+		$to = [static::class, "to{$bit}bit"];
+		foreach ($this as $x => $y)
+		{
+			++$colors[$to($this->colorat($x, $y))];
+		}
+		arsort($colors);
+		return array_slice(array_keys(array_filter($colors)), 0, $length);
+	}
+	function octbit()
+	{
+		$i = 0;
+		foreach ($this as $x => $y)
+		{
+			//$c = imagecolorat($this->image, $x, $y);
+			$color = static::to4bit(imagecolorat($this->image, $x, $y));
+			imagesetpixel($this->image, $x, $y, static::from4bit($color));
+		}
+		
+		
+		
+	}
 	// function wave(array $values = []):webapp_img
 	// {
 	// 	$values += ['x0' => 12, 'x1' => 14, 'y0' => 11, 'y1' => 5];
@@ -182,6 +203,10 @@ class webapp_image implements IteratorAggregate
 	// 	imagefilter($this->image, IMG_FILTER_GAUSSIAN_BLUR);
 	// 	return $this;
 	// }
+	function avif(mixed $output = 'php://output', int $quality = -1, int $speed = -1):bool
+	{
+		return imageavif($this->image, $output, $quality, $speed);
+	}
 	function bmp(mixed $output = 'php://output', bool $compressed = TRUE):bool
 	{
 		return imagebmp($this->image, $output, $compressed);
@@ -202,6 +227,12 @@ class webapp_image implements IteratorAggregate
 	{
 		return imagewebp($this->image, $output, $quality);
 	}
+	static function create(int $width, int $height):static
+	{
+		$image = new static(imagecreatetruecolor($width, $height));
+		$image->fill(0, 0, $image->colorallocate(255, 255, 255));
+		return $image;
+	}
 	static function from(string $filename):?static
 	{
 		return ($image = is_array($info = @getimagesize($filename)) ? match($info[2])
@@ -215,10 +246,6 @@ class webapp_image implements IteratorAggregate
 			16 =>		imagecreatefromxbm($filename),
 			default =>	FALSE
 		} : imagecreatefromstring($filename)) ? new static($image) : NULL;
-	}
-	static function create(int $width, int $height):static
-	{
-		return (new static(imagecreatetruecolor($width, $height)))->color(1)->fill(0, 0)->color(0);
 	}
 
 
@@ -282,35 +309,7 @@ class webapp_image implements IteratorAggregate
 	{
 		return $color << 21 & 0x800000 | $color << 14 & 0x8000 | $color << 7 & 0x80;
 	}
-	function colortone(int $bit, int $length = -1):array
-	{
-		[$colors, $bit] = match ($bit)
-		{
-			8 => [array_fill(0, 255, 0), 8],
-			4 => [array_fill(0, 16, 0), 4],
-			default => [[0, 0], 1]
-		};
-		$to = [static::class, "to{$bit}bit"];
-		foreach ($this as $x => $y)
-		{
-			++$colors[$to($this->colorat($x, $y))];
-		}
-		arsort($colors);
-		return array_slice(array_keys(array_filter($colors)), 0, $length);
-	}
-	function octbit()
-	{
-		$i = 0;
-		foreach ($this as $x => $y)
-		{
-			//$c = imagecolorat($this->image, $x, $y);
-			$color = static::to4bit(imagecolorat($this->image, $x, $y));
-			imagesetpixel($this->image, $x, $y, static::from4bit($color));
-		}
-		
-		
-		
-	}
+
 
 
 
@@ -334,25 +333,26 @@ class webapp_image implements IteratorAggregate
 			$min_y = min($calc[1], $calc[3], $calc[5], $calc[7]);
 			$max_y = max($calc[1], $calc[3], $calc[5], $calc[7]);
 			$offset += ($writing[] = [
+				'size' => $fixsize,
+				'angle'	=> $angle,
 				'left'	=> abs($min_x),
 				'top'	=> abs($min_y),
 				'width'	=> $max_x - $min_x,
 				'height'=> $max_y - $min_y,
-				'angle'	=> $angle,
-				'code'	=> $read[0],
-				'size' => $fixsize
+				'code'	=> $read[0]
 			])['width'];
 		}
 		$offset = intval(($width - $offset) * 0.5);
 		$image = static::create($width, $height);
 		foreach ($writing as $write)
 		{
-			$image->text($offset + $write['left'],
+			$image->ttftext($write['size'],
+				$write['angle'],
+				$offset + $write['left'],
 				intval(($image->height - $write['height']) * 0.5) + $write['top'],
-				$write['code'],
+				0,
 				$font,
-				$write['size'],
-				$write['angle']);
+				$write['code']);
 			$offset += $write['width'];
 		}
 		return $image;
@@ -362,7 +362,7 @@ class webapp_image implements IteratorAggregate
 		$image = static::create($resize = count($draw) + $margin * 2, $resize);
 		foreach ($draw as $x => $y)
 		{
-			$image->pixel($margin + $x, $margin + $y);
+			$image->setpixel($margin + $x, $margin + $y, 0);
 		}
 		return $image->resize($resize *= $pixel, $resize);
 	}
