@@ -31,9 +31,9 @@ abstract class webapp implements ArrayAccess, Stringable
 	{
 		return (self::$interfaces[$name] ??= require __DIR__ . "/lib/{$name}/interface.php")(...$arguments);
 	}
-	static function time(int $fix = 0):int
+	static function time(int $diff = 0):int
 	{
-		return time() + $fix;
+		return time() + $diff;
 	}
 	static function time33(string $data):int
 	{
@@ -130,7 +130,16 @@ abstract class webapp implements ArrayAccess, Stringable
 		} while (0);
 		return NULL;
 	}
-
+	static function encrypt(string $data):?string
+	{
+		return is_string($binary = openssl_encrypt($data, 'aes-128-gcm', static::key, OPENSSL_RAW_DATA, md5(static::key, TRUE), $tag)) ? static::url64_encode($tag . $binary) : NULL;
+	}
+	static function decrypt(string $data):?string
+	{
+		return strlen($data) > 20
+			&& is_string($binary = static::url64_decode($data))
+			&& is_string($result = openssl_decrypt(substr($binary, 16), 'aes-128-gcm', static::key, OPENSSL_RAW_DATA, md5(static::key, TRUE), substr($binary, 0, 16))) ? $result : NULL;
+	}
 
 	function __construct(private webapp_io $io, array $config = [])
 	{
@@ -344,16 +353,8 @@ abstract class webapp implements ArrayAccess, Stringable
 		}
 		return is_object($this['app_mapping']) ? $this['app_mapping'] : $this['app_mapping'] = new $this['app_mapping']($this);
 	}
-	function encrypt(string $data):?string
-	{
-		return is_string($binary = openssl_encrypt($data, 'aes-128-gcm', static::key, OPENSSL_RAW_DATA, md5(static::key, TRUE), $tag)) ? static::url64_encode($tag . $binary) : NULL;
-	}
-	function decrypt(string $data):?string
-	{
-		return strlen($data) > 20
-			&& is_string($binary = static::url64_decode($data))
-			&& is_string($result = openssl_decrypt(substr($binary, 16), 'aes-128-gcm', static::key, OPENSSL_RAW_DATA, md5(static::key, TRUE), substr($binary, 0, 16))) ? $result : NULL;
-	}
+
+
 	function signature(string $username, string $password, string $additional = NULL):?string
 	{
 		return $this->encrypt(pack('VCCa*', time(), strlen($username), strlen($password), $username . $password . $additional));
@@ -374,11 +375,11 @@ abstract class webapp implements ArrayAccess, Stringable
 			? $this->authorize($this->request_header('Authorization'), $authenticate)
 			: $this->admin($this->request_header('Authorization'));
 	}
-	function admin(string $signature = NULL):bool
+	function admin(?string $signature = NULL):bool
 	{
 		return $this->authorize(func_num_args() ? $signature : $this->request_cookie($this['admin_cookie']),
 			fn(string $username, string $password, int $signtime):bool =>
-				$signtime + $this['admin_expire'] > time()
+				$signtime > static::time(-$this['admin_expire'])
 				&& $username === $this['admin_username']
 				&& $password === $this['admin_password']);
 	}
