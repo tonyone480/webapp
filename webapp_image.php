@@ -8,6 +8,10 @@ class webapp_image implements IteratorAggregate
 		$this->width = imagesx($image);
 		$this->height = imagesy($image);
 	}
+	function __destruct()
+	{
+		imagedestroy($this->image);
+	}
 	function getIterator():Traversable
 	{
 		for ($y = 0; $y < $this->height; ++$y)
