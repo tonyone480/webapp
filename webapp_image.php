@@ -22,14 +22,9 @@ class webapp_image implements IteratorAggregate
 			}
 		}
 	}
-	function colorat(int $x, int $y, string $name = NULL):static
+	function colorat(int $x, int $y):int
 	{
-		$this->color = imagecolorat($this->image, $x, $y);
-		if ($name)
-		{
-			$this->colors[$name] = $this->color;
-		}
-		return $this;
+		return imagecolorat($this->image, $x, $y);
 	}
 	function color(string|int $name, int $red = 0, int $green = 0, int $blue = 0, float $alpha = 0):static
 	{
@@ -103,59 +98,71 @@ class webapp_image implements IteratorAggregate
 		imagetruecolortopalette($this->image, $dithered, $color);
 		return $this;
 	}
-	//反转图像的所有颜色
-	function negate():static
+	//对图像使用过滤器
+	function filter(int $filtertype, ...$params):static
 	{
-		imagefilter($this->image, IMG_FILTER_NEGATE);
+		imagefilter($this->image, $filtertype, ...$params);
 		return $this;
+	}
+	//反转图像的所有颜色
+	function filter_negate():static
+	{
+		return $this->filter(IMG_FILTER_NEGATE);
 	}
 	//将图像转换为灰度
-	function grayscale():static
+	function filter_grayscale():static
 	{
-		imagefilter($this->image, IMG_FILTER_GRAYSCALE);
-		return $this;
+		return $this->filter(IMG_FILTER_GRAYSCALE);
 	}
-	//改变图像的亮度
-	function brightness(int $level):static
+	//改变图像的亮度，用 arg1 设定亮度级别
+	function filter_brightness(int $level):static
 	{
-		imagefilter($this->image, IMG_FILTER_BRIGHTNESS, $level);
-		return $this;
+		return $this->filter(IMG_FILTER_BRIGHTNESS, $level);
 	}
-	//改变图像的对比度
-	function contrast(int $level):static
+	//改变图像的对比度，用 arg1 设定对比度级别
+	function filter_contrast(int $level):static
 	{
-		imagefilter($this->image, IMG_FILTER_CONTRAST, $level);
-		return $this;
+		return $this->filter(IMG_FILTER_CONTRAST, $level);
+	}
+	//与 IMG_FILTER_GRAYSCALE 类似，不过可以指定颜色。用 arg1，arg2 和 arg3 分别指定 red，blue 和 green。每种颜色范围是 0 到 255
+	function filter_colorize(int $red, int $green, int $blue):static
+	{
+		return $this->filter(IMG_FILTER_COLORIZE, $level);
 	}
 	//使用边缘检测来突出显示图像中的边缘
-	function edgedetect():static
+	function filter_edgedetect():static
 	{
-		imagefilter($this->image, IMG_FILTER_EDGEDETECT);
-		return $this;
+		return $this->filter(IMG_FILTER_EDGEDETECT);
 	}
 	//压花图像
-	function emboss():static
+	function filter_emboss():static
 	{
-		imagefilter($this->image, IMG_FILTER_EMBOSS);
-		return $this;
+		return $this->filter(IMG_FILTER_EMBOSS);
+	}
+	//用高斯算法模糊图像
+	function filter_gaussian_blur():static
+	{
+		return $this->filter(IMG_FILTER_GAUSSIAN_BLUR);
 	}
 	//模糊图像
-	function blur(int $type = IMG_FILTER_GAUSSIAN_BLUR):static
+	function filter_selective_blur():static
 	{
-		imagefilter($this->image, $type);
-		return $this;
+		return $this->filter(FILTER_SELECTIVE_BLUR);
+	}
+	//用平均移除法来达到轮廓效果
+	function filter_mean_removal():static
+	{
+		return $this->filter(IMG_FILTER_MEAN_REMOVAL);
 	}
 	//使图像更平滑
-	function smooth(int $level = 1):static
+	function filter_smooth(int $level = 1):static
 	{
-		imagefilter($this->image, IMG_FILTER_SMOOTH, $level);
-		return $this;
+		return $this->filter(IMG_FILTER_SMOOTH, $level);
 	}
 	//将像素化效果应用于图像
-	function pixelate(int $block = 2, bool $advanced = FALSE):static
+	function filter_pixelate(int $block, bool $advanced = FALSE):static
 	{
-		imagefilter($this->image, IMG_FILTER_PIXELATE, $block, $advanced);
-		return $this;
+		return $this->filter(IMG_FILTER_PIXELATE, $block, $advanced);
 	}
 	// function wave(array $values = []):webapp_img
 	// {
@@ -241,41 +248,74 @@ class webapp_image implements IteratorAggregate
 	{
 		return hexdec(bin2hex(random_bytes(3)));
 	}
-	static function octbit_encode(int $value):int
+	static function rgb_encode(int $color):array
 	{
-		return ($value >> 22) & 0x3 | ($value >> 14) & 0x3 | ($value >> 6) & 0x3;
-		//return (($value >> 22) & 0b11) << 4 | (($value >> 14) & 0b11) << 2 | ($value >> 6) & 0b11;
+		return [$color >> 16 & 0xff, $color >> 8 & 0xff, $color & 0xff];
 	}
-	static function octbit_decode(int $value):int
+	static function rgb_decode(int $red, int $green, int $blue):int
 	{
-		return (($value >> 4) & 0x3) * 64 << 16 | (($value >> 2) & 0x3) * 64 << 8 | ($value & 0x3) * 64;
-		//return static::hsl_decode(abs($value % 255) / 255);
+		return $red & 0xff << 16 | $green & 0xff << 8 | $blue & 0xff;
 	}
-	static function hex_encode(int $color):string
+	static function tohex(int $color):string
 	{
-		return str_pad(dechex($color), 8, '0', STR_PAD_LEFT);
+		return str_pad(dechex($color), 6, '0', STR_PAD_LEFT);
 	}
-	static function hex_decode(string $color):int
+	static function fromhex(string $color):int
 	{
 		return hexdec($color);
 	}
-
-
+	//将颜色转化到256色
+	static function to8bit(int $color):int
+	{
+		return $color >> 18 & 0b110000 | $color >> 12 & 0b1100 | $color >> 6 & 0b11;
+	}
+	static function from8bit(int $color):int
+	{
+		return $color << 18 & 0xc00000 | $color << 12 & 0xc000 | $color << 6 & 0xc0;
+	}
+	//将颜色转化到16色
+	static function to4bit(int $color):int
+	{
+		return $color >> 21 & 0b100 | $color >> 14 & 0b10 | $color >> 7 & 0b1;
+	}
+	static function from4bit(int $color):int
+	{
+		return $color << 21 & 0x800000 | $color << 14 & 0x8000 | $color << 7 & 0x80;
+	}
+	function colortone(int $bit, int $length = -1):array
+	{
+		[$colors, $bit] = match ($bit)
+		{
+			8 => [array_fill(0, 255, 0), 8],
+			4 => [array_fill(0, 16, 0), 4],
+			default => [[0, 0], 1]
+		};
+		$to = [static::class, "to{$bit}bit"];
+		foreach ($this as $x => $y)
+		{
+			++$colors[$to($this->colorat($x, $y))];
+		}
+		arsort($colors);
+		return array_slice(array_keys(array_filter($colors)), 0, $length);
+	}
 	function octbit()
 	{
 		$i = 0;
 		foreach ($this as $x => $y)
 		{
-			$c = imagecolorat($this->image, $x, $y);
-			echo static::hex_encode($c), "\n";
-			if (++$i > 100) break;
-			//$color = static::octbit_encode(imagecolorat($this->image, $x, $y));
-			//imagesetpixel($this->image, $x, $y, static::octbit_decode($color));
+			//$c = imagecolorat($this->image, $x, $y);
+			$color = static::to4bit(imagecolorat($this->image, $x, $y));
+			imagesetpixel($this->image, $x, $y, static::from4bit($color));
 		}
 		
 		
 		
 	}
+
+
+
+
+
 
 
 
