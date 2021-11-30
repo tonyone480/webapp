@@ -254,6 +254,7 @@ class webapp_image implements IteratorAggregate
 
 
 
+
 	static function hsl_decode(float $hue, float $saturation = 1, float $lightness = 0.5):int
 	{
 		if ($saturation)
