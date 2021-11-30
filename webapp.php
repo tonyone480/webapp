@@ -63,16 +63,6 @@ abstract class webapp implements ArrayAccess, Stringable
 	{
 		return random_bytes($length);
 	}
-	// static function debugtime(?float &$time = 0):float
-	// {
-	// 	return $time = microtime(TRUE) - $time;
-	// }
-	// static function splitchar(string $content):array
-	// {
-	// 	return preg_match_all('/[\x01-\x7f]|[\xc2-\xdf][\x80-\xbf]|\xe0[\xa0-\xbf][\x80-\xbf]|[\xe1-\xef][\x80-\xbf][\x80-\xbf]|\xf0[\x90-\xbf][\x80-\xbf][\x80-\xbf]|[\xf1-\xf7][\x80-\xbf][\x80-\xbf][\x80-\xbf]/', $content, $pattern) === FALSE ? [] : $pattern[0];
-	// }
-
-
 	static function url64_encode(string $data):string
 	{
 		for ($buffer = [], $length = strlen($data), $i = 0; $i < $length;)
@@ -130,17 +120,42 @@ abstract class webapp implements ArrayAccess, Stringable
 		} while (0);
 		return NULL;
 	}
-	static function encrypt(string $data):?string
+	static function encrypt(?string $data):?string
 	{
-		return is_string($binary = openssl_encrypt($data, 'aes-128-gcm', static::key, OPENSSL_RAW_DATA, md5(static::key, TRUE), $tag)) ? static::url64_encode($tag . $binary) : NULL;
+		return is_string($data) && is_string($binary = openssl_encrypt($data, 'aes-128-gcm', static::key, OPENSSL_RAW_DATA, md5(static::key, TRUE), $tag)) ? static::url64_encode($tag . $binary) : NULL;
 	}
-	static function decrypt(string $data):?string
+	static function decrypt(?string $data):?string
 	{
-		return strlen($data) > 20
+		return is_string($data) && strlen($data) > 20
 			&& is_string($binary = static::url64_decode($data))
 			&& is_string($result = openssl_decrypt(substr($binary, 16), 'aes-128-gcm', static::key, OPENSSL_RAW_DATA, md5(static::key, TRUE), substr($binary, 0, 16))) ? $result : NULL;
 	}
-
+	static function signature(string $username, string $password, string $additional = NULL):?string
+	{
+		return static::encrypt(pack('VCCa*', static::time(), strlen($username), strlen($password), $username . $password . $additional));
+	}
+	static function authorize(?string $signature, callable $authenticate):bool
+	{
+		if (is_string($data = static::decrypt($signature)) && strlen($data) > 5)
+		{
+			$hi = unpack('Vst/Cul/Cpl', $data);
+			$acc = unpack("a{$hi['ul']}uid/a{$hi['pl']}pwd/a*add", $data, 6);
+			return $authenticate($acc['uid'], $acc['pwd'], $hi['st'], $acc['add']);
+		}
+		return FALSE;
+	}
+	// static function image(int $width, int $height):webapp_image
+	// {
+	// 	return new webapp_image($width, $height);
+	// }
+	// static function debugtime(?float &$time = 0):float
+	// {
+	// 	return $time = microtime(TRUE) - $time;
+	// }
+	// static function splitchar(string $content):array
+	// {
+	// 	return preg_match_all('/[\x01-\x7f]|[\xc2-\xdf][\x80-\xbf]|\xe0[\xa0-\xbf][\x80-\xbf]|[\xe1-\xef][\x80-\xbf][\x80-\xbf]|\xf0[\x90-\xbf][\x80-\xbf][\x80-\xbf]|[\xf1-\xf7][\x80-\xbf][\x80-\xbf][\x80-\xbf]/', $content, $pattern) === FALSE ? [] : $pattern[0];
+	// }
 	function __construct(private webapp_io $io, array $config = [])
 	{
 		$this->webapp = $this;
@@ -355,20 +370,7 @@ abstract class webapp implements ArrayAccess, Stringable
 	}
 
 
-	function signature(string $username, string $password, string $additional = NULL):?string
-	{
-		return $this->encrypt(pack('VCCa*', time(), strlen($username), strlen($password), $username . $password . $additional));
-	}
-	function authorize(?string $signature, Closure $authenticate):bool
-	{
-		if (is_string($signature) && strlen($data = $this->decrypt($signature)) > 5)
-		{
-			$hi = unpack('Vst/Cul/Cpl', $data);
-			$acc = unpack("a{$hi['ul']}uid/a{$hi['pl']}pwd/a*add", $data, 6);
-			return $authenticate->call($this, $acc['uid'], $acc['pwd'], $hi['st'], $acc['add']);
-		}
-		return FALSE;
-	}
+
 	function authorization(Closure $authenticate = NULL):bool
 	{
 		return $authenticate
@@ -435,10 +437,7 @@ abstract class webapp implements ArrayAccess, Stringable
 		}
 		return new webapp_html_form($this, $node, $action);
 	}
-	function image(int $width, int $height):webapp_image
-	{
-		return new webapp_image($width, $height);
-	}
+
 	function mysql():webapp_mysql
 	{
 		$mysql = new webapp_mysql($this['mysql_host'], $this['mysql_user'], $this['mysql_password'], $this['mysql_database'], $this['mysql_maptable']);

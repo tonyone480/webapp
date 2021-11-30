@@ -167,8 +167,7 @@ new class extends webapp
 	}
 	function get_home(string $charset = NULL)
 	{
-		
-		
+		var_dump($this->encrypt(''));
 		// $this->app('webapp_echo_svg');
 		// $this->app->xml->setattr([
 		// 	'viewBox' => '0 0 100 100',
