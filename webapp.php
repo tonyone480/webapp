@@ -39,9 +39,13 @@ abstract class webapp implements ArrayAccess, Stringable
 	{
 		return random_bytes($length);
 	}
-	static function time(int $diff = 0):int
+	static function expire(int $signtime, int $duration = 0):bool
 	{
-		return time() + $diff;
+		return $signtime < static::time(-$duration);
+	}
+	static function time(int $offset = 0):int
+	{
+		return time() + $offset;
 	}
 	static function time33(string $data):int
 	{
@@ -671,7 +675,7 @@ abstract class webapp implements ArrayAccess, Stringable
 		return $this->io->response_sendfile($filename);
 	}
 	//append function
-	final function no_sign_in_admin(webapp_io $io, array $config = []):bool
+	final function init_admin(webapp_io $io, array $config = []):bool
 	{
 		self::__construct($io, $config);
 		if ($this['app_mapping'] === $this && in_array($this['app_index'], ['get_captcha', 'get_qrcode', 'get_scss'], TRUE)) return TRUE;

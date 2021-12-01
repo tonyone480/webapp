@@ -87,7 +87,7 @@ new class extends webapp
 {
 	function __construct()
 	{
-		if ($this->no_sign_in_admin(new io)) return;
+		if ($this->init_admin(new io)) return;
 		if ($this['app_mapping'] === $this)
 		{
 			$this->app('webapp_echo_html')->title('MySQL Admin');
