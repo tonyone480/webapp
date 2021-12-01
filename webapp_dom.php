@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 class webapp_xml extends SimpleXMLElement
 {
 	function webapp():?webapp

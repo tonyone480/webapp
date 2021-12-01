@@ -187,8 +187,8 @@ class webapp_image implements IteratorAggregate
 		foreach ($this as $x => $y)
 		{
 			//$c = imagecolorat($this->image, $x, $y);
-			$color = static::to4bit(imagecolorat($this->image, $x, $y));
-			imagesetpixel($this->image, $x, $y, static::from4bit($color));
+			$color = static::to8bit(imagecolorat($this->image, $x, $y));
+			imagesetpixel($this->image, $x, $y, static::from8bit($color));
 		}
 		
 		
@@ -376,7 +376,7 @@ class webapp_image implements IteratorAggregate
 		}
 		return $image;
 	}
-	static function qrcode(iterable $draw, int $pixel = 4, int $margin = 2):static
+	static function qrcode(Iterator&Countable $draw, int $pixel = 4, int $margin = 2):static
 	{
 		$image = static::create($resize = count($draw) + $margin * 2, $resize);
 		foreach ($draw as $x => $y)
