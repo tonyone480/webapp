@@ -74,6 +74,7 @@ abstract class webapp implements ArrayAccess, Stringable
 	}
 	static function url64_encode(string $data):string
 	{
+		//$buffer = fopen('php://temp/maxmemory:', 'w+');
 		for ($buffer = [], $length = strlen($data), $i = 0; $i < $length;)
 		{
 			$value = ord($data[$i++]) << 16;
