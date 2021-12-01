@@ -22,6 +22,11 @@ class webapp_image implements IteratorAggregate
 			}
 		}
 	}
+	// function copy():?static
+	// {
+	// 	$image = imagecreatetruecolor($this->width, $this->height);
+	// 	return imagecopy($image, $this->image, 0, 0, 0, 0, $this->width, $this->height) ? new static($image) : NULL;
+	// }
 	function colorallocate(int $red, int $green, int $blue):int
 	{
 		return imagecolorallocate($this->image, $red, $green, $blue);
@@ -207,6 +212,7 @@ class webapp_image implements IteratorAggregate
 	// 	imagefilter($this->image, IMG_FILTER_GAUSSIAN_BLUR);
 	// 	return $this;
 	// }
+	//输出图像
 	function avif(mixed $output = 'php://output', int $quality = -1, int $speed = -1):bool
 	{
 		return imageavif($this->image, $output, $quality, $speed);
@@ -227,15 +233,23 @@ class webapp_image implements IteratorAggregate
 	{
 		return imagepng($this->image, $output);
 	}
-	function webp(mixed $output = 'php://output'):bool
+	function wbmp(mixed $output = 'php://output', ?int $foreground_color = NULL):bool
+	{
+		return imagewbmp($this->image, $output, $foreground_color);
+	}
+	function webp(mixed $output = 'php://output', int $quality = -1):bool
 	{
 		return imagewebp($this->image, $output, $quality);
 	}
+	function xbm(mixed $output = 'php://output', ?int $foreground_color = NULL):bool
+	{
+		return imagexbm($this->image, $output, $foreground_color);
+	}
+	//静态方法
 	static function create(int $width, int $height):static
 	{
 		$image = new static(imagecreatetruecolor($width, $height));
-		$image->fill(0, 0, $image->colorallocate(255, 255, 255));
-		return $image;
+		return $image->fill(0, 0, $image->colorallocate(255, 255, 255));
 	}
 	static function from(string $filename):?static
 	{
@@ -278,7 +292,7 @@ class webapp_image implements IteratorAggregate
 	# https://m.656463.com/wenda/ruhehuode8weiyanse_351
 	static function randomcolor():int
 	{
-		return hexdec(bin2hex(random_bytes(3)));
+		return hexdec(bin2hex(webapp::random(3)));
 	}
 	static function rgb_encode(int $color):array
 	{
@@ -338,7 +352,7 @@ class webapp_image implements IteratorAggregate
 			$min_y = min($calc[1], $calc[3], $calc[5], $calc[7]);
 			$max_y = max($calc[1], $calc[3], $calc[5], $calc[7]);
 			$offset += ($writing[] = [
-				'size' => $fixsize,
+				'size'	=> $fixsize,
 				'angle'	=> $angle,
 				'left'	=> abs($min_x),
 				'top'	=> abs($min_y),

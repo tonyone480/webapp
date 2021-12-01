@@ -31,6 +31,14 @@ abstract class webapp implements ArrayAccess, Stringable
 	{
 		return (self::$interfaces[$name] ??= require __DIR__ . "/lib/{$name}/interface.php")(...$arguments);
 	}
+	static function res(string $filename = NULL):string
+	{
+		return "/webapp/res/{$filename}";
+	}
+	static function random(int $length):string
+	{
+		return random_bytes($length);
+	}
 	static function time(int $diff = 0):int
 	{
 		return time() + $diff;
@@ -51,6 +59,7 @@ abstract class webapp implements ArrayAccess, Stringable
 		}
 		return join($hash);
 	}
+
 	static function iphex(string $ip):string
 	{
 		return str_pad(bin2hex(inet_pton($ip)), 32, '0', STR_PAD_LEFT);
@@ -58,10 +67,6 @@ abstract class webapp implements ArrayAccess, Stringable
 	static function hexip(string $hex):string
 	{
 		return inet_ntop(hex2bin($hex));
-	}
-	static function random(int $length):string
-	{
-		return random_bytes($length);
 	}
 	static function url64_encode(string $data):string
 	{
@@ -388,10 +393,7 @@ abstract class webapp implements ArrayAccess, Stringable
 
 	//---------------------
 
-	function resroot(string $filename = NULL):string
-	{
-		return "{$this['app_resroot']}/{$filename}";
-	}
+
 
 	//----------------
 	function http(string $url, int $timeout = 4):webapp_client_http
@@ -477,7 +479,7 @@ abstract class webapp implements ArrayAccess, Stringable
 		{
 			$random[$i] = chr((ord($random[$i]) % 26) + 65);
 		}
-		return $this->encrypt(pack('Va*', time(), $random));
+		return $this->encrypt(pack('Va*', static::time(), $random));
 	}
 	function captcha_format(string $random):array
 	{
@@ -496,7 +498,7 @@ abstract class webapp implements ArrayAccess, Stringable
 	function captcha_verify(string $random, string $answer):bool
 	{
 		return ($format = $this->captcha_format($random))
-			&& $format[0] + $this['captcha_expire'] > time()
+			&& $format[0] > static::time(-$this['captcha_expire'])
 			&& join(array_column($format[1], 0)) === strtoupper($answer);
 	}
 	//request
