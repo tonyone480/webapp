@@ -1,6 +1,5 @@
 <?php
 require __DIR__ . '/../webapp_io_std.php';
-
 // header('Content-Type: text/html');
 // for ($i=0;$i<360;$i++) {
 // $rgb=webapp_image::octbit_decode($i);
@@ -167,7 +166,8 @@ new class extends webapp
 	}
 	function get_home(string $charset = NULL)
 	{
-		
+		//$a = $this->captcha_random(8, 65650);
+		//print_r($this->captcha_result($a));
 		// $this->app('webapp_echo_svg');
 		// $this->app->xml->setattr([
 		// 	'viewBox' => '0 0 100 100',

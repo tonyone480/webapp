@@ -759,7 +759,7 @@ class webapp_form
 			$this->field('captcha_decrypt', 'text', ['placeholder' => 'Type following captcha', 'onfocus' => 'this.select()', 'required' => NULL]);
 			if ($this->context instanceof webapp_html)
 			{
-				$this->fields['captcha_encrypt']['value'] = $random = $webapp->captcha_random();
+				$this->fields['captcha_encrypt']['value'] = $random = $webapp->captcha_random($webapp['captcha_unit'], $webapp['captcha_expire']);
 				$this->fieldset()->setattr([
 					'style' => "height:{$webapp['captcha_params'][1]}px;background:url(?captcha/{$random}) no-repeat center",
 					'onckick' => ''

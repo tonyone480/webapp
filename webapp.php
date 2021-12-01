@@ -39,10 +39,6 @@ abstract class webapp implements ArrayAccess, Stringable
 	{
 		return random_bytes($length);
 	}
-	static function expire(int $signtime, int $duration = 0):bool
-	{
-		return $signtime < static::time(-$duration);
-	}
 	static function time(int $offset = 0):int
 	{
 		return time() + $offset;
@@ -74,29 +70,28 @@ abstract class webapp implements ArrayAccess, Stringable
 	}
 	static function url64_encode(string $data):string
 	{
-		//$buffer = fopen('php://temp/maxmemory:', 'w+');
-		for ($buffer = [], $length = strlen($data), $i = 0; $i < $length;)
+		for ($i = 0, $length = strlen($data), $buffer = ''; $i < $length;)
 		{
 			$value = ord($data[$i++]) << 16;
-			$buffer[] = self::key[$value >> 18 & 63];
+			$buffer .= self::key[$value >> 18 & 63];
 			if ($i < $length)
 			{
 				$value |= ord($data[$i++]) << 8;
-				$buffer[] = self::key[$value >> 12 & 63];
+				$buffer .= self::key[$value >> 12 & 63];
 				if ($i < $length)
 				{
 					$value |= ord($data[$i++]);
-					$buffer[] = self::key[$value >> 6 & 63];
-					$buffer[] = self::key[$value & 63];
+					$buffer .= self::key[$value >> 6 & 63];
+					$buffer .= self::key[$value & 63];
 					continue;
 				}
-				$buffer[] = self::key[$value >> 6 & 63];
+				$buffer .= self::key[$value >> 6 & 63];
 				break;
 			}
-			$buffer[] = self::key[$value >> 12 & 63];
+			$buffer .= self::key[$value >> 12 & 63];
 			break;
 		}
-		return join($buffer);
+		return $buffer;
 	}
 	static function url64_decode(string $data):?string
 	{
@@ -106,27 +101,27 @@ abstract class webapp implements ArrayAccess, Stringable
 			{
 				break;
 			}
-			for ($buffer = [], $length = strlen($data), $i = 0; $i < $length;)
+			for ($i = 0, $length = strlen($data), $buffer = ''; $i < $length;)
 			{
 				$value = strpos(self::key, $data[$i++]) << 18;
 				if ($i < $length)
 				{
 					$value |= strpos(self::key, $data[$i++]) << 12;
-					$buffer[] = chr($value >> 16 & 255);
+					$buffer .= chr($value >> 16 & 255);
 					if ($i < $length)
 					{
 						$value |= strpos(self::key, $data[$i++]) << 6;
-						$buffer[] = chr($value >> 8 & 255);
+						$buffer .= chr($value >> 8 & 255);
 						if ($i < $length)
 						{
-							$buffer[] = chr($value | strpos(self::key, $data[$i++]) & 255);
+							$buffer .= chr($value | strpos(self::key, $data[$i++]) & 255);
 						}
 					}
 					continue;
 				}
 				break 2;
 			}
-			return join($buffer);
+			return $buffer;
 		} while (0);
 		return NULL;
 	}
@@ -154,6 +149,41 @@ abstract class webapp implements ArrayAccess, Stringable
 		}
 		return FALSE;
 	}
+	static function captcha_random(int $length, int $expire):?string
+	{
+		$random = static::random($length * 3);
+		for ($i = 0; $i < $length; ++$i)
+		{
+			$random[$i] = chr((ord($random[$i]) % 26) + 65);
+		}
+		return static::encrypt(pack('VCa*', static::time($expire), $length, $random));
+	}
+	static function captcha_result(?string $random):?array
+	{
+		if (is_string($binary = static::decrypt($random))
+			&& strlen($binary) > 7
+			&& extract(unpack('Vexpire/Clength', $binary)) === 2
+			&& is_array($values = unpack("a{$length}code/c{$length}size/c{$length}angle", $binary, 5))) {
+			$result = [$expire, '', [], []];
+			for ($i = 0; $i < $length;)
+			{
+				$result[1] .= $values['code'][$i++];
+				$result[2][] = $values['size' . $i];
+				$result[3][] = $values['angle' . $i];
+			}
+			return $result;
+		}
+		return NULL;
+	}
+	static function captcha_verify(string $random, string $answer):bool
+	{
+		return is_array($result = static::captcha_result($random))
+			&& $result[0] > static::time()
+			&& $result[1] === strtoupper($answer);
+	}
+
+
+
 	// static function image(int $width, int $height):webapp_image
 	// {
 	// 	return new webapp_image($width, $height);
@@ -195,8 +225,8 @@ abstract class webapp implements ArrayAccess, Stringable
 			//Captcha
 			'captcha_echo'		=> TRUE,
 			'captcha_unit'		=> 4,
-			'captcha_params'	=> [210, 86, __DIR__ . '/res/fonts/ArchitectsDaughter_R.ttf', 28],
 			'captcha_expire'	=> 99,
+			'captcha_params'	=> [210, 86, __DIR__ . '/res/fonts/ArchitectsDaughter_R.ttf', 28],
 			//QRCode
 			'qrcode_echo'		=> TRUE,
 			'qrcode_ecc'		=> 0,
@@ -477,35 +507,7 @@ abstract class webapp implements ArrayAccess, Stringable
 		$this['app_index'] = '__invoke';
 		$this['app_entry'] = $params;
 	}
-	function captcha_random():?string
-	{
-		$random = $this->random($this['captcha_unit'] * 3);
-		for ($i = 0; $i < $this['captcha_unit']; ++$i)
-		{
-			$random[$i] = chr((ord($random[$i]) % 26) + 65);
-		}
-		return $this->encrypt(pack('Va*', static::time(), $random));
-	}
-	function captcha_format(string $random):array
-	{
-		if (strlen($binary = $this->decrypt($random)) === $this['captcha_unit'] * 3 + 4)
-		{
-			$format = unpack('Vtime/a4code/c4rotate/c4size', $binary);
-			$result = [$format['time']];
-			for ($i = 0; $i < $this['captcha_unit'];)
-			{
-				$result[1][] = [$format['code'][$i++], $format['rotate' . $i], $format['size' . $i]];
-			}
-			return $result;
-		}
-		return [];
-	}
-	function captcha_verify(string $random, string $answer):bool
-	{
-		return ($format = $this->captcha_format($random))
-			&& $format[0] > static::time(-$this['captcha_expire'])
-			&& join(array_column($format[1], 0)) === strtoupper($answer);
-	}
+
 	//request
 	function request_ip():string
 	{
@@ -709,13 +711,13 @@ abstract class webapp implements ArrayAccess, Stringable
 	{
 		if ($this['captcha_echo'])
 		{
-			if (is_string($random) && ($format = $this->captcha_format($random)))
+			if ($result = static::captcha_result($random))
 			{
 				$this->response_content_type('image/jpeg');
-				webapp_image::captcha($format[1], ...$this['captcha_params'])->jpeg($this->buffer);
+				webapp_image::captcha($result, ...$this['captcha_params'])->jpeg($this->buffer);
 				return;
 			}
-			if ($random = $this->captcha_random())
+			if ($random = static::captcha_random($this['captcha_unit'], $this['captcha_expire']))
 			{
 				$this->response_content_type("text/plain; charset={$this['app_charset']}");
 				$this->print($random);
@@ -749,7 +751,7 @@ abstract class webapp implements ArrayAccess, Stringable
 			$this->response_cache_control('no-cache');
 			if (filemtime($input) > filemtime($output = __DIR__ . "/res/ps/{$filename}.css"))
 			{
-				$scss = $this->library('scss');
+				$scss = static::scss();
 				$scss->setFormatter('Leafo\ScssPhp\Formatter\Expanded');
 				file_put_contents($output, $scss->compile(file_get_contents($input)));
 			}

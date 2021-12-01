@@ -337,16 +337,16 @@ class webapp_image implements IteratorAggregate
 
 
 
-	static function captcha(array $contents, int $width, int $height, string $font, int $size)
+	static function captcha(array $result, int $width, int $height, string $font, int $size)
 	{
 		$offset = 0;
 		$writing = [];
 		$fix = $size * 0.4;
-		foreach ($contents as $read)
+		for ($i = 0, $length = strlen($result[1]); $i < $length; ++$i)
 		{
-			$angle = $read[1] * 0.4;
-			$fixsize = $size + ceil($fix * ($read[2] / 128));
-			$calc = imagettfbbox($fixsize, $angle, $font, $read[0]);
+			$angle = $result[3][$i] * 0.4;
+			$fixsize = $size + ceil($fix * ($result[2][$i] / 128));
+			$calc = imagettfbbox($fixsize, $angle, $font, $result[1][$i]);
 			$min_x = min($calc[0], $calc[2], $calc[4], $calc[6]);
 			$max_x = max($calc[0], $calc[2], $calc[4], $calc[6]);
 			$min_y = min($calc[1], $calc[3], $calc[5], $calc[7]);
@@ -358,7 +358,7 @@ class webapp_image implements IteratorAggregate
 				'top'	=> abs($min_y),
 				'width'	=> $max_x - $min_x,
 				'height'=> $max_y - $min_y,
-				'code'	=> $read[0]
+				'code'	=> $result[1][$i]
 			])['width'];
 		}
 		$offset = intval(($width - $offset) * 0.5);
@@ -376,7 +376,7 @@ class webapp_image implements IteratorAggregate
 		}
 		return $image;
 	}
-	static function qrcode(Iterator&Countable $draw, int $pixel = 4, int $margin = 2):static
+	static function qrcode(IteratorAggregate&Countable $draw, int $pixel = 4, int $margin = 2):static
 	{
 		$image = static::create($resize = count($draw) + $margin * 2, $resize);
 		foreach ($draw as $x => $y)
