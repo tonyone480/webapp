@@ -634,7 +634,7 @@ class webapp_form
 			else
 			{
 				$errors = &($this->context)(new stdclass)->errors;
-				$input = $this->context->request_content($this->xml['enctype']);
+				$input = $this->context->request_content((string)$this->xml['enctype']);
 				if ($this->captcha)
 				{
 					if (array_key_exists('captcha_encrypt', $input)
@@ -865,7 +865,7 @@ class webapp_form
 	}
 	private function checkinput(webapp_html $node, string $value):bool
 	{
-		switch (strtolower($node['type']))
+		switch (strtolower((string)$node['type']))
 		{
 			case 'color':
 				return preg_match('/^#[0-f]{6}$/i', $value);
