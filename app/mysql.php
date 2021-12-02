@@ -87,6 +87,10 @@ new class extends webapp
 	function __construct()
 	{
 		if ($this->init_admin(new io)) return;
+
+
+
+		
 		if ($this['app_mapping'] === $this)
 		{
 			$this->app('webapp_echo_html')->title('MySQL Admin');
@@ -166,7 +170,7 @@ new class extends webapp
 	}
 	function get_home(string $charset = NULL)
 	{
-		var_dump( $this->encrypt('') );
+		
 		// $this->app('webapp_echo_svg');
 		// $this->app->xml->setattr([
 		// 	'viewBox' => '0 0 100 100',

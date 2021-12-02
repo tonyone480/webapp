@@ -140,13 +140,12 @@ abstract class webapp implements ArrayAccess, Stringable
 	}
 	static function authorize(?string $signature, callable $authenticate):bool
 	{
-		if (is_string($data = static::decrypt($signature)) && strlen($data) > 5)
-		{
-			$hi = unpack('Vst/Cul/Cpl', $data);
-			$acc = unpack("a{$hi['ul']}uid/a{$hi['pl']}pwd/a*add", $data, 6);
-			return $authenticate($acc['uid'], $acc['pwd'], $hi['st'], $acc['add']);
-		}
-		return FALSE;
+		return is_string($data = static::decrypt($signature))
+			&& strlen($data) > 5
+			&& extract(unpack('Vsigntime/C2length', $data)) === 3
+			&& strlen($data) > 5 + $length1 + $length2
+			&& is_array($acc = unpack("a{$length1}uid/a{$length2}pwd/a*add", $data, 6))
+			&& $authenticate($acc['uid'], $acc['pwd'], $signtime, $acc['add']);
 	}
 	static function captcha_random(int $length, int $expire):?string
 	{
@@ -272,8 +271,9 @@ abstract class webapp implements ArrayAccess, Stringable
 							}
 						}
 					}
-					if ($method->isPublic() && $method->isUserDefined() && $method->getNumberOfRequiredParameters() <= count($this['app_entry']))
-					{
+					if ($method->isPublic()
+						&& ($method->isUserDefined() || $this['app_mapping'] instanceof Closure)
+						&& $method->getNumberOfRequiredParameters() <= count($this['app_entry'])) {
 						$status = $method->invoke($reflex = $this->app(), ...$this['app_entry']);
 						$object = property_exists($this, 'app') ? $this->app : $reflex;
 						if ($object !== $this && method_exists($object, '__toString'))
@@ -401,25 +401,25 @@ abstract class webapp implements ArrayAccess, Stringable
 		{
 			return $this->app = new $classname($this, ...$params);
 		}
-		return is_object($this['app_mapping']) ? $this['app_mapping'] : $this['app_mapping'] = new $this['app_mapping']($this);
+		return is_object($this['app_mapping']) ? $this['app_mapping'] : $this['app_mapping'] = new $this['app_mapping']($this, ...$params);
 	}
 
 
-
-	function authorization(Closure $authenticate = NULL):bool
-	{
-		return $authenticate
-			? $this->authorize($this->request_header('Authorization'), $authenticate)
-			: $this->admin($this->request_header('Authorization'));
-	}
 	function admin(?string $signature = NULL):bool
 	{
-		return $this->authorize(func_num_args() ? $signature : $this->request_cookie($this['admin_cookie']),
+		return static::authorize(func_num_args() ? $signature : $this->request_cookie($this['admin_cookie']),
 			fn(string $username, string $password, int $signtime):bool =>
 				$signtime > static::time(-$this['admin_expire'])
 				&& $username === $this['admin_username']
 				&& $password === $this['admin_password']);
 	}
+	function authorization(Closure $authenticate = NULL):bool
+	{
+		return $authenticate
+			? static::authorize($this->request_header('Authorization'), $authenticate)
+			: $this->admin($this->request_header('Authorization'));
+	}
+
 
 	//---------------------
 
@@ -456,19 +456,19 @@ abstract class webapp implements ArrayAccess, Stringable
 		}
 		return new webapp_xml("<?xml version='1.0' encoding='{$this['app_charset']}'?><webapp/>");
 	}
-	function formdata(array|webapp_html $node = NULL, string $action = NULL):array|webapp_html_form
-	{
-		if (is_array($node))
-		{
-			$form = new webapp_html_form($this);
-			foreach ($node as $name => $attr)
-			{
-				$form->field($name, ...is_array($attr) ? [$attr['type'], $attr] : [$attr]);
-			}
-			return $form->fetch() ?? [];
-		}
-		return new webapp_html_form($this, $node, $action);
-	}
+	// function formdata(array|webapp_html $node = NULL, string $action = NULL):array|webapp_html_form
+	// {
+	// 	if (is_array($node))
+	// 	{
+	// 		$form = new webapp_html_form($this);
+	// 		foreach ($node as $name => $attr)
+	// 		{
+	// 			$form->field($name, ...is_array($attr) ? [$attr['type'], $attr] : [$attr]);
+	// 		}
+	// 		return $form->fetch() ?? [];
+	// 	}
+	// 	return new webapp_html_form($this, $node, $action);
+	// }
 
 	function mysql():webapp_mysql
 	{
@@ -486,23 +486,12 @@ abstract class webapp implements ArrayAccess, Stringable
 	function sqlite():webapp_sqlite{}
 	function redis():webapp_redis{}
 
-	function callback(closure $echo, mixed ...$params):void
+	function break(callable $invoke, mixed ...$params):void
 	{
-		$this['app_mapping'] = new class($this, $echo)
-		{
-			function __construct(private webapp $webapp, private closure $echo)
-			{
-				//毫无卵用
-			}
-			function __invoke(mixed ...$params):mixed
-			{
-				return $this->echo->call($this->webapp, ...$params);
-			}
-		};
+		$this['app_mapping'] = Closure::fromCallable($invoke)->bindTo($this);
 		$this['app_index'] = '__invoke';
 		$this['app_entry'] = $params;
 	}
-
 	//request
 	function request_ip():string
 	{
@@ -630,9 +619,9 @@ abstract class webapp implements ArrayAccess, Stringable
 		return $this->uploadedfiles[$name];
 	}
 	//response
-	function response_status(int $code, string $data = NULL):void
+	function response_status(int $code):void
 	{
-		$this->callback(fn():int => [$code, $data === NULL || $this->print($data)][0]);
+		$this->break(fn():int => $code);
 	}
 	function response_cookie(string $name, ?string $value = NULL, int $expire = 0, string $path = '', string $domain = '', bool $secure = FALSE, bool $httponly = FALSE):void
 	{
