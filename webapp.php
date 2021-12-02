@@ -393,15 +393,11 @@ abstract class webapp implements ArrayAccess, Stringable
 	}
 	function app(string $classname = NULL, mixed ...$params):object
 	{
-		// return $this(is_string($classname)
-		// 	? $this->app = new $classname($this, ...$params)
-		// 	: is_object($this['app_mapping']) ? $this['app_mapping'] : $this['app_mapping'] = new $this['app_mapping']($this));
-
-		if (is_string($classname))
-		{
-			return $this->app = new $classname($this, ...$params);
-		}
-		return is_object($this['app_mapping']) ? $this['app_mapping'] : $this['app_mapping'] = new $this['app_mapping']($this, ...$params);
+		return is_string($classname)
+			? $this->app = new $classname($this, ...$params)
+			: (is_object($this['app_mapping'])
+				? $this['app_mapping']
+				: $this['app_mapping'] = new $this['app_mapping']($this, ...$params));
 	}
 
 
