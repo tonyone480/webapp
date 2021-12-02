@@ -53,13 +53,12 @@ abstract class webapp implements ArrayAccess, Stringable
 	}
 	static function hash(string $data, bool $care = FALSE):string
 	{
-		for ($code = static::time33($data), $hash = [], [$i, $n, $b] = $care ? [10, 6, 63] : [12, 5, 31]; $i;)
+		for ($code = static::time33($data), $hash = '', [$i, $n, $b] = $care ? [10, 6, 63] : [12, 5, 31]; $i;)
 		{
-			$hash[] = self::key[$code >> --$i * $n & $b];
+			$hash .= self::key[$code >> --$i * $n & $b];
 		}
-		return join($hash);
+		return $hash;
 	}
-
 	static function iphex(string $ip):string
 	{
 		return str_pad(bin2hex(inet_pton($ip)), 32, '0', STR_PAD_LEFT);
@@ -161,8 +160,9 @@ abstract class webapp implements ArrayAccess, Stringable
 	static function captcha_result(?string $random):?array
 	{
 		if (is_string($binary = static::decrypt($random))
-			&& strlen($binary) > 7
+			&& strlen($binary) > 4
 			&& extract(unpack('Vexpire/Clength', $binary)) === 2
+			&& strlen($binary) > 4 + $length * 3
 			&& is_array($values = unpack("a{$length}code/c{$length}size/c{$length}angle", $binary, 5))) {
 			$result = [$expire, '', [], []];
 			for ($i = 0; $i < $length;)
@@ -177,17 +177,12 @@ abstract class webapp implements ArrayAccess, Stringable
 	}
 	static function captcha_verify(string $random, string $answer):bool
 	{
-		return is_array($result = static::captcha_result($random))
-			&& $result[0] > static::time()
-			&& $result[1] === strtoupper($answer);
+		return is_array($result = static::captcha_result($random)) && $result[0] > static::time() && $result[1] === strtoupper($answer);
 	}
 
 
 
-	// static function image(int $width, int $height):webapp_image
-	// {
-	// 	return new webapp_image($width, $height);
-	// }
+
 	// static function debugtime(?float &$time = 0):float
 	// {
 	// 	return $time = microtime(TRUE) - $time;
@@ -537,7 +532,7 @@ abstract class webapp implements ArrayAccess, Stringable
 	}
 	function request_cookie_decrypt(string $name):?string
 	{
-		return ($cookie = $this->request_cookie($name)) === NULL || ($content = $this->decrypt($cookie)) === NULL ? NULL : $content;
+		return static::decrypt($this->request_cookie($name));
 	}
 	function request_header(string $name):?string
 	{
@@ -639,13 +634,17 @@ abstract class webapp implements ArrayAccess, Stringable
 	{
 		$this->callback(fn():int => [$code, $data === NULL || $this->print($data)][0]);
 	}
-	function response_cookie(string $name, string $value = NULL, int $expire = 0, string $path = NULL, string $domain = NULL, bool $secure = FALSE, bool $httponly = FALSE):void
+	function response_cookie(string $name, ?string $value = NULL, int $expire = 0, string $path = '', string $domain = '', bool $secure = FALSE, bool $httponly = FALSE):void
 	{
-		$this->cookies[] = func_get_args();
+		$cookie = func_get_args();
+		$cookie[1] ??= '';
+		$this->cookies[] = $cookie;
 	}
-	function response_cookie_encrypt(string $name, string $value = NULL, mixed ...$params):void
+	function response_cookie_encrypt(string $name, ?string $value = NULL, int $expire = 0, string $path = '', string $domain = '', bool $secure = FALSE, bool $httponly = FALSE):void
 	{
-		$this->response_cookie($name, $value === NULL ? NULL : $this->encrypt($value), ...$params);
+		$cookie = func_get_args();
+		$cookie[1] = static::encrypt($cookie[1] ?? NULL) ?? '';
+		$this->cookies[] = $cookie;
 	}
 	function response_header(string $name, string $value):void
 	{
