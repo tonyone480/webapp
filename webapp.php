@@ -464,7 +464,7 @@ abstract class webapp implements ArrayAccess, Stringable
 	// 	}
 	// 	return new webapp_html_form($this, $node, $action);
 	// }
-
+	function sqlite():webapp_sqlite{}
 	function mysql():webapp_mysql
 	{
 		$mysql = new webapp_mysql($this['mysql_host'], $this['mysql_user'], $this['mysql_password'], $this['mysql_database'], $this['mysql_maptable']);
@@ -478,9 +478,7 @@ abstract class webapp implements ArrayAccess, Stringable
 		}
 		return $this($mysql);
 	}
-	function sqlite():webapp_sqlite{}
 	function redis():webapp_redis{}
-
 	function break(callable $invoke, mixed ...$params):void
 	{
 		$this['app_mapping'] = Closure::fromCallable($invoke)->bindTo($this);
