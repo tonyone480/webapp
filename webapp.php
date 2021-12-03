@@ -177,7 +177,30 @@ abstract class webapp implements ArrayAccess, Stringable
 	{
 		return is_array($result = static::captcha_result($random)) && $result[0] > static::time() && $result[1] === strtoupper($answer);
 	}
-
+	static function xml(mixed ...$params):webapp_xml
+	{
+		try
+		{
+			libxml_clear_errors();
+			libxml_use_internal_errors(TRUE);
+			$xml = new webapp_xml(...$params);
+		}
+		catch (Throwable $errors)
+		{
+			$xml = new webapp_xml('<errors/>');
+			$xml->cdata((string)$errors);
+			foreach (libxml_get_errors() as $error)
+			{
+				$xml->append('error', [
+					'level' => $error->level,
+					'code' => $error->code,
+					'line' => $error->line
+				])->cdata($error->message);
+			}
+		}
+		libxml_use_internal_errors(FALSE);
+		return $xml;
+	}
 
 
 
@@ -431,23 +454,8 @@ abstract class webapp implements ArrayAccess, Stringable
 		}
 		return $this($client->headers(['User-Agent' => 'WebApp/' . self::version]));
 	}
-	function xml(mixed ...$params):webapp_xml
-	{
-		if ($params)
-		{
-			try
-			{
-				libxml_use_internal_errors(TRUE);
-				return new webapp_xml(...$params);
-			}
-			catch (Throwable $error)
-			{
-				$this->errors[] = $error->getMessage();
-				libxml_use_internal_errors(FALSE);
-			}
-		}
-		return new webapp_xml("<?xml version='1.0' encoding='{$this['app_charset']}'?><webapp/>");
-	}
+
+
 	// function formdata(array|webapp_html $node = NULL, string $action = NULL):array|webapp_html_form
 	// {
 	// 	if (is_array($node))
