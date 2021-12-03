@@ -197,8 +197,6 @@ abstract class webapp implements ArrayAccess, Stringable
 			'request_method'	=> in_array($method = strtolower($io->request_method()), ['get', 'post', 'put', 'delete'], TRUE) ? $method : 'get',
 			'request_query'		=> $io->request_query(),
 			//Application
-			//'app_rootdir'		=> __DIR__,
-			'app_resroot'		=> '/webapp/res',
 			'app_charset'		=> 'utf-8',
 			'app_mapping'		=> 'webapp_mapping_',
 			'app_index'			=> 'home',
@@ -226,7 +224,6 @@ abstract class webapp implements ArrayAccess, Stringable
 			'qrcode_size'		=> 4,
 			'qrcode_maxdata'	=> 256,
 			//Misc
-			'smtp_host'			=> 'tcp://user:pass@localhost',
 			'copy_webapp'		=> 'Web Application v' . self::version,
 			'gzip_level'		=> -1
 		];
