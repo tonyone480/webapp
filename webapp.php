@@ -47,7 +47,7 @@ abstract class webapp implements ArrayAccess, Stringable
 	{
 		for ($hash = 5381, $i = strlen($data); $i;)
 		{
-			$hash = (int)(($hash << 5) + $hash) + ord($data[--$i]) & 0x0fffffffffffffff;
+			$hash += ($hash << 5 & 0xfffffffffffffff) + ord($data[--$i]);
 		}
 		return $hash;
 	}
