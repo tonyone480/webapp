@@ -263,6 +263,10 @@ abstract class webapp implements ArrayAccess, Stringable
 	{
 		do
 		{
+			// if ($this['app_mapping'] instanceof Closure)
+			// {
+
+			// }
 			if (method_exists($this['app_mapping'], $this['app_index']))
 			{
 				$method = new ReflectionMethod($this['app_mapping'], $this['app_index']);
@@ -290,10 +294,27 @@ abstract class webapp implements ArrayAccess, Stringable
 							}
 						}
 					}
+					// $classe = $method->getDeclaringClass();
+					// var_dump($classe);
+					// print_r($classe->getTraitNames());
+					
 					if ($method->isPublic()
 						&& ($method->isUserDefined() || $this['app_mapping'] instanceof Closure)
 						&& $method->getNumberOfRequiredParameters() <= count($this['app_entry'])) {
-						$status = $method->invoke($reflex = $this->app(), ...$this['app_entry']);
+
+						$reflex = $this->app();
+						if ($this['aa'])
+						{
+							$status = $this['aa'](...$this['app_entry']);
+						}
+						else
+						{
+							$status = $method->invoke($reflex, ...$this['app_entry']);
+						}
+
+							
+						
+						//print_r($this);
 						$object = property_exists($this, 'app') ? $this->app : $reflex;
 						if ($object !== $this && method_exists($object, '__toString'))
 						{
@@ -330,6 +351,20 @@ abstract class webapp implements ArrayAccess, Stringable
 				unset($this->buffer);
 			}
 		}
+	}
+	function app(string $classname = NULL, mixed ...$params):object
+	{
+		return is_string($classname)
+			? $this->app = new $classname($this, ...$params)
+			: (is_object($this['app_mapping'])
+				? $this['app_mapping']
+				: $this['app_mapping'] = new $this['app_mapping']($this, ...$params));
+	}
+	function break(callable $method, mixed ...$params):void
+	{
+		$this['aa'] = $this['app_mapping'] = Closure::fromCallable($method)->bindTo($this);
+		$this['app_index'] = '__invoke';
+		$this['app_entry'] = $params;
 	}
 	function __toString():string
 	{
@@ -410,14 +445,6 @@ abstract class webapp implements ArrayAccess, Stringable
 	{
 		return fputcsv($this->buffer, $values, $delimiter, $enclosure);
 	}
-	function app(string $classname = NULL, mixed ...$params):object
-	{
-		return is_string($classname)
-			? $this->app = new $classname($this, ...$params)
-			: (is_object($this['app_mapping'])
-				? $this['app_mapping']
-				: $this['app_mapping'] = new $this['app_mapping']($this, ...$params));
-	}
 
 
 	function admin(?string $signature = NULL):bool
@@ -484,12 +511,7 @@ abstract class webapp implements ArrayAccess, Stringable
 		return $this($mysql);
 	}
 	function redis():webapp_redis{}
-	function break(callable $invoke, mixed ...$params):void
-	{
-		$this['app_mapping'] = Closure::fromCallable($invoke)->bindTo($this);
-		$this['app_index'] = '__invoke';
-		$this['app_entry'] = $params;
-	}
+
 	//request
 	function request_ip():string
 	{
@@ -669,28 +691,35 @@ abstract class webapp implements ArrayAccess, Stringable
 		self::__construct($io, $config);
 		if ($this['app_mapping'] === $this && in_array($this['app_index'], ['get_captcha', 'get_qrcode', 'get_scss'], TRUE)) return TRUE;
 		if ($this->admin) return FALSE;
-		if ($this['request_method'] === 'post')
+		if ($this['app_mapping'] === $this || $this['request_query'] === '')
 		{
-			$this->app('webapp_echo_json', ['errors' => &$this->errors, 'signature' => NULL]);
-			if ($input = webapp_echo_html::form_sign_in($this))
+			if ($this['request_method'] === 'post')
 			{
-				if ($this->admin($signature = $this->signature($input['username'], $input['password'])))
+				$this->app('webapp_echo_json', ['errors' => &$this->errors, 'signature' => NULL]);
+				if ($input = webapp_echo_html::form_sign_in($this))
 				{
-					$this->response_refresh(0);
-					$this->response_cookie($this['admin_cookie'], $this->app['signature'] = $signature);
-				}
-				else
-				{
-					$this->app['errors'][] = 'Sign in failed';
+					if ($this->admin($signature = $this->signature($input['username'], $input['password'])))
+					{
+						$this->response_refresh(0);
+						$this->response_cookie($this['admin_cookie'], $this->app['signature'] = $signature);
+					}
+					else
+					{
+						$this->app['errors'][] = 'Sign in failed';
+					}
 				}
 			}
+			else
+			{
+				webapp_echo_html::form_sign_in($this->app('webapp_echo_html')->xml->body->article->section);
+				$this->app->title('Sign In Admin');
+			}
+			$this->response_status(200);
 		}
 		else
 		{
-			webapp_echo_html::form_sign_in($this->app('webapp_echo_html')->xml->body->article->section);
-			$this->app->title('Sign In Admin');
+			$this->response_status(403);
 		}
-		$this->response_status(200);
 		return TRUE;
 	}
 	function get_captcha(string $random = NULL)
@@ -724,11 +753,11 @@ abstract class webapp implements ArrayAccess, Stringable
 		return 404;
 	}
 	//这个函数在不久的将来会被移除
-	function get_home()
-	{
-		$this->app('webapp_echo_html')->header['style'] = 'font-size:2rem';
-		$this->app->header->text('Welcome in WebApp Framework');
-	}
+	// function get_home()
+	// {
+	// 	$this->app('webapp_echo_html')->header['style'] = 'font-size:2rem';
+	// 	$this->app->header->text('Welcome in WebApp Framework');
+	// }
 	function get_scss(string $filename)
 	{
 		if (file_exists($input = __DIR__ . "/res/ps/{$filename}.scss"))
