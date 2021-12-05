@@ -202,7 +202,10 @@ abstract class webapp implements ArrayAccess, Stringable
 		return $xml;
 	}
 
+	static function closure(callable $function)//:Closure
+	{
 
+	}
 
 	// static function debugtime(?float &$time = 0):float
 	// {
@@ -222,8 +225,8 @@ abstract class webapp implements ArrayAccess, Stringable
 			//Application
 			'app_charset'		=> 'utf-8',
 			'app_mapping'		=> 'webapp_mapping_',
-			'app_index'			=> 'home',
-			'app_entry'			=> 'index',
+			//'app_index'			=> 'home',
+			'app_entry'			=> 'home',
 			//Admin
 			'admin_username'	=> 'admin',
 			'admin_password'	=> 'nimda',
@@ -250,10 +253,29 @@ abstract class webapp implements ArrayAccess, Stringable
 			'copy_webapp'		=> 'Web Application v' . self::version,
 			'gzip_level'		=> -1
 		];
+
+		preg_match('/^\w+(?=\/([\-\w]*))?/', $this['request_query'], $entry)
+			? $this['app_entry'] = $entry[1] ?? $this['app_entry']
+			: $entry[] = $this['app_entry'];
+		[$this['app_mapping'], $this['app_entry']]
+			= method_exists($this, $method = "{$this['request_method']}_{$entry[0]}")
+			? [$this, $method, array_slice($entry, 1)]
+			: [$this['app_mapping'] . $entry[0], strtr("{$this['request_method']}_{$this['app_entry']}", '-', '_')];
+		
+
+		print_r($this->configs);
+
+
+		return;
 		if (preg_match('/^\w+(?=\/([\-\w]*))?/', $this['request_query'], $entry))
 		{
 			[$this['app_index'], $this['app_entry']] = [...$entry, $this['app_entry']];
+			
 		}
+		$this['app_mapping'] .= $entry[0] ?? $this['app_index'];
+		
+		var_dump($this['app_mapping']);
+		return;
 		[$this['app_mapping'], $this['app_index'], $this['app_entry']]
 			= method_exists($this, $index = "{$this['request_method']}_{$this['app_index']}")
 			? [$this, $index, array_slice($entry, 1)]
@@ -261,12 +283,9 @@ abstract class webapp implements ArrayAccess, Stringable
 	}
 	function __destruct()
 	{
+		return;
 		do
 		{
-			// if ($this['app_mapping'] instanceof Closure)
-			// {
-
-			// }
 			if (method_exists($this['app_mapping'], $this['app_index']))
 			{
 				$method = new ReflectionMethod($this['app_mapping'], $this['app_index']);
@@ -303,18 +322,9 @@ abstract class webapp implements ArrayAccess, Stringable
 						&& $method->getNumberOfRequiredParameters() <= count($this['app_entry'])) {
 
 						$reflex = $this->app();
-						if ($this['aa'])
-						{
-							$status = $this['aa'](...$this['app_entry']);
-						}
-						else
-						{
-							$status = $method->invoke($reflex, ...$this['app_entry']);
-						}
-
-							
-						
-						//print_r($this);
+						$status = $this['app_index'] instanceof Closure
+							? $this['app_index'](...$this['app_entry'])
+							: $method->invoke($reflex, ...$this['app_entry']);
 						$object = property_exists($this, 'app') ? $this->app : $reflex;
 						if ($object !== $this && method_exists($object, '__toString'))
 						{
@@ -360,10 +370,20 @@ abstract class webapp implements ArrayAccess, Stringable
 				? $this['app_mapping']
 				: $this['app_mapping'] = new $this['app_mapping']($this, ...$params));
 	}
-	function break(callable $method, mixed ...$params):void
+	function break(Closure $method, mixed ...$params):void
 	{
-		$this['aa'] = $this['app_mapping'] = Closure::fromCallable($method)->bindTo($this);
-		$this['app_index'] = '__invoke';
+	
+		if (debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1]['class'] === static::class)
+		{
+			$this['app_mapping'] = $method;
+			$this['app_index'] = '__invoke';
+			
+		}
+		else
+		{
+			$this['app_index'] = $method;
+		}
+
 		$this['app_entry'] = $params;
 	}
 	function __toString():string
