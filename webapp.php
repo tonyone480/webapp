@@ -25,6 +25,7 @@ interface webapp_io
 abstract class webapp implements ArrayAccess, Stringable
 {
 	const version = '4.7a', key = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz-';
+	public readonly webapp $webapp;
 	private array $errors = [], $headers = [], $cookies = [], $configs, $uploadedfiles;
 	protected static array $interfaces = [];
 	static function __callStatic(string $name, array $arguments):mixed
@@ -263,7 +264,7 @@ abstract class webapp implements ArrayAccess, Stringable
 			: [$this['app_mapping'] . $entry[0], strtr("{$this['request_method']}_{$this['app_entry']}", '-', '_')];
 		
 
-		print_r($this->configs);
+		//print_r($this->configs);
 
 
 		return;
