@@ -25,7 +25,7 @@ interface webapp_io
 abstract class webapp implements ArrayAccess, Stringable
 {
 	const version = '4.7a', key = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz-';
-	public readonly webapp $webapp;
+	public readonly self $webapp;
 	private array $errors = [], $headers = [], $cookies = [], $configs, $uploadedfiles;
 	protected static array $interfaces = [];
 	static function __callStatic(string $name, array $arguments):mixed
@@ -260,10 +260,12 @@ abstract class webapp implements ArrayAccess, Stringable
 			: $entry[] = $this['app_entry'];
 		[$this['app_mapping'], $this['app_entry']]
 			= method_exists($this, $method = "{$this['request_method']}_{$entry[0]}")
-			? [$this, $method, array_slice($entry, 1)]
-			: [$this['app_mapping'] . $entry[0], strtr("{$this['request_method']}_{$this['app_entry']}", '-', '_')];
+			? [[$this, $method], array_slice($entry, 1)]
+			: [[$this['app_mapping'] . $entry[0], strtr("{$this['request_method']}_{$this['app_entry']}", '-', '_')], []];
 		
 
+		// $a = new ReflectionFunction([$this, 'gey_home']);
+		// var_dump($a->getClosureThis());
 		//print_r($this->configs);
 
 
@@ -284,6 +286,24 @@ abstract class webapp implements ArrayAccess, Stringable
 	}
 	function __destruct()
 	{
+		do
+		{
+			if ($loader = match (TRUE) {
+				$this['app_mapping'] instanceof Closure => new ReflectionFunction($this['app_mapping']),
+				method_exists(...$this['app_mapping']) => new ReflectionMethod(...$this['app_mapping']),
+				default => NULL
+			}) {
+				print_r($loader );
+			}
+			$status = 404;
+		} while (0);
+		
+		
+		
+
+
+
+
 		return;
 		do
 		{
