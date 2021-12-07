@@ -22,7 +22,7 @@ interface webapp_io
 	function response_content(string $data):bool;
 	function response_sendfile(string $filename):bool;
 }
-abstract class webapp implements ArrayAccess, Stringable
+abstract class webapp implements ArrayAccess, Stringable, Countable
 {
 	const version = '4.7a', key = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz-';
 	public readonly self $webapp;
@@ -255,34 +255,35 @@ abstract class webapp implements ArrayAccess, Stringable
 			'gzip_level'		=> -1
 		];
 
-		preg_match('/^\w+(?=\/([\-\w]*))?/', $this['request_query'], $entry)
-			? $this['app_entry'] = $entry[1] ?? $this['app_entry']
+		$index = preg_match('/^\w+(?=\/([\-\w]*))?/', $this['request_query'], $entry)
+			? $entry[1] ?? $this['app_entry']
 			: $entry[] = $this['app_entry'];
+			
 		[$this['app_mapping'], $this['app_entry']]
 			= method_exists($this, $method = "{$this['request_method']}_{$entry[0]}")
 			? [[$this, $method], array_slice($entry, 1)]
-			: [[$this['app_mapping'] . $entry[0], strtr("{$this['request_method']}_{$this['app_entry']}", '-', '_')], []];
+			: [[$this['app_mapping'] . $entry[0], strtr("{$this['request_method']}_{$index}", '-', '_')], []];
 		
-
+		print_r($this['app_mapping']);
 		// $a = new ReflectionFunction([$this, 'gey_home']);
 		// var_dump($a->getClosureThis());
 		//print_r($this->configs);
 
 
-		return;
-		if (preg_match('/^\w+(?=\/([\-\w]*))?/', $this['request_query'], $entry))
-		{
-			[$this['app_index'], $this['app_entry']] = [...$entry, $this['app_entry']];
+		// return;
+		// if (preg_match('/^\w+(?=\/([\-\w]*))?/', $this['request_query'], $entry))
+		// {
+		// 	[$this['app_index'], $this['app_entry']] = [...$entry, $this['app_entry']];
 			
-		}
-		$this['app_mapping'] .= $entry[0] ?? $this['app_index'];
+		// }
+		// $this['app_mapping'] .= $entry[0] ?? $this['app_index'];
 		
-		var_dump($this['app_mapping']);
-		return;
-		[$this['app_mapping'], $this['app_index'], $this['app_entry']]
-			= method_exists($this, $index = "{$this['request_method']}_{$this['app_index']}")
-			? [$this, $index, array_slice($entry, 1)]
-			: [$this['app_mapping'] . $this['app_index'], strtr("{$this['request_method']}_{$this['app_entry']}", '-', '_'), []];
+		// var_dump($this['app_mapping']);
+		// return;
+		// [$this['app_mapping'], $this['app_index'], $this['app_entry']]
+		// 	= method_exists($this, $index = "{$this['request_method']}_{$this['app_index']}")
+		// 	? [$this, $index, array_slice($entry, 1)]
+		// 	: [$this['app_mapping'] . $this['app_index'], strtr("{$this['request_method']}_{$this['app_entry']}", '-', '_'), []];
 	}
 	function __destruct()
 	{
@@ -293,7 +294,7 @@ abstract class webapp implements ArrayAccess, Stringable
 				method_exists(...$this['app_mapping']) => new ReflectionMethod(...$this['app_mapping']),
 				default => NULL
 			}) {
-				print_r($loader );
+				var_dump($loader->name );
 			}
 			$status = 404;
 		} while (0);
@@ -378,6 +379,7 @@ abstract class webapp implements ArrayAccess, Stringable
 					&& stream_filter_append($this->buffer, 'zlib.deflate', STREAM_FILTER_READ, ['level' => $this['gzip_level'], 'window' => 31, 'memory' => 9])) {
 					$this->io->response_header('Content-Encoding: gzip');
 				}
+				//Content-Length: 22
 				$this->io->response_content((string)$this);
 				unset($this->buffer);
 			}
@@ -465,6 +467,10 @@ abstract class webapp implements ArrayAccess, Stringable
 	final function offsetUnset(mixed $key):void
 	{
 		unset($this->configs[$key]);
+	}
+	final function count():int
+	{
+		return ftell($this->buffer);
 	}
 	final function buffer():mixed
 	{
