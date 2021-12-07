@@ -264,7 +264,7 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 			? [[$this, $method], array_slice($entry, 1)]
 			: [[$this['app_mapping'] . $entry[0], strtr("{$this['request_method']}_{$index}", '-', '_')], []];
 		
-		print_r($this['app_mapping']);
+		//print_r($this['app_mapping']);
 		// $a = new ReflectionFunction([$this, 'gey_home']);
 		// var_dump($a->getClosureThis());
 		//print_r($this->configs);
@@ -287,17 +287,41 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	}
 	function __destruct()
 	{
-		do
+		if (method_exists(...$this['app_mapping']))
 		{
-			if ($loader = match (TRUE) {
-				$this['app_mapping'] instanceof Closure => new ReflectionFunction($this['app_mapping']),
-				method_exists(...$this['app_mapping']) => new ReflectionMethod(...$this['app_mapping']),
-				default => NULL
-			}) {
-				var_dump($loader->name );
+			$router = new ReflectionMethod(...$this['app_mapping']);
+			if ($router->isUserDefined() && preg_match_all('/\,(\w+)(?:\:([\%\+\-\.\/\=\w]+))?/', $this['request_query'], $params, PREG_SET_ORDER | PREG_UNMATCHED_AS_NULL))
+			{
+				
 			}
-			$status = 404;
-		} while (0);
+			if ($router->isPublic() && $router->getNumberOfRequiredParameters() <= count($this['app_entry']))
+			{
+				$object = $this->app();
+				var_dump($this['app_mapping'][0]);
+				$status = $this['app_mapping'][1] === $router->name
+					? $router->invoke($object, ...$this['app_entry'])
+					: $this['app_mapping'][0](...$this['app_entry']);
+				$reflex = property_exists($this, 'app') ? $this->app : $object;
+				if ($reflex !== $this && method_exists($reflex, '__toString'))
+				{
+					$this->print((string)$reflex);
+				}
+
+				//var_dump($this['app_mapping'][1] !== $router->name);
+				// if (is_string($this['app_mapping'][0]))
+				// {
+				// 	$aa = new $this['app_mapping'][0]($this);
+				// }
+				// var_dump($this['app_mapping'][0] === $this->app());
+				//$router->invoke(, ...$this['app_entry']);
+				//var_dump($this['app_mapping']);
+			}
+			
+			
+
+		// 	var_dump($method);
+		}
+
 		
 		
 		
@@ -385,29 +409,40 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 			}
 		}
 	}
+	// function passing(object|string $mapping, ):bool
+	// {
+
+	// }
 	function app(string $classname = NULL, mixed ...$params):object
 	{
 		return is_string($classname)
 			? $this->app = new $classname($this, ...$params)
-			: (is_object($this['app_mapping'])
-				? $this['app_mapping']
-				: $this['app_mapping'] = new $this['app_mapping']($this, ...$params));
+			: (is_object($this['app_mapping'][0])
+				? $this['app_mapping'][0]
+				: $this['app_mapping'][0] = new $this['app_mapping'][0]($this, ...$params));
+		// return is_string($classname)
+		// 	? $this->app = new $classname($this, ...$params)
+		// 	: (is_object($this['app_mapping'])
+		// 		? $this['app_mapping']
+		// 		: $this['app_mapping'] = new $this['app_mapping']($this, ...$params));
 	}
 	function break(Closure $method, mixed ...$params):void
 	{
-	
-		if (debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1]['class'] === static::class)
-		{
-			$this['app_mapping'] = $method;
-			$this['app_index'] = '__invoke';
-			
-		}
-		else
-		{
-			$this['app_index'] = $method;
-		}
-
+		$this['app_mapping'] = [$method, '__invoke'];
 		$this['app_entry'] = $params;
+		// return;
+		// if (debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1]['class'] === static::class)
+		// {
+		// 	$this['app_mapping'] = $method;
+		// 	$this['app_index'] = '__invoke';
+			
+		// }
+		// else
+		// {
+		// 	$this['app_index'] = $method;
+		// }
+
+		// $this['app_entry'] = $params;
 	}
 	function __toString():string
 	{
