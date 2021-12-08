@@ -296,11 +296,10 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 			}
 			if ($router->isPublic() && $router->getNumberOfRequiredParameters() <= count($this['app_entry']))
 			{
-				$object = $this->app();
-				var_dump($this['app_mapping'][0]);
-				$status = $this['app_mapping'][1] === $router->name
-					? $router->invoke($object, ...$this['app_entry'])
-					: $this['app_mapping'][0](...$this['app_entry']);
+				$object = is_object($this['app_mapping'][0]) ? $this['app_mapping'][0] : new $this['app_mapping'][0]($this);
+				$status = $this['app_mapping'][1] instanceof Closure
+					? $this['app_mapping'][0](...$this['app_entry'])
+					: $router->invoke($object, ...$this['app_entry']);
 				$reflex = property_exists($this, 'app') ? $this->app : $object;
 				if ($reflex !== $this && method_exists($reflex, '__toString'))
 				{
@@ -320,6 +319,32 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 			
 
 		// 	var_dump($method);
+		}
+		if ($this->io->response_sent() === FALSE)
+		{
+			if (is_int($status))
+			{
+				$this->io->response_status($status);
+			}
+			foreach ($this->cookies as $values)
+			{
+				$this->io->response_cookie(...$values);
+			}
+			foreach ($this->headers as $name => $value)
+			{
+				$this->io->response_header("{$name}: {$value}");
+			}
+			if (property_exists($this, 'buffer'))
+			{
+				if ($this['gzip_level']
+					&& stripos($this->request_header('Accept-Encoding'), 'gzip') !== FALSE
+					&& stream_filter_append($this->buffer, 'zlib.deflate', STREAM_FILTER_READ, ['level' => $this['gzip_level'], 'window' => 31, 'memory' => 9])) {
+					$this->io->response_header('Content-Encoding: gzip');
+				}
+				//Content-Length: 22
+				$this->io->response_content((string)$this);
+				unset($this->buffer);
+			}
 		}
 
 		
