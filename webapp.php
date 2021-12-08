@@ -278,10 +278,10 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 				$status = $this->router[0] instanceof Closure
 					? $this->router[0](...$this->entry)
 					: $router->invoke($object, ...$this->entry);
-				$reflex = property_exists($this, 'app') ? $this->app : $object;
-				if ($reflex !== $this && method_exists($reflex, '__toString'))
+				$output = property_exists($this, 'app') ? $this->app : $object;
+				if ($output !== $this && method_exists($output, '__toString'))
 				{
-					$this->print((string)$reflex);
+					$this->print((string)$output);
 				}
 			}
 		}
