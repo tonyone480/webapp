@@ -214,13 +214,14 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	// }
 	function __construct(private webapp_io $io, array $config = [])
 	{
-		$this->webapp = $this;
-		$this->configs = $config + [
+		[$this->webapp, $this->configs] = [$this, [
 			//Request
 			'request_method'	=> in_array($method = strtolower($io->request_method()), ['get', 'post', 'put', 'delete'], TRUE) ? $method : 'get',
 			'request_query'		=> $io->request_query(),
 			//Application
 			'app_charset'		=> 'utf-8',
+			// 'app_console'		=> 'webapp_controller_',
+			// 'app_default'		=> 'home',
 			'app_mapping'		=> 'webapp_mapping_',
 			'app_home'			=> 'home',
 			//Admin
@@ -247,12 +248,11 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 			'qrcode_maxdata'	=> 256,
 			//Misc
 			'copy_webapp'		=> 'Web Application v' . self::version,
-			'gzip_level'		=> -1
-		];
-		[$this->router, $this->entry]
-			= method_exists($this, $router = sprintf('%s_%s', $this['request_method'],
-				preg_match('/^\w+(?=\/([\-\w]*))?/', $this['request_query'], $entry)
-					? $entry[0] : $entry[] = $this['app_home']))
+			'gzip_level'		=> -1,
+			...$config]];
+		[$this->router, $this->entry] = method_exists($this, $router = sprintf('%s_%s', $this['request_method'],
+			preg_match('/^\w+(?=\/([\-\w]*))?/', $this['request_query'], $entry)
+				? $entry[0] : $entry[] = $this['app_home']))
 			? [[$this, $router], array_slice($entry, 1)]
 			: [[$this['app_mapping'] . $entry[0], sprintf('%s_%s', $this['request_method'],
 				count($entry) > 1 ? strtr($entry[1], '-', '_') : $this['app_home'])], []];
@@ -326,24 +326,31 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 					&& stream_filter_append($this->buffer, 'zlib.deflate', STREAM_FILTER_READ, ['level' => $this['gzip_level'], 'window' => 31, 'memory' => 9])) {
 					$this->io->response_header('Content-Encoding: gzip');
 				}
-				//Content-Length: 22
+				//Content-Length: 
 				$this->io->response_content((string)$this);
 				unset($this->buffer);
 			}
 		}
 	}
-	// function passing(object|string $mapping, ):bool
-	// {
 
-	// }
+	
 	function app(string $name, mixed ...$params):?object
 	{
 		return class_exists($name, FALSE) ? $this->app = new $name($this, ...$params) : NULL;
 	}
-	function break(Closure $router, mixed ...$params):void
+	final function route(int $index):string|object
+	{
+		return $this->router[$index & 1];
+	}
+	final function entry(array $params):void
+	{
+		$this->entry = [...$this->entry, ...$params];
+	}
+	final function break(Closure $router, mixed ...$params):void
 	{
 		[$this->router, $this->entry] = [[$router, '__invoke'], $params];
 	}
+
 	function __toString():string
 	{
 		return rewind($this->buffer) ? stream_get_contents($this->buffer) : join(PHP_EOL, $this->errors);

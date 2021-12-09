@@ -5,11 +5,12 @@ class webapp_mysql extends mysqli implements IteratorAggregate
 	public array $errors = [];
 	function __construct(string $host = 'p:127.0.0.1:3306', string $user = 'root', string $password = NULL, string $database = NULL, private string $maptable = 'webapp_maptable_')
 	{
-		$this->init();
+		//$this->init();
 		//ini_set('mysqli.reconnect', TRUE);
 		//$this->options(MYSQLI_OPT_CONNECT_TIMEOUT, 1);
 		//$this->real_connect($host, $user, $password, $database);
-		$this->real_connect($host, $user, $password, $database, flags: MYSQLI_CLIENT_FOUND_ROWS | MYSQLI_CLIENT_INTERACTIVE);
+		parent::__construct();
+		parent::real_connect($host, $user, $password, $database, flags: MYSQLI_CLIENT_FOUND_ROWS | MYSQLI_CLIENT_INTERACTIVE);
 	}
 	function __destruct()
 	{
