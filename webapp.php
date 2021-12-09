@@ -203,10 +203,6 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 		return $xml;
 	}
 
-	static function closure(callable $function)//:Closure
-	{
-
-	}
 
 	// static function debugtime(?float &$time = 0):float
 	// {
@@ -263,76 +259,21 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	}
 	function __destruct()
 	{
-		if (method_exists(...$this->router))
-		{
-			$method = new ReflectionMethod(...$this->router);
-			if ($method->isUserDefined() && preg_match_all('/\,(\w+)(?:\:([\%\+\-\.\/\=\w]+))?/', $this['request_query'], $pattern, PREG_SET_ORDER | PREG_UNMATCHED_AS_NULL))
-			{
-				
-			}
-			if ($method->isPublic() && $method->getNumberOfRequiredParameters() <= count($this->entry))
-			{
-				$status = ($router = is_string($scheme = reset($this->router))
-					&& ($object = new $scheme($this))::class === reset($this->router)
-					? $object : current($this->router))::class === 'Closure'
-					? $router(...$this->entry) : $method->invoke($router, ...$this->entry);
-				$output = property_exists($this, 'app') ? $this->app : $router;
-				if ($output !== $this && method_exists($output, '__toString'))
-				{
-					$this->print((string)$output);
-				}
-			}
-		}
-		if ($this->io->response_sent() === FALSE)
-		{
-			if (is_int($status))
-			{
-				$this->io->response_status($status);
-			}
-			foreach ($this->cookies as $values)
-			{
-				$this->io->response_cookie(...$values);
-			}
-			foreach ($this->headers as $name => $value)
-			{
-				$this->io->response_header("{$name}: {$value}");
-			}
-			if (property_exists($this, 'buffer'))
-			{
-				if ($this['gzip_level']
-					&& stripos($this->request_header('Accept-Encoding'), 'gzip') !== FALSE
-					&& stream_filter_append($this->buffer, 'zlib.deflate', STREAM_FILTER_READ, ['level' => $this['gzip_level'], 'window' => 31, 'memory' => 9])) {
-					$this->io->response_header('Content-Encoding: gzip');
-				}
-				//Content-Length: 22
-				$this->io->response_content((string)$this);
-				unset($this->buffer);
-			}
-		}
-
-		
-		
-		
-
-
-
-
-		return;
 		do
 		{
-			if (method_exists($this['app_mapping'], $this['app_index']))
+			if (method_exists(...$this->router))
 			{
-				$method = new ReflectionMethod($this['app_mapping'], $this['app_index']);
 				do
 				{
-					if (preg_match_all('/\,(\w+)(?:\:([\%\+\-\.\/\=\w]+))?/', $this['request_query'], $params, PREG_SET_ORDER | PREG_UNMATCHED_AS_NULL))
+					$method = new ReflectionMethod(...$this->router);
+					if ($method->isUserDefined() && preg_match_all('/\,(\w+)(?:\:([\%\+\-\.\/\=\w]+))?/', $this['request_query'], $pattern, PREG_SET_ORDER | PREG_UNMATCHED_AS_NULL))
 					{
-						$parameters = array_column($params, 2, 1);
+						$parameters = array_column($pattern, 2, 1);
 						foreach (array_slice($method->getParameters(), intval($this['app_mapping'] === $this)) as $parameter)
 						{
 							if (array_key_exists($parameter->name, $parameters))
 							{
-								$this['app_entry'][$parameter->name] = match ((string)$parameter->getType())
+								$this->entry[$parameter->name] = match ((string)$parameter->getType())
 								{
 									'int' => intval($parameters[$parameter->name]),
 									'float' => floatval($parameters[$parameter->name]),
@@ -347,22 +288,16 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 							}
 						}
 					}
-					// $classe = $method->getDeclaringClass();
-					// var_dump($classe);
-					// print_r($classe->getTraitNames());
-					
-					if ($method->isPublic()
-						&& ($method->isUserDefined() || $this['app_mapping'] instanceof Closure)
-						&& $method->getNumberOfRequiredParameters() <= count($this['app_entry'])) {
-
-						$reflex = $this->app();
-						$status = $this['app_index'] instanceof Closure
-							? $this['app_index'](...$this['app_entry'])
-							: $method->invoke($reflex, ...$this['app_entry']);
-						$object = property_exists($this, 'app') ? $this->app : $reflex;
-						if ($object !== $this && method_exists($object, '__toString'))
+					if ($method->isPublic() && $method->getNumberOfRequiredParameters() <= count($this->entry))
+					{
+						$status = ($router = is_string($scheme = reset($this->router))
+							&& ($object = new $scheme($this))::class === reset($this->router)
+							? $object : current($this->router))::class === 'Closure'
+							? $router(...$this->entry) : $method->invoke($router, ...$this->entry);
+						$output = property_exists($this, 'app') ? $this->app : $router;
+						if ($output !== $this && method_exists($output, '__toString'))
 						{
-							$this->print((string)$object);
+							$this->print((string)$output);
 						}
 						break 2;
 					}
@@ -401,22 +336,13 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	// {
 
 	// }
-	function app(string $classname = NULL, mixed ...$params):object
+	function app(string $name, mixed ...$params):?object
 	{
-		return is_string($classname)
-			? $this->app = new $classname($this, ...$params)
-			: (is_object($this['app_mapping'][0])
-				? $this['app_mapping'][0]
-				: $this['app_mapping'][0] = new $this['app_mapping'][0]($this, ...$params));
-		// return is_string($classname)
-		// 	? $this->app = new $classname($this, ...$params)
-		// 	: (is_object($this['app_mapping'])
-		// 		? $this['app_mapping']
-		// 		: $this['app_mapping'] = new $this['app_mapping']($this, ...$params));
+		return class_exists($name, FALSE) ? $this->app = new $name($this, ...$params) : NULL;
 	}
 	function break(Closure $router, mixed ...$params):void
 	{
-		[$this->router[0], $this->router[1], $this->entry] = [$router, '__invoke', $params];
+		[$this->router, $this->entry] = [[$router, '__invoke'], $params];
 	}
 	function __toString():string
 	{
@@ -428,9 +354,7 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	// }
 	// function __call(string $name, array $params):mixed
 	// {
-
-	// 	var_dump(method_exists($this->app, $name));
-	// 	//return method_exists($this->app, $name) ? $this->app->{$name}(...$params) : throw new error;
+	// 	return property_exists($this, 'app') && method_exists($this->app, $name) ? $this->app->{$name}(...$params) : NULL;
 	// }
 	function __get(string $name):mixed
 	{
@@ -446,7 +370,7 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 				return $this->{$name} = $method->invoke($this);
 			}
 		}
-		return property_exists($this->app, $name) ? $this->app->{$name} : throw new error;
+		return property_exists($this, 'app') && property_exists($this->app, $name) ? $this->app->{$name} : NULL;
 	}
 	final function __invoke(object $object, string $errors = 'errors'):object
 	{
