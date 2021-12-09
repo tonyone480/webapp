@@ -272,20 +272,10 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 			}
 			if ($method->isPublic() && $method->getNumberOfRequiredParameters() <= count($this->entry))
 			{
-				if (is_string(current([&$router] = $this->router)))
-				{
-					$object = new $router($this);
-					if ($object instanceof $router)
-					{
-						$router = $object;
-					}
-				}
-				//(is_object(current([&$router] = $this->router)) ? $router : new $router($this));
-				//$object = is_object($this->router[0]) ? $this->router[0] : new $this->router[0]($this);
-				//var_dump($object instanceof Closure);
-				$status = $router instanceof Closure
-					? $router(...$this->entry)
-					: $method->invoke($router, ...$this->entry);
+				$status = ($router = is_string($scheme = reset($this->router))
+					&& ($object = new $scheme($this))::class === reset($this->router)
+					? $object : current($this->router))::class === 'Closure'
+					? $router(...$this->entry) : $method->invoke($router, ...$this->entry);
 				$output = property_exists($this, 'app') ? $this->app : $router;
 				if ($output !== $this && method_exists($output, '__toString'))
 				{
