@@ -26,7 +26,7 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 {
 	const version = '4.7a', key = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz-';
 	public readonly self $webapp;
-	private array $errors = [], $headers = [], $cookies = [], $uploadedfiles, $configs, $router, $entry;
+	private array $errors = [], $cookies = [], $headers = [], $uploadedfiles, $configs, $router, $entry;
 	protected static array $interfaces = [];
 	static function __callStatic(string $name, array $arguments):mixed
 	{
@@ -265,20 +265,28 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	{
 		if (method_exists(...$this->router))
 		{
-			$router = new ReflectionMethod(...$this->router);
-			if ($router->isUserDefined() && preg_match_all('/\,(\w+)(?:\:([\%\+\-\.\/\=\w]+))?/', $this['request_query'], $params, PREG_SET_ORDER | PREG_UNMATCHED_AS_NULL))
+			$method = new ReflectionMethod(...$this->router);
+			if ($method->isUserDefined() && preg_match_all('/\,(\w+)(?:\:([\%\+\-\.\/\=\w]+))?/', $this['request_query'], $pattern, PREG_SET_ORDER | PREG_UNMATCHED_AS_NULL))
 			{
 				
 			}
-			if ($router->isPublic() && $router->getNumberOfRequiredParameters() <= count($this->entry))
+			if ($method->isPublic() && $method->getNumberOfRequiredParameters() <= count($this->entry))
 			{
-				//[&$object] = $this->router;
-				//(is_object($object) ? $object : $object = new $object($this));
-				$object = is_object($this->router[0]) ? $this->router[0] : new $this->router[0]($this);
-				$status = $this->router[0] instanceof Closure
-					? $this->router[0](...$this->entry)
-					: $router->invoke($object, ...$this->entry);
-				$output = property_exists($this, 'app') ? $this->app : $object;
+				if (is_string(current([&$router] = $this->router)))
+				{
+					$object = new $router($this);
+					if ($object instanceof $router)
+					{
+						$router = $object;
+					}
+				}
+				//(is_object(current([&$router] = $this->router)) ? $router : new $router($this));
+				//$object = is_object($this->router[0]) ? $this->router[0] : new $this->router[0]($this);
+				//var_dump($object instanceof Closure);
+				$status = $router instanceof Closure
+					? $router(...$this->entry)
+					: $method->invoke($router, ...$this->entry);
+				$output = property_exists($this, 'app') ? $this->app : $router;
 				if ($output !== $this && method_exists($output, '__toString'))
 				{
 					$this->print((string)$output);
@@ -418,7 +426,7 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	}
 	function break(Closure $router, mixed ...$params):void
 	{
-		[$this->router, $this->entry] = [[$router, '__invoke'], $params];
+		[$this->router[0], $this->router[1], $this->entry] = [$router, '__invoke', $params];
 	}
 	function __toString():string
 	{
