@@ -292,7 +292,12 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 					{
 						break;
 					}
-					$status = $method->invoke($router, ...$this->entry);
+					$status = $router::class === 'Closure'
+						? $router(...$this->entry)
+						: $method->invoke($router, ...$this->entry);
+
+
+					
 					$output = property_exists($this, 'app') ? $this->app : $router;
 					if ($output !== $this && method_exists($output, '__toString'))
 					{
