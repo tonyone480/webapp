@@ -26,7 +26,7 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 {
 	const version = '4.7a', key = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz-';
 	public readonly self $webapp;
-	private array $errors = [], $cookies = [], $headers = [], $uploadedfiles, $configs, $router, $entry;
+	private array $errors = [], $cookies = [], $headers = [], $uploadedfiles, $configs, $route, $entry;
 	protected static array $interfaces = [];
 	static function __callStatic(string $name, array $arguments):mixed
 	{
@@ -220,10 +220,8 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 			'request_query'		=> $io->request_query(),
 			//Application
 			'app_charset'		=> 'utf-8',
-			// 'app_console'		=> 'webapp_controller_',
-			// 'app_command'		=> 'home',
-			'app_mapping'		=> 'webapp_mapping_',
-			'app_home'			=> 'home',
+			'app_router'		=> 'webapp_router_',
+			'app_index'			=> 'home',
 			//Admin
 			'admin_username'	=> 'admin',
 			'admin_password'	=> 'nimda',
@@ -250,30 +248,32 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 			'copy_webapp'		=> 'Web Application v' . self::version,
 			'gzip_level'		=> -1,
 			...$config]];
-		[$this->router, $this->entry] = method_exists($this, $router = sprintf('%s_%s', $this['request_method'],
+		[$this->route, $this->entry] = method_exists($this, $route = sprintf('%s_%s', $this['request_method'],
 			preg_match('/^\w+(?=\/([\-\w]*))?/', $this['request_query'], $entry)
-				? $entry[0] : $entry[] = $this['app_home']))
-			? [[$this, $router], array_slice($entry, 1)]
-			: [[$this['app_mapping'] . $entry[0], sprintf('%s_%s', $this['request_method'],
-				count($entry) > 1 ? strtr($entry[1], '-', '_') : $this['app_home'])], []];
+				? $entry[0] : $entry[] = $this['app_index']))
+			? [[$this, $route], array_slice($entry, 1)]
+			: [[$this['app_router'] . $entry[0], sprintf('%s_%s', $this['request_method'],
+				count($entry) > 1 ? strtr($entry[1], '-', '_') : $this['app_index'])], []];
 	}
 	function __destruct()
 	{
 		do
 		{
-			if (method_exists(...$this->router))
+			if (method_exists(...$this->route) && ($method = new ReflectionMethod(...$this->route))->isPublic())
 			{
 				do
 				{
-					$method = new ReflectionMethod(...$this->router);
-					if ($method->isUserDefined() && preg_match_all('/\,(\w+)(?:\:([\%\+\-\.\/\=\w]+))?/', $this['request_query'], $pattern, PREG_SET_ORDER | PREG_UNMATCHED_AS_NULL))
-					{
+					if (($router = is_string($scheme = reset($this->route))
+							&& ($object = new $scheme($this))::class === reset($this->route)
+								? $object : current($this->route))::class !== 'Closure'
+						&& $method->isUserDefined()
+						&& preg_match_all('/\,(\w+)(?:\:([\%\+\-\.\/\=\w]+))?/', $this['request_query'], $pattern, PREG_SET_ORDER | PREG_UNMATCHED_AS_NULL)) {
 						$parameters = array_column($pattern, 2, 1);
-						foreach (array_slice($method->getParameters(), intval($this['app_mapping'] === $this)) as $parameter)
+						foreach (array_slice($method->getParameters(), intval($router === $this)) as $parameter)
 						{
 							if (array_key_exists($parameter->name, $parameters))
 							{
-								$this->entry[$parameter->name] = match ((string)$parameter->getType())
+								$this->entry[$parameter->name] ??= match ((string)$parameter->getType())
 								{
 									'int' => intval($parameters[$parameter->name]),
 									'float' => floatval($parameters[$parameter->name]),
@@ -288,19 +288,53 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 							}
 						}
 					}
-					if ($method->isPublic() && $method->getNumberOfRequiredParameters() <= count($this->entry))
+					if ($method->getNumberOfRequiredParameters() > count($this->entry))
 					{
-						$status = ($router = is_string($scheme = reset($this->router))
-							&& ($object = new $scheme($this))::class === reset($this->router)
-							? $object : current($this->router))::class === 'Closure'
-							? $router(...$this->entry) : $method->invoke($router, ...$this->entry);
-						$output = property_exists($this, 'app') ? $this->app : $router;
-						if ($output !== $this && method_exists($output, '__toString'))
-						{
-							$this->print((string)$output);
-						}
-						break 2;
+						break;
 					}
+					$status = $method->invoke($router, ...$this->entry);
+					$output = property_exists($this, 'app') ? $this->app : $router;
+					if ($output !== $this && method_exists($output, '__toString'))
+					{
+					 	$this->print((string)$output);
+					}
+					break 2;
+					
+					// if ($method->isUserDefined() && preg_match_all('/\,(\w+)(?:\:([\%\+\-\.\/\=\w]+))?/', $this['request_query'], $pattern, PREG_SET_ORDER | PREG_UNMATCHED_AS_NULL))
+					// {
+					// 	$parameters = array_column($pattern, 2, 1);
+					// 	foreach (array_slice($method->getParameters(), intval($this['app_mapping'] === $this)) as $parameter)
+					// 	{
+					// 		if (array_key_exists($parameter->name, $parameters))
+					// 		{
+					// 			$this->entry[$parameter->name] = match ((string)$parameter->getType())
+					// 			{
+					// 				'int' => intval($parameters[$parameter->name]),
+					// 				'float' => floatval($parameters[$parameter->name]),
+					// 				//'string' => urldecode($parameters[$parameter->name]),
+					// 				default => $parameters[$parameter->name]
+					// 			};
+					// 			continue;
+					// 		}
+					// 		if ($parameter->isOptional() === FALSE)
+					// 		{
+					// 			break 2;
+					// 		}
+					// 	}
+					// }
+					// if ($method->getNumberOfRequiredParameters() <= count($this->entry))
+					// {
+					// 	$status = ($router = is_string($scheme = reset($this->route))
+					// 		&& ($object = new $scheme($this))::class === reset($this->route)
+					// 		? $object : current($this->route))::class === 'Closure'
+					// 		? $router(...$this->entry) : $method->invoke($router, ...$this->entry);
+					// 	$output = property_exists($this, 'app') ? $this->app : $router;
+					// 	if ($output !== $this && method_exists($output, '__toString'))
+					// 	{
+					// 		$this->print((string)$output);
+					// 	}
+					// 	break 2;
+					// }
 				} while (0);
 			}
 			$status = 404;
@@ -340,15 +374,15 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	}
 	final function route(int $index):string|object
 	{
-		return $this->router[$index & 1];
+		return $this->route[$index & 1];
 	}
 	final function entry(array $params):void
 	{
-		$this->entry = [...$this->entry, ...$params];
+		$this->entry = $params + $this->entry;
 	}
-	final function break(Closure $router, mixed ...$params):void
+	final function break(Closure $execute, mixed ...$params):void
 	{
-		[$this->router, $this->entry] = [[$router, '__invoke'], $params];
+		[$this->route, $this->entry] = [[$execute, '__invoke'], $params];
 	}
 
 	function __toString():string

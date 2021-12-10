@@ -1,12 +1,9 @@
 <?php
 declare(strict_types=1);
-// interface webapp_echo
-// {
-
-// }
 trait webapp_echo
 {
 	protected webapp $webapp;
+	abstract function __construct(webapp $webapp);
 	abstract function __toString():string;
 	function __get(string $name):mixed
 	{
