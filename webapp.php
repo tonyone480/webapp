@@ -221,7 +221,7 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 			//Application
 			'app_charset'		=> 'utf-8',
 			// 'app_console'		=> 'webapp_controller_',
-			// 'app_default'		=> 'home',
+			// 'app_command'		=> 'home',
 			'app_mapping'		=> 'webapp_mapping_',
 			'app_home'			=> 'home',
 			//Admin
