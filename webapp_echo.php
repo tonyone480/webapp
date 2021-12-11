@@ -2,7 +2,7 @@
 declare(strict_types=1);
 trait webapp_echo
 {
-	protected webapp $webapp;
+	protected readonly webapp $webapp;
 	abstract function __construct(webapp $webapp);
 	abstract function __toString():string;
 	function __get(string $name):mixed
@@ -14,6 +14,7 @@ trait webapp_echo
 		return $this->webapp->{$name}(...$params);
 	}
 }
+/*
 class webapp_echo_json extends ArrayObject implements Stringable
 {
 	use webapp_echo;
@@ -151,3 +152,4 @@ class webapp_echo_xls extends webapp_echo_xml
 		return $this;
 	}
 }
+*/
