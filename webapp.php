@@ -262,6 +262,7 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 			{
 				do
 				{
+					//track
 					if (($router = is_string($route = $this->route(0))
 							&& ($object = new $route($this))::class === $this->route(0)
 								? $object : $this->route(0))::class === 'Closure') {
@@ -359,7 +360,7 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 
 	function __toString():string
 	{
-		return rewind($this->buffer) ? stream_get_contents($this->buffer) : join(PHP_EOL, $this->errors);
+		return stream_get_contents($this->buffer, -rewind($this->buffer));
 	}
 	// function __debugInfo():array
 	// {
