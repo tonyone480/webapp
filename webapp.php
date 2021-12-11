@@ -262,22 +262,21 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 			{
 				do
 				{
-					//track
-					if (($router = is_string($route = $this->route(0))
-							&& ($object = new $route($this))::class === $this->route(0)
-								? $object : $this->route(0))::class === 'Closure') {
+					if (($router = is_string($route = $this->route[0])
+							&& ($object = new $route($this))::class === $this->route[0]
+								? $object : $this->route[0])::class === 'Closure') {
 						$status = $router(...$this->entry);
 					}
 					else
 					{
-						if ($scheme->isUserDefined() === FALSE)
+						if ($tracert->isUserDefined() === FALSE)
 						{
 							break;
 						}
 						if (preg_match_all('/\,(\w+)(?:\:([\%\+\-\.\/\=\w]+))?/',
 							$this['request_query'], $pattern, PREG_SET_ORDER | PREG_UNMATCHED_AS_NULL)) {
 							$parameters = array_column($pattern, 2, 1);
-							foreach (array_slice($scheme->getParameters(), intval($router === $this)) as $parameter)
+							foreach (array_slice($tracert->getParameters(), intval($router === $this)) as $parameter)
 							{
 								if (array_key_exists($parameter->name, $parameters))
 								{
@@ -296,16 +295,16 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 								}
 							}
 						}
-						if ($scheme->getNumberOfRequiredParameters() > count($this->entry))
+						if ($tracert->getNumberOfRequiredParameters() > count($this->entry))
 						{
 							break;
 						}
-						$status = $scheme->invoke($router, ...$this->entry);
+						$status = $tracert->invoke($router, ...$this->entry);
 					}
-					$output = property_exists($this, 'app') ? $this->app : $object ?? $router;
-					if ($output !== $this && method_exists($output, '__toString'))
+					$traceroute = property_exists($this, 'app') ? $this->app : $object ?? $router;
+					if ($traceroute !== $this && $traceroute instanceof Stringable)
 					{
-					 	$this->print((string)$output);
+					 	$this->print((string)$traceroute);
 					}
 					break 2;
 				} while (0);
@@ -339,11 +338,18 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 			}
 		}
 	}
-
-	
-	function app(string $name, mixed ...$params):?object
+	function __toString():string
 	{
-		return class_exists($name, FALSE) ? $this->app = new $name($this, ...$params) : NULL;
+		return stream_get_contents($this->buffer, -rewind($this->buffer));
+	}
+	// function __debugInfo():array
+	// {
+	// 	return $this->errors;
+	// }
+	function app(string $name, mixed ...$params)//:?object
+	{
+		var_dump(123);
+		//return class_exists($name, FALSE) ? $this->app = new $name($this, ...$params) : NULL;
 	}
 	final function route(int $index):string|object
 	{
@@ -357,15 +363,6 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	{
 		[$this->route, $this->entry] = [[$scheme, '__invoke'], $params];
 	}
-
-	function __toString():string
-	{
-		return stream_get_contents($this->buffer, -rewind($this->buffer));
-	}
-	// function __debugInfo():array
-	// {
-	// 	return $this->errors;
-	// }
 	// function __call(string $name, array $params):mixed
 	// {
 	// 	return property_exists($this, 'app') && method_exists($this->app, $name) ? $this->app->{$name}(...$params) : NULL;
@@ -378,13 +375,17 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 		}
 		if (method_exists($this, $name))
 		{
-			$method = new ReflectionMethod($this, $name);
-			if ($method->isPublic() && $method->getNumberOfRequiredParameters() === 0)
+			$loader = new ReflectionMethod($this, $name);
+			if ($loader->isPublic() && $loader->getNumberOfRequiredParameters() === 0)
 			{
-				return $this->{$name} = $method->invoke($this);
+				return $this->{$name} = $loader->invoke($this);
 			}
 		}
-		return property_exists($this, 'app') && property_exists($this->app, $name) ? $this->app->{$name} : NULL;
+		//return $this->app->?{$name};
+		// return match (TRUE)
+		// {
+		// 	property_exists($this, 'app') && property_exists($this->app, $name) => $this->app->{$name}
+		// };  ? $this->app->{$name} : NULL;
 	}
 	final function __invoke(object $object, string $errors = 'errors'):object
 	{
@@ -490,7 +491,7 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	// 	}
 	// 	return new webapp_html_form($this, $node, $action);
 	// }
-	function sqlite():webapp_sqlite{}
+	//function sqlite():webapp_sqlite{}
 	function mysql():webapp_mysql
 	{
 		$mysql = new webapp_mysql($this['mysql_host'], $this['mysql_user'], $this['mysql_password'], $this['mysql_database'], $this['mysql_maptable']);
@@ -504,7 +505,7 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 		}
 		return $this($mysql);
 	}
-	function redis():webapp_redis{}
+	//function redis():webapp_redis{}
 
 	//request
 	function request_ip():string
@@ -569,7 +570,7 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 			{
 				foreach ($this->uploadedfiles[$name] as $uploadedfile)
 				{
-					$uploadedfiles[$this->hash_time33(hash_file('haval160,4', $uploadedfile['file'], TRUE))] = $uploadedfile;
+					$uploadedfiles[$this->hash(hash_file('haval160,4', $uploadedfile['file'], TRUE))] = $uploadedfile;
 					if (count($uploadedfiles) === $maximum)
 					{
 						break;
