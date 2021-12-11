@@ -258,25 +258,25 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	{
 		do
 		{
-			if (method_exists(...$this->route) && ($method = new ReflectionMethod(...$this->route))->isPublic())
+			if (method_exists(...$this->route) && ($scheme = new ReflectionMethod(...$this->route))->isPublic())
 			{
 				do
 				{
-					if (($router = is_string($scheme = $this->route(0))
-							&& ($object = new $scheme($this))::class === $this->route(0)
+					if (($router = is_string($route = $this->route(0))
+							&& ($object = new $route($this))::class === $this->route(0)
 								? $object : $this->route(0))::class === 'Closure') {
 						$status = $router(...$this->entry);
 					}
 					else
 					{
-						if ($method->isUserDefined() === FALSE)
+						if ($scheme->isUserDefined() === FALSE)
 						{
 							break;
 						}
 						if (preg_match_all('/\,(\w+)(?:\:([\%\+\-\.\/\=\w]+))?/',
 							$this['request_query'], $pattern, PREG_SET_ORDER | PREG_UNMATCHED_AS_NULL)) {
 							$parameters = array_column($pattern, 2, 1);
-							foreach (array_slice($method->getParameters(), intval($router === $this)) as $parameter)
+							foreach (array_slice($scheme->getParameters(), intval($router === $this)) as $parameter)
 							{
 								if (array_key_exists($parameter->name, $parameters))
 								{
@@ -295,11 +295,11 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 								}
 							}
 						}
-						if ($method->getNumberOfRequiredParameters() > count($this->entry))
+						if ($scheme->getNumberOfRequiredParameters() > count($this->entry))
 						{
 							break;
 						}
-						$status = $method->invoke($router, ...$this->entry);
+						$status = $scheme->invoke($router, ...$this->entry);
 					}
 					$output = property_exists($this, 'app') ? $this->app : $object ?? $router;
 					if ($output !== $this && method_exists($output, '__toString'))

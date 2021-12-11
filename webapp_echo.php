@@ -14,25 +14,33 @@ trait webapp_echo
 		return $this->webapp->{$name}(...$params);
 	}
 }
-/*
-class webapp_echo_json extends ArrayObject implements Stringable
+class webapp_echo_xml extends webapp_document
 {
 	use webapp_echo;
-	function __construct(protected webapp $webapp, array|object $array = [])
+	function __construct(protected readonly webapp $webapp, string ...$params)
 	{
-		$webapp->response_content_type('application/json');
-		parent::__construct($array, ArrayObject::STD_PROP_LIST);
+		$webapp->response_content_type('application/xml');
+		if ($params)
+		{
+			parent::__construct(...$params);
+		}
 	}
-	function __toString():string
+}
+class webapp_echo_svg extends webapp_document
+{
+	use webapp_echo;
+	const xmltype = 'webapp_svg';
+	function __construct(protected readonly webapp $webapp)
 	{
-		return json_encode($this->getArrayCopy(), JSON_UNESCAPED_UNICODE);
+		$webapp->response_content_type('image/svg+xml');
+		//<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
 	}
 }
 class webapp_echo_html extends webapp_document
 {
 	use webapp_echo;
 	const xmltype = 'webapp_html';
-	function __construct(protected webapp $webapp, string $data = NULL)
+	function __construct(protected readonly webapp $webapp, string $data = NULL)
 	{
 		$webapp->response_content_type("text/html; charset={$webapp['app_charset']}");
 		if ($data)
@@ -91,16 +99,17 @@ class webapp_echo_html extends webapp_document
 		return $form();
 	}
 }
-class webapp_echo_xml extends webapp_document
+class webapp_echo_json extends ArrayObject implements Stringable
 {
 	use webapp_echo;
-	function __construct(protected webapp $webapp, string ...$params)
+	function __construct(protected readonly webapp $webapp, array|object $array = [])
 	{
-		$webapp->response_content_type('application/xml');
-		if ($params)
-		{
-			parent::__construct(...$params);
-		}
+		$webapp->response_content_type('application/json');
+		parent::__construct($array, ArrayObject::STD_PROP_LIST);
+	}
+	function __toString():string
+	{
+		return json_encode($this->getArrayCopy(), JSON_UNESCAPED_UNICODE);
 	}
 }
 class webapp_echo_xls extends webapp_echo_xml
@@ -152,4 +161,3 @@ class webapp_echo_xls extends webapp_echo_xml
 		return $this;
 	}
 }
-*/

@@ -258,6 +258,9 @@ class webapp_xml extends SimpleXMLElement
 	// 	return $this[0]->xpath(join($query));
 	// }
 }
+class webapp_svg extends webapp_xml
+{
+}
 class webapp_html extends webapp_xml
 {
 	function progress(float $value = 0, float $max = 1):static
