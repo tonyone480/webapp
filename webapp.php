@@ -26,7 +26,7 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 {
 	const version = '4.7a', key = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz-';
 	public readonly self $webapp;
-	private array $errors = [], $cookies = [], $headers = [], $uploadedfiles, $configs, $router, $entry;
+	private array $errors = [], $cookies = [], $headers = [], $uploadedfiles, $configs, $route, $entry;
 	protected static array $interfaces = [];
 	static function __callStatic(string $name, array $arguments):mixed
 	{
@@ -247,10 +247,10 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 			//Misc
 			'copy_webapp'		=> 'Web Application v' . self::version,
 			'gzip_level'		=> -1]];
-		[$this->router, $this->entry] = method_exists($this, $router = sprintf('%s_%s', $this['request_method'],
+		[$this->route, $this->entry] = method_exists($this, $route = sprintf('%s_%s', $this['request_method'],
 			preg_match('/^\w+(?=\/([\-\w]*))?/', $this['request_query'], $entry)
 				? $entry[0] : $entry[] = $this['app_index']))
-			? [[$this, $router], array_slice($entry, 1)]
+			? [[$this, $route], array_slice($entry, 1)]
 			: [[$this['app_router'] . $entry[0], sprintf('%s_%s', $this['request_method'],
 				count($entry) > 1 ? strtr($entry[1], '-', '_') : $this['app_index'])], []];
 	}
@@ -258,7 +258,7 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	{
 		do
 		{
-			if (method_exists(...$this->router) && ($method = new ReflectionMethod(...$this->router))->isPublic())
+			if (method_exists(...$this->route) && ($method = new ReflectionMethod(...$this->route))->isPublic())
 			{
 				do
 				{
@@ -346,7 +346,7 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	}
 	final function route(int $index):string|object
 	{
-		return $this->router[$index & 1];
+		return $this->route[$index & 1];
 	}
 	final function entry(array $params):void
 	{
@@ -354,7 +354,7 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	}
 	final function break(Closure $scheme, mixed ...$params):void
 	{
-		[$this->router, $this->entry] = [[$scheme, '__invoke'], $params];
+		[$this->route, $this->entry] = [[$scheme, '__invoke'], $params];
 	}
 
 	function __toString():string
