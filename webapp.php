@@ -212,7 +212,7 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	// {
 	// 	return preg_match_all('/[\x01-\x7f]|[\xc2-\xdf][\x80-\xbf]|\xe0[\xa0-\xbf][\x80-\xbf]|[\xe1-\xef][\x80-\xbf][\x80-\xbf]|\xf0[\x90-\xbf][\x80-\xbf][\x80-\xbf]|[\xf1-\xf7][\x80-\xbf][\x80-\xbf][\x80-\xbf]/', $content, $pattern) === FALSE ? [] : $pattern[0];
 	// }
-	function __construct(private webapp_io $io, array $config = [])
+	function __construct(private readonly webapp_io $io, array $config = [])
 	{
 		[$this->webapp, $this->configs] = [$this, $config + [
 			//Request
@@ -258,7 +258,7 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	{
 		do
 		{
-			if (method_exists(...$this->route) && ($scheme = new ReflectionMethod(...$this->route))->isPublic())
+			if (method_exists(...$this->route) && ($tracert = new ReflectionMethod(...$this->route))->isPublic())
 			{
 				do
 				{
@@ -409,11 +409,11 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	}
 	final function offsetSet(mixed $key, mixed $value):void
 	{
-		$this->configs[$key] = $value;
+		//$this->configs[$key] = $value;
 	}
 	final function offsetUnset(mixed $key):void
 	{
-		unset($this->configs[$key]);
+		//unset($this->configs[$key]);
 	}
 	final function count():int
 	{
@@ -576,7 +576,7 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 					}
 				}
 			}
-			$this->uploadedfiles[$name] = new class($uploadedfiles) extends ArrayObject implements Stringable
+			$this->uploadedfiles[$name] = new class($uploadedfiles, ArrayObject::STD_PROP_LIST) extends ArrayObject implements Stringable
 			{
 				function __toString():string
 				{
@@ -646,7 +646,7 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	function response_cookie_encrypt(string $name, ?string $value = NULL, int $expire = 0, string $path = '', string $domain = '', bool $secure = FALSE, bool $httponly = FALSE):void
 	{
 		$cookie = func_get_args();
-		$cookie[1] = static::encrypt($cookie[1] ?? NULL) ?? '';
+		$cookie[1] = static::encrypt($value) ?? '';
 		$this->cookies[] = $cookie;
 	}
 	function response_header(string $name, string $value):void

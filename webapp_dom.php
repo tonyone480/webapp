@@ -544,12 +544,12 @@ class webapp_html extends webapp_xml
 class webapp_document extends DOMDocument implements Stringable
 {
 	const xmltype = 'webapp_xml';
-	function __construct(string $root, string $encoding = NULL, string $version = '1.0')
-	{
-		parent::__construct($version, $encoding);
-		$this->appendChild($this->createElement($root));
-		$this->xml(TRUE);
-	}
+	// function __construct(string $root, string $encoding = NULL, string $version = '1.0')
+	// {
+	// 	parent::__construct($version, $encoding);
+	// 	$this->appendChild($this->createElement($root));
+	// 	$this->xml(TRUE);
+	// }
 	function __toString():string
 	{
 		return $this->saveXML();

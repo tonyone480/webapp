@@ -20,10 +20,10 @@ class webapp_echo_xml extends webapp_document
 	function __construct(protected readonly webapp $webapp, string ...$params)
 	{
 		$webapp->response_content_type('application/xml');
-		if ($params)
-		{
-			parent::__construct(...$params);
-		}
+		// if ($params)
+		// {
+		// 	parent::__construct(...$params);
+		// }
 	}
 }
 class webapp_echo_svg extends webapp_document
