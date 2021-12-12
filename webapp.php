@@ -350,9 +350,9 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	{
 		return class_exists($name, FALSE) ? $this->app = new $name($this, ...$params) : NULL;
 	}
-	final function route(int $index):string|object
+	final function route(int $track):string
 	{
-		return $this->route[$index & 1];
+		return is_string($route = $this->route[$track & 1]) ? $route : $route::class;
 	}
 	final function entry(array $params):void
 	{
@@ -683,9 +683,9 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	final function init_admin(webapp_io $io, array $config = []):bool
 	{
 		self::__construct($io, $config);
-		if ($this['app_mapping'] === $this && in_array($this['app_index'], ['get_captcha', 'get_qrcode', 'get_scss'], TRUE)) return TRUE;
+		if ($this->route[0] === $this && in_array($this->route[1], ['get_captcha', 'get_qrcode', 'get_scss'], TRUE)) return TRUE;
 		if ($this->admin) return FALSE;
-		if ($this['app_mapping'] === $this || $this['request_query'] === '')
+		if ($this->route[0] === $this || $this['request_query'] === '')
 		{
 			if ($this['request_method'] === 'post')
 			{

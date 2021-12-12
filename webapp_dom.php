@@ -604,20 +604,19 @@ class webapp_document extends DOMDocument implements Stringable
 	// 	return $document;
 	// }
 }
-class webapp_form
+class webapp_form implements ArrayAccess
 {
-	const xmltype = 'webapp_html';
-	public ?webapp_html $xml, $fieldset, $captcha = NULL;
+	public readonly webapp_html $xml, $captcha;
+	private webapp_html $fieldset;
 	private $files = [], $fields = [], $index = 0;
-	function __construct(private array|webapp|webapp_html $context, string $action = NULL)
+	function __construct(private readonly array|webapp|webapp_html $context, string $action = NULL)
 	{
-		//$this->rendered = $context instanceof webapp_html;
 		$this->xml = $context instanceof webapp_html ? $context->append('form', [
 			'method' => 'post',
 			'autocomplete' => 'off',
 			'class' => 'webapp',
 			'action' => $action
-		]) : new (static::xmltype)('<form/>');
+		]) : new webapp_html('<form/>');
 		$this->xml['enctype'] = 'application/x-www-form-urlencoded';
 		$this->fieldset();
 	}
@@ -625,7 +624,7 @@ class webapp_form
 	{
 		do
 		{
-			if ($this->context instanceof webapp_html)
+			if ($this->echo())
 			{
 				return $this->setdefault($values);
 			}
@@ -727,7 +726,7 @@ class webapp_form
 						}
 						break;
 					default:
-						if ((is_scalar($value) && $this->checkinput($node, $value)) === FALSE)
+						if ((is_scalar($value) && static::validate($node, $value)) === FALSE)
 						{
 							break 3;
 						}
@@ -739,6 +738,43 @@ class webapp_form
 		$errors[] = "Form input[{$name}] invalid";
 		return NULL;
 		
+	}
+	function webapp():?webapp
+	{
+		return $this->context instanceof webapp ? $this->context
+			: ($this->echo() ? $this->context->webapp() : NULL);
+	}
+	function echo():bool
+	{
+		return $this->context instanceof webapp_html;
+	}
+	function offsetExists(mixed $fieldname):bool
+	{
+		return array_key_exists($fieldname, $this->fields);
+	}
+	function offsetGet(mixed $fieldname):?webapp_html
+	{
+		return $this->fields[$fieldname] ?? NULL;
+	}
+	function offsetSet(mixed $fieldname, mixed $attributes = []):void
+	{
+		if (is_string($fieldname) && is_array($attributes))
+		{
+			$alias = $name = preg_match('/^\w+/', $fieldname, $pattern) ? $pattern[0] : $this->index++;
+
+
+			$fields = ['name' => $fieldname, 'type' => 'hidden', ...$attributes];
+			switch ($type = strtolower($fields['type']))
+			{
+				default:
+					$this->{$type === 'file' ? 'files' : 'fields'}[$name] = $this->fieldset->append('input', ['type' => $typename, 'name' => $alias] + $attributes);
+			}
+			print_r($fields);
+		}
+	}
+	function offsetUnset(mixed $fieldname):void
+	{
+		unset($this->fields[$fieldname]);
 	}
 	function fieldset(string $name = NULL):webapp_html
 	{
@@ -754,23 +790,23 @@ class webapp_form
 	}
 	function captcha(string $name):?webapp_html
 	{
-		if ($this->captcha === NULL 
-			&& ($webapp = $this->context instanceof webapp_html ? $this->context->webapp() : $this->context) instanceof webapp
-			&& $webapp['captcha_echo']) {
+		if (($webapp = $this->webapp()) && $webapp['captcha_echo'])
+		{
 			$this->captcha = $this->fieldset($name);
 			$this->field('captcha_encrypt');
 			$this->field('captcha_decrypt', 'text', ['placeholder' => 'Type following captcha', 'onfocus' => 'this.select()', 'required' => NULL]);
-			if ($this->context instanceof webapp_html)
+			if ($this->echo())
 			{
 				$this->fields['captcha_encrypt']['value'] = $random = $webapp->captcha_random($webapp['captcha_unit'], $webapp['captcha_expire']);
 				$this->fieldset()->setattr([
 					'style' => "height:{$webapp['captcha_params'][1]}px;background:url(?captcha/{$random}) no-repeat center",
 					'onckick' => ''
 				]);
+				$this->fieldset = $this->captcha;
 			}
 			unset($this->fields['captcha_encrypt'], $this->fields['captcha_decrypt']);
 		}
-		return $this->captcha;
+		return $this->captcha ?? NULL;
 	}
 	function field(string $name, string $type = 'hidden', array $attributes = []):webapp_html
 	{
@@ -866,61 +902,69 @@ class webapp_form
 		}
 		return $this;
 	}
-	private function checkinput(webapp_html $node, string $value):bool
+	private static function is_numeric(webapp_html $node, string $value):bool
 	{
-		switch (strtolower((string)$node['type']))
+		if (is_numeric($value))
 		{
-			case 'color':
-				return preg_match('/^#[0-f]{6}$/i', $value);
-			case 'date':
-				return preg_match('/^\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[1-2]\d|3[0-2])$/', $value);
-			case 'datetime':
-			case 'datetime-local':
-				return preg_match('/^\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[1-2]\d|3[0-2])T(?:[01]\d|2[0-3]):[0-5]\d$/', $value);
-			case 'email':
-				return preg_match('/^[\w\.]+@[0-9a-z]+(\.[0-9a-z])?/i', $value);
-			case 'month':
-				return preg_match('/^\d{4}-(?:0[1-9]|1[0-2])$/', $value);
-			case 'number':
-			case 'range':
-				if (is_numeric($value))
+			if (($f = floatval($value))
+				&& isset($node['step'])
+				&& preg_match('/^\d+(?:\.(\d+))?$/', (string)$node['step'], $pattern)
+				&& floatval($pattern[0])) {
+				if (isset($pattern[1]) && intval($pattern[1]))
 				{
-					$f = floatval($value);
-					if ($f
-						&& isset($node['step'])
-						&& preg_match('/^\d+(?:\.(\d+))?$/', (string)$node['step'], $matches)
-						&& floatval($matches[0])) {
-						if (isset($matches[1]) && intval($matches[1]))
-						{
-							$v = intval(1 . str_repeat(0, strlen($matches[1])));
-							if (strpos($i = $f * $v, '.') || $i % ($matches[0] * $v))
-							{
-								return FALSE;
-							}
-						}
-						else
-						{
-							if (strpos($f, '.') || $f % intval($matches[0]))
-							{
-								return FALSE;
-							}
-						}
+					$v = intval(1 . str_repeat('0', strlen($pattern[1])));
+					if (strpos((string)($i = $f * $v), '.') || $i % ($pattern[0] * $v))
+					{
+						return FALSE;
 					}
-					return (isset($node['max']) === FALSE || floatval($node['max']) >= $f)
-						&& (isset($node['min']) === FALSE || floatval($node['min']) <= $f);
 				}
-				return FALSE;
-			case 'time':
-				return preg_match('/^(?:[01]\d|2[0-3]):[0-5]\d$/', $value);
-			case 'url':
-				return preg_match('/^[a-z][a-z0-9]*\:\/\//i', $value);
-			case 'week':
-				return preg_match('/^\d{4}-W(?:0[1-9]|[1-4]\d|5[0-3])$/', $value);
-			default:
-				return (isset($node['maxlength']) === FALSE || intval($node['maxlength']) >= strlen($value))
-					&& (isset($node['minlength']) === FALSE || intval($node['minlength']) <= strlen($value))
-					&& (isset($node['pattern']) === FALSE || preg_match("/^{$node['pattern']}$/", $value));
+				else
+				{
+					if (strpos((string)$f, '.') || $f % intval($pattern[0]))
+					{
+						return FALSE;
+					}
+				}
+			}
+			return (isset($node['max']) === FALSE || floatval($node['max']) >= $f)
+				&& (isset($node['min']) === FALSE || floatval($node['min']) <= $f);
 		}
+		return FALSE;
+	}
+	static function validate(webapp_html $node, string $value):bool
+	{
+		return match (strtolower((string)$node['type']))
+		{
+			'color' 		=> (bool)preg_match('/^#[0-9a-f]{6}$/i', $value),
+			'date'			=> (bool)preg_match('/^\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[1-2]\d|3[0-2])$/', $value),
+			'datetime',
+			'datetime-local'=> (bool)preg_match('/^\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[1-2]\d|3[0-2])T(?:[01]\d|2[0-3]):[0-5]\d$/', $value),
+			'email'			=> (bool)preg_match('/^[\w\.]+@[0-9a-z]+(\.[0-9a-z])?/i', $value),
+			'month'			=> (bool)preg_match('/^\d{4}-(?:0[1-9]|1[0-2])$/', $value),
+			'number',
+			'range'			=> self::is_numeric($node, $value),
+			'time'			=> (bool)preg_match('/^(?:[01]\d|2[0-3]):[0-5]\d$/', $value),
+			'url'			=> (bool)preg_match('/^[a-z][a-z0-9]*\:\/\//i', $value),
+			'week'			=> (bool)preg_match('/^\d{4}-W(?:0[1-9]|[1-4]\d|5[0-3])$/', $value),
+			default			=> (isset($node['pattern']) === FALSE || preg_match("/^{$node['pattern']}$/", $value))
+				&& (isset($node['maxlength']) === FALSE || intval($node['maxlength']) >= strlen($value))
+				&& (isset($node['minlength']) === FALSE || intval($node['minlength']) <= strlen($value))
+		};
+	}
+	static function from(webapp_html $node):static
+	{
+		$form = new static([]);
+		$form['name'] = ['www'=> 333];
+		$form['age'] = ['class'=> 'wa'];
+		// foreach ($node->xpath('//*[@name]') as $field)
+		// {
+		// 	//if ($field->getName())
+		// 	print_r($field->getName());
+		// }
+
+
+
+		return $form;
 	}
 }
 class webapp_table
