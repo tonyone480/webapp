@@ -90,9 +90,9 @@ class webapp_echo_html extends webapp_document
 	{
 		$form = new webapp_form($context, $authurl);
 		$form->fieldset('Username');
-		$form->field('username', 'text', ['placeholder' => 'Type username', 'required' => NULL, 'autofocus' => NULL]);
+		$form['username'] = ['type' => 'text', 'placeholder' => 'Type username', 'required' => NULL, 'autofocus' => NULL];
 		$form->fieldset('Password');
-		$form->field('password', 'password', ['placeholder' => 'Type password', 'required' => NULL]);
+		$form['password'] = ['type' => 'password', 'placeholder' => 'Type password', 'required' => NULL];
 		$form->captcha('Captcha');
 		$form->fieldset();
 		$form->button('Sign In', 'submit');

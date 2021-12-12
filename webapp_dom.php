@@ -750,26 +750,31 @@ class webapp_form implements ArrayAccess
 	}
 	function offsetExists(mixed $fieldname):bool
 	{
-		return array_key_exists($fieldname, $this->fields);
+		return array_key_exists($fieldname, $this->fields) || array_key_exists($fieldname, $this->files);
 	}
 	function offsetGet(mixed $fieldname):?webapp_html
 	{
-		return $this->fields[$fieldname] ?? NULL;
+		return $this->fields[$fieldname] ?? $this->files[$fieldname] ?? NULL;
 	}
-	function offsetSet(mixed $fieldname, mixed $attributes = []):void
+	function offsetSet(mixed $fieldname, mixed $fieldinfo = []):void
 	{
-		if (is_string($fieldname) && is_array($attributes))
+		if (is_string($fieldname) && is_array($fieldinfo))
 		{
 			$alias = $name = preg_match('/^\w+/', $fieldname, $pattern) ? $pattern[0] : $this->index++;
 
 
-			$fields = ['name' => $fieldname, 'type' => 'hidden', ...$attributes];
-			switch ($type = strtolower($fields['type']))
+			$attributes = ['type' => 'hidden', 'name' => &$alias, ...$fieldinfo];
+			switch ($type = array_key_exists('type', $fieldinfo) ? strtolower($fieldinfo['type']) : 'hidden')
 			{
+				case 'textarea':
+					$this->fields[$name] = $this->fieldset->append('textarea', ['name' => $alias] + $attributes);
+					break;
+				case 'file':
+					$this->xml['enctype'] = 'multipart/form-data';
 				default:
-					$this->{$type === 'file' ? 'files' : 'fields'}[$name] = $this->fieldset->append('input', ['type' => $typename, 'name' => $alias] + $attributes);
+					$this->{$type === 'file' ? 'files' : 'fields'}[$name] = $this->fieldset->append('input', $attributes);
 			}
-			print_r($fields);
+			//print_r($attributes);
 		}
 	}
 	function offsetUnset(mixed $fieldname):void
@@ -793,8 +798,8 @@ class webapp_form implements ArrayAccess
 		if (($webapp = $this->webapp()) && $webapp['captcha_echo'])
 		{
 			$this->captcha = $this->fieldset($name);
-			$this->field('captcha_encrypt');
-			$this->field('captcha_decrypt', 'text', ['placeholder' => 'Type following captcha', 'onfocus' => 'this.select()', 'required' => NULL]);
+			$this['captcha_encrypt'] = [];
+			$this['captcha_decrypt'] = ['type' => 'text', 'placeholder' => 'Type following captcha', 'onfocus' => 'this.select()', 'required' => NULL];
 			if ($this->echo())
 			{
 				$this->fields['captcha_encrypt']['value'] = $random = $webapp->captcha_random($webapp['captcha_unit'], $webapp['captcha_expire']);
@@ -808,57 +813,57 @@ class webapp_form implements ArrayAccess
 		}
 		return $this->captcha ?? NULL;
 	}
-	function field(string $name, string $type = 'hidden', array $attributes = []):webapp_html
-	{
-		$alias = $rename = preg_match('/^\w+/', $name, $retval) ? $retval[0] : $this->index++;
-		switch ($typename = strtolower($type))
-		{
-			case 'radio':
-			case 'checkbox':
-				$node = &$this->fieldset->div[];
-				$node['data-type'] = $typename;
-				if ($typename === 'checkbox')
-				{
-					$alias .= '[]';
-				}
-				foreach ($attributes as $value => $comment)
-				{
-					$node->labelinput($alias, $typename, $value, $comment);
-				}
-				return $this->fields[$rename] = $node;
-			// case 'set':
-			// case 'enum':
-			// case 'setinput':
-			// case 'enuminput':
-			case 'textarea':
-				return $this->fields[$rename] = $this->fieldset->append('textarea', ['name' => $alias] + $attributes);
-			case 'file':
-				$this->xml['enctype'] = 'multipart/form-data';
-			case 'select':
-				if (array_key_exists('multiple', $attributes))
-				{
-					$alias .= '[]';
-					$attributes['multiple'] = NULL;
-				}
-				if ($typename === 'select')
-				{
-					$node = $this->fieldset->append('select', ['name' => $alias]);
-					if (array_key_exists('value', $attributes) && is_array($attributes['value']))
-					{
-						$node->options($attributes['value']);
-						unset($attributes['value']);
-					}
-					if (array_key_exists('optgroup', $attributes) && is_array($attributes['optgroup']))
-					{
-						$node->optgroup($attributes['optgroup']);
-						unset($attributes['optgroup']);
-					}
-					return $this->fields[$rename] = $node->setattr($attributes);
-				}
-			default:
-				return $this->{$typename === 'file' ? 'files' : 'fields'}[$rename] = $this->fieldset->append('input', ['type' => $typename, 'name' => $alias] + $attributes);
-		}
-	}
+	// function field(string $name, string $type = 'hidden', array $attributes = []):webapp_html
+	// {
+	// 	$alias = $rename = preg_match('/^\w+/', $name, $retval) ? $retval[0] : $this->index++;
+	// 	switch ($typename = strtolower($type))
+	// 	{
+	// 		case 'radio':
+	// 		case 'checkbox':
+	// 			$node = &$this->fieldset->div[];
+	// 			$node['data-type'] = $typename;
+	// 			if ($typename === 'checkbox')
+	// 			{
+	// 				$alias .= '[]';
+	// 			}
+	// 			foreach ($attributes as $value => $comment)
+	// 			{
+	// 				$node->labelinput($alias, $typename, $value, $comment);
+	// 			}
+	// 			return $this->fields[$rename] = $node;
+	// 		// case 'set':
+	// 		// case 'enum':
+	// 		// case 'setinput':
+	// 		// case 'enuminput':
+	// 		case 'textarea':
+	// 			return $this->fields[$rename] = $this->fieldset->append('textarea', ['name' => $alias] + $attributes);
+	// 		case 'file':
+	// 			$this->xml['enctype'] = 'multipart/form-data';
+	// 		case 'select':
+	// 			if (array_key_exists('multiple', $attributes))
+	// 			{
+	// 				$alias .= '[]';
+	// 				$attributes['multiple'] = NULL;
+	// 			}
+	// 			if ($typename === 'select')
+	// 			{
+	// 				$node = $this->fieldset->append('select', ['name' => $alias]);
+	// 				if (array_key_exists('value', $attributes) && is_array($attributes['value']))
+	// 				{
+	// 					$node->options($attributes['value']);
+	// 					unset($attributes['value']);
+	// 				}
+	// 				if (array_key_exists('optgroup', $attributes) && is_array($attributes['optgroup']))
+	// 				{
+	// 					$node->optgroup($attributes['optgroup']);
+	// 					unset($attributes['optgroup']);
+	// 				}
+	// 				return $this->fields[$rename] = $node->setattr($attributes);
+	// 			}
+	// 		default:
+	// 			return $this->{$typename === 'file' ? 'files' : 'fields'}[$rename] = $this->fieldset->append('input', ['type' => $typename, 'name' => $alias] + $attributes);
+	// 	}
+	// }
 	private function setdefault(array $values):static
 	{
 		foreach ($this->fields as $name => $node)
