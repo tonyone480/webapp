@@ -346,10 +346,9 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	// {
 	// 	return $this->errors;
 	// }
-	function app(string $name, mixed ...$params)//:?object
+	function app(string $name, mixed ...$params):?object
 	{
-		var_dump(123);
-		//return class_exists($name, FALSE) ? $this->app = new $name($this, ...$params) : NULL;
+		return class_exists($name, FALSE) ? $this->app = new $name($this, ...$params) : NULL;
 	}
 	final function route(int $index):string|object
 	{
@@ -359,9 +358,9 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	{
 		$this->entry = $params + $this->entry;
 	}
-	final function break(Closure $scheme, mixed ...$params):void
+	final function break(Closure $end, mixed ...$params):void
 	{
-		[$this->route, $this->entry] = [[$scheme, '__invoke'], $params];
+		[$this->route, $this->entry] = [[$end, '__invoke'], $params];
 	}
 	// function __call(string $name, array $params):mixed
 	// {
