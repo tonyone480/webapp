@@ -927,17 +927,17 @@ class webapp_form implements ArrayAccess
 	{
 		return match (strtolower((string)$node['type']))
 		{
-			'color' 		=> (bool)preg_match('/^#[0-9a-f]{6}$/i', $value),
-			'date'			=> (bool)preg_match('/^\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[1-2]\d|3[0-2])$/', $value),
+			'color' 		=> preg_match('/^#[0-9a-f]{6}$/i', $value) === 1,
+			'date'			=> preg_match('/^\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[1-2]\d|3[0-2])$/', $value) === 1,
 			'datetime',
-			'datetime-local'=> (bool)preg_match('/^\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[1-2]\d|3[0-2])T(?:[01]\d|2[0-3]):[0-5]\d$/', $value),
-			'email'			=> (bool)preg_match('/^[\w\.]+@[0-9a-z]+(\.[0-9a-z])?/i', $value),
-			'month'			=> (bool)preg_match('/^\d{4}-(?:0[1-9]|1[0-2])$/', $value),
+			'datetime-local'=> preg_match('/^\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[1-2]\d|3[0-2])T(?:[01]\d|2[0-3]):[0-5]\d$/', $value) === 1,
+			'email'			=> preg_match('/^[\w\.]+@[0-9a-z]+(\.[0-9a-z])?/i', $value) === 1,
+			'month'			=> preg_match('/^\d{4}-(?:0[1-9]|1[0-2])$/', $value) === 1,
 			'number',
 			'range'			=> self::is_numeric($node, $value),
-			'time'			=> (bool)preg_match('/^(?:[01]\d|2[0-3]):[0-5]\d$/', $value),
-			'url'			=> (bool)preg_match('/^[a-z][a-z0-9]*\:\/\//i', $value),
-			'week'			=> (bool)preg_match('/^\d{4}-W(?:0[1-9]|[1-4]\d|5[0-3])$/', $value),
+			'time'			=> preg_match('/^(?:[01]\d|2[0-3]):[0-5]\d$/', $value) === 1,
+			'url'			=> preg_match('/^[a-z][a-z0-9]*\:\/\//i', $value) === 1,
+			'week'			=> preg_match('/^\d{4}-W(?:0[1-9]|[1-4]\d|5[0-3])$/', $value) === 1,
 			default			=> (isset($node['pattern']) === FALSE || preg_match("/^{$node['pattern']}$/", $value))
 				&& (isset($node['maxlength']) === FALSE || intval($node['maxlength']) >= strlen($value))
 				&& (isset($node['minlength']) === FALSE || intval($node['minlength']) <= strlen($value))

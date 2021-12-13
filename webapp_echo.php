@@ -17,13 +17,9 @@ trait webapp_echo
 class webapp_echo_xml extends webapp_document
 {
 	use webapp_echo;
-	function __construct(public readonly webapp $webapp, string ...$params)
+	function __construct(public readonly webapp $webapp)
 	{
 		$webapp->response_content_type('application/xml');
-		// if ($params)
-		// {
-		// 	parent::__construct(...$params);
-		// }
 	}
 }
 class webapp_echo_svg extends webapp_document
@@ -40,15 +36,11 @@ class webapp_echo_html extends webapp_document
 {
 	use webapp_echo;
 	const xmltype = 'webapp_html';
-	function __construct(public readonly webapp $webapp, string $data = NULL)
+	function __construct(public readonly webapp $webapp)
 	{
 		//parent::__construct($webapp);
 		$webapp->response_content_type("text/html; charset={$webapp['app_charset']}");
-		if ($data)
-		{
-			str_starts_with($data, '<') ? $this->loadHTML($data) : $this->loadHTMLFile($data);
-		}
-		else
+		if (func_num_args() === 1)
 		{
 			$this->loadHTML("<!doctype html><html><head><meta charset='{$webapp['app_charset']}'/></head><body/></html>");
 			$this->xml->head->append('meta', ['name' => 'viewport', 'content' => 'width=device-width,initial-scale=1.0']);
@@ -59,6 +51,13 @@ class webapp_echo_html extends webapp_document
 			$this->header = $this->article->append('header');
 			$this->section = $this->article->append('section');
 			$this->footer = $this->article->append('footer', $webapp['copy_webapp']);
+		}
+		else
+		{
+			if (is_string($data = func_get_arg(1)))
+			{
+				str_starts_with($data, '<') ? $this->loadHTML($data) : $this->loadHTMLFile($data);
+			}
 		}
 	}
 	function __toString():string

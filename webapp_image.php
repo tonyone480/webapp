@@ -126,9 +126,9 @@ class webapp_image implements IteratorAggregate
 		return $this->filter(IMG_FILTER_CONTRAST, $level);
 	}
 	//与 IMG_FILTER_GRAYSCALE 类似，不过可以指定颜色。用 arg1，arg2 和 arg3 分别指定 red，blue 和 green。每种颜色范围是 0 到 255
-	function filter_colorize(int $red, int $green, int $blue):static
+	function filter_colorize(int $red, int $green, int $blue, int $alpha = 255):static
 	{
-		return $this->filter(IMG_FILTER_COLORIZE, $level);
+		return $this->filter(IMG_FILTER_COLORIZE, $red, $green, $blue, $alpha);
 	}
 	//使用边缘检测来突出显示图像中的边缘
 	function filter_edgedetect():static
@@ -148,7 +148,7 @@ class webapp_image implements IteratorAggregate
 	//模糊图像
 	function filter_selective_blur():static
 	{
-		return $this->filter(FILTER_SELECTIVE_BLUR);
+		return $this->filter(IMG_FILTER_SELECTIVE_BLUR);
 	}
 	//用平均移除法来达到轮廓效果
 	function filter_mean_removal():static
@@ -213,10 +213,10 @@ class webapp_image implements IteratorAggregate
 	// 	return $this;
 	// }
 	//输出图像
-	function avif(mixed $output = 'php://output', int $quality = -1, int $speed = -1):bool
-	{
-		return imageavif($this->image, $output, $quality, $speed);
-	}
+	// function avif(mixed $output = 'php://output', int $quality = -1, int $speed = -1):bool
+	// {
+	// 	return imageavif($this->image, $output, $quality, $speed);
+	// }
 	function bmp(mixed $output = 'php://output', bool $compressed = TRUE):bool
 	{
 		return imagebmp($this->image, $output, $compressed);
