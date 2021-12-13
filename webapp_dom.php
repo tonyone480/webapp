@@ -61,10 +61,7 @@ class webapp_xml extends SimpleXMLElement
 			$node = &$this[0]->{$name}[];
 			foreach ($contents as $attribute => $value)
 			{
-				if (is_scalar($value))
-				{
-					$node[$attribute] = $value;
-				}
+				$node[$attribute] = $value;
 			}
 			return $node;
 		}
@@ -544,40 +541,34 @@ class webapp_html extends webapp_xml
 class webapp_document extends DOMDocument implements Stringable
 {
 	const xmltype = 'webapp_xml';
-	// function __construct(string $root, string $encoding = NULL, string $version = '1.0')
-	// {
-	// 	parent::__construct($version, $encoding);
-	// 	$this->appendChild($this->createElement($root));
-	// 	$this->xml(TRUE);
-	// }
+	public readonly webapp $webapp;
 	function __toString():string
 	{
 		return $this->saveXML();
 	}
-	//protected function xml(bool $loaded):bool
-	private function xml(bool $loaded):bool
+	function __invoke(bool $loaded):bool
 	{
 		return $loaded && $this->xml = simplexml_import_dom($this, static::xmltype);
 	}
-	function load(string $source, int $options = NULL):bool
+	function load(string $source, int $options = 0):bool
 	{
-		return $this->loadXMLFile($source, $options);
+		return $this(parent::load($source, $options));
 	}
-	function loadXML(string $source, int $options = NULL):bool
+	function loadXML(string $source, int $options = 0):bool
 	{
-		return $this->xml(parent::loadXML($source, $options));
+		return $this(parent::loadXML($source, $options));
 	}
-	function loadXMLFile(string $source, int $options = NULL):bool
+	function loadXMLFile(string $source, int $options = 0):bool
 	{
-		return $this->xml(parent::load($source, $options));
+		return $this->load($source, $options);
 	}
-	function loadHTML(string $source, int $options = NULL):bool
+	function loadHTML(string $source, int $options = 0):bool
 	{
-		return $this->xml(parent::loadHTML($source, $options | LIBXML_NOWARNING | LIBXML_NOERROR));
+		return $this(parent::loadHTML($source, $options | LIBXML_NOWARNING | LIBXML_NOERROR));
 	}
-	function loadHTMLFile(string $source, int $options = NULL):bool
+	function loadHTMLFile(string $source, int $options = 0):bool
 	{
-		return $this->xml(parent::loadHTMLFile($source, $options | LIBXML_NOWARNING | LIBXML_NOERROR));
+		return $this(parent::loadHTMLFile($source, $options | LIBXML_NOWARNING | LIBXML_NOERROR));
 	}
 	// function evaluate(string $expression, DOMNode $contextnode = NULL)
 	// {
@@ -606,12 +597,16 @@ class webapp_document extends DOMDocument implements Stringable
 }
 class webapp_form implements ArrayAccess
 {
+	public readonly bool $echo;
+	public readonly ?webapp $webapp;
 	public readonly webapp_html $xml, $captcha;
 	private webapp_html $fieldset;
 	private $files = [], $fields = [], $index = 0;
-	function __construct(private readonly array|webapp|webapp_html $context, string $action = NULL)
+	final function __construct(private readonly array|webapp|webapp_html $context, ?string $action = NULL)
 	{
-		$this->xml = $context instanceof webapp_html ? $context->append('form', [
+		$this->webapp = ($this->echo = $context instanceof webapp_html)
+			? $context->webapp() : ($context instanceof webapp ? $context : NULL);
+		$this->xml = $this->echo ? $context->append('form', [
 			'method' => 'post',
 			'autocomplete' => 'off',
 			'class' => 'webapp',
@@ -624,7 +619,7 @@ class webapp_form implements ArrayAccess
 	{
 		do
 		{
-			if ($this->echo())
+			if ($this->echo)
 			{
 				return $this->setdefault($values);
 			}
@@ -739,15 +734,6 @@ class webapp_form implements ArrayAccess
 		return NULL;
 		
 	}
-	function webapp():?webapp
-	{
-		return $this->context instanceof webapp ? $this->context
-			: ($this->echo() ? $this->context->webapp() : NULL);
-	}
-	function echo():bool
-	{
-		return $this->context instanceof webapp_html;
-	}
 	function offsetExists(mixed $fieldname):bool
 	{
 		return array_key_exists($fieldname, $this->fields) || array_key_exists($fieldname, $this->files);
@@ -763,16 +749,18 @@ class webapp_form implements ArrayAccess
 			$alias = $name = preg_match('/^\w+/', $fieldname, $pattern) ? $pattern[0] : $this->index++;
 
 
-			$attributes = ['type' => 'hidden', 'name' => &$alias, ...$fieldinfo];
-			switch ($type = array_key_exists('type', $fieldinfo) ? strtolower($fieldinfo['type']) : 'hidden')
+			$attributes = [
+				'type' => array_key_exists('type', $fieldinfo) ? strtolower($fieldinfo['type']) : 'hidden',
+				'name' => &$alias] + $fieldinfo;
+			switch ($attributes['type'])
 			{
 				case 'textarea':
-					$this->fields[$name] = $this->fieldset->append('textarea', ['name' => $alias] + $attributes);
+					//$this->fields[$name] = $this->fieldset->append('textarea', ['name' => $alias] + $attributes);
 					break;
 				case 'file':
 					$this->xml['enctype'] = 'multipart/form-data';
 				default:
-					$this->{$type === 'file' ? 'files' : 'fields'}[$name] = $this->fieldset->append('input', $attributes);
+					$this->{$attributes['type'] === 'file' ? 'files' : 'fields'}[$name] = $this->fieldset->append('input', $attributes);
 			}
 			//print_r($attributes);
 		}
@@ -795,16 +783,16 @@ class webapp_form implements ArrayAccess
 	}
 	function captcha(string $name):?webapp_html
 	{
-		if (($webapp = $this->webapp()) && $webapp['captcha_echo'])
+		if ($this->webapp && $this->webapp['captcha_echo'])
 		{
 			$this->captcha = $this->fieldset($name);
 			$this['captcha_encrypt'] = [];
 			$this['captcha_decrypt'] = ['type' => 'text', 'placeholder' => 'Type following captcha', 'onfocus' => 'this.select()', 'required' => NULL];
-			if ($this->echo())
+			if ($this->echo)
 			{
-				$this->fields['captcha_encrypt']['value'] = $random = $webapp->captcha_random($webapp['captcha_unit'], $webapp['captcha_expire']);
+				$this['captcha_encrypt']['value'] = $random = $this->webapp->captcha_random($this->webapp['captcha_unit'], $this->webapp['captcha_expire']);
 				$this->fieldset()->setattr([
-					'style' => "height:{$webapp['captcha_params'][1]}px;background:url(?captcha/{$random}) no-repeat center",
+					'style' => "height:{$this->webapp['captcha_params'][1]}px;background:url(?captcha/{$random}) no-repeat center",
 					'onckick' => ''
 				]);
 				$this->fieldset = $this->captcha;

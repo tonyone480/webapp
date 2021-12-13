@@ -42,6 +42,7 @@ class webapp_echo_html extends webapp_document
 	const xmltype = 'webapp_html';
 	function __construct(public readonly webapp $webapp, string $data = NULL)
 	{
+		//parent::__construct($webapp);
 		$webapp->response_content_type("text/html; charset={$webapp['app_charset']}");
 		if ($data)
 		{
@@ -51,7 +52,7 @@ class webapp_echo_html extends webapp_document
 		{
 			$this->loadHTML("<!doctype html><html><head><meta charset='{$webapp['app_charset']}'/></head><body/></html>");
 			$this->xml->head->append('meta', ['name' => 'viewport', 'content' => 'width=device-width,initial-scale=1.0']);
-			$this->xml->head->append('link', ['rel' => 'stylesheet', 'type' => 'text/css', 'href' => '?scss/webapp', 'media' => 'all']);
+			// $this->xml->head->append('link', ['rel' => 'stylesheet', 'type' => 'text/css', 'href' => '?scss/webapp', 'media' => 'all']);
 			// $this->xml->head->append('link', ['rel' => 'stylesheet', 'type' => 'text/css', 'href' => $webapp->resroot('ps/font-awesome.css')]);
 			// $this->xml->head->append('script', ['type' => 'javascript/module', 'src' => $webapp->resroot('js/webapp.js')]);
 			$this->article = $this->xml->body->append('article', ['class' => 'webapp']);
@@ -62,7 +63,6 @@ class webapp_echo_html extends webapp_document
 	}
 	function __toString():string
 	{
-		//return html_entity_decode($this->saveHTML(), ENT_HTML5, $this->webapp['app_charset']);
 		return $this->saveHTML($this);
 	}
 	function title(string $title):void
@@ -86,7 +86,7 @@ class webapp_echo_html extends webapp_document
 
 
 
-	static function form_sign_in(array|webapp|webapp_html $context, string $authurl = NULL):NULL|array|webapp_form
+	static function form_sign_in(array|webapp|webapp_html $context, ?string $authurl = NULL):NULL|array|webapp_form
 	{
 		$form = new webapp_form($context, $authurl);
 		$form->fieldset('Username');

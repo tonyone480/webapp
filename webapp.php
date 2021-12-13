@@ -304,7 +304,7 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 					$traceroute = property_exists($this, 'app') ? $this->app : $object ?? $router;
 					if ($traceroute !== $this && $traceroute instanceof Stringable)
 					{
-					 	$this->print((string)$traceroute);
+					 	$this->echo((string)$traceroute);
 					}
 					break 2;
 				} while (0);
@@ -423,9 +423,9 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	{
 		return fopen('php://memory', 'r+');
 	}
-	function print(string $data):int
+	function echo(string $data):bool
 	{
-		return fwrite($this->buffer, $data);
+		return fwrite($this->buffer, $data) === strlen($data);
 	}
 	function printf(string $format, string ...$params):int
 	{
@@ -541,6 +541,11 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	{
 		return $this->io->request_header($name);
 	}
+	// function request_language():string
+	// {
+	// 	['zh' => 'CN', 'en' => 'US']
+	// 	return is_string($language = $this->request_header('Accept-Language')) ? $language : 'zh-CN';
+	// }
 	function request_device():string
 	{
 		return $this->request_header('User-Agent') ?? 'Unknown';
@@ -729,7 +734,7 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 			if ($random = static::captcha_random($this['captcha_unit'], $this['captcha_expire']))
 			{
 				$this->response_content_type("text/plain; charset={$this['app_charset']}");
-				$this->print($random);
+				$this->echo($random);
 				return;
 			}
 			return 500;
