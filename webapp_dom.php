@@ -169,7 +169,7 @@ class webapp_xml extends SimpleXMLElement
 		}
 		return $values;
 	}
-	static function from(DOMNode $node):static
+	static function from(DOMNode $node):?static
 	{
 		return simplexml_import_dom($node, static::class);
 	}
@@ -548,7 +548,7 @@ class webapp_document extends DOMDocument implements Stringable
 	}
 	function __invoke(bool $loaded):bool
 	{
-		return $loaded && $this->xml = simplexml_import_dom($this, static::xmltype);
+		return $loaded && $this->xml = static::xmltype::from($this);
 	}
 	function load(string $source, int $options = 0):bool
 	{
@@ -604,14 +604,13 @@ class webapp_form implements ArrayAccess
 	private $files = [], $fields = [], $index = 0;
 	final function __construct(private readonly array|webapp|webapp_html $context, ?string $action = NULL)
 	{
-		$this->webapp = ($this->echo = $context instanceof webapp_html)
-			? $context->webapp() : ($context instanceof webapp ? $context : NULL);
-		$this->xml = $this->echo ? $context->append('form', [
-			'method' => 'post',
-			'autocomplete' => 'off',
-			'class' => 'webapp',
-			'action' => $action
-		]) : new webapp_html('<form/>');
+		[$this->webapp, $this->xml] = ($this->echo = $context instanceof webapp_html)
+			? [$context->webapp(), $context->append('form', [
+				'method' => 'post',
+				'autocomplete' => 'off',
+				'action' => $action,
+				'class' => 'webapp'])]
+			: [$context instanceof webapp ? $context : NULL, new webapp_html('<form/>')];
 		$this->xml['enctype'] = 'application/x-www-form-urlencoded';
 		$this->fieldset();
 	}

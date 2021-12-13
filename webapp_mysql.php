@@ -24,7 +24,7 @@ class webapp_mysql extends mysqli implements IteratorAggregate
 	{
 		return ($this->{$tablename})(...$conditionals);
 	}
-	function __invoke(mixed ...$commands):static
+	function __invoke(...$commands):static
 	{
 		$this->real_query(...$commands);
 		return $this;
@@ -76,25 +76,25 @@ class webapp_mysql extends mysqli implements IteratorAggregate
 		}
 		return join(',', $query);
 	}
-	function format(string $query, iterable|string|int|float|bool ...$values):string
+	function format(string $command, iterable|string|int|float|bool ...$values):string
 	{
 		$offset = 0;
 		$buffer = [];
-		$length = strlen($query);
+		$length = strlen($command);
 		foreach ($values as $value)
 		{
-			if (($pos = strpos($query, '?', $offset)) !== FALSE)
+			if (($pos = strpos($command, '?', $offset)) !== FALSE)
 			{
-				$buffer[] = substr($query, $offset, $pos - $offset) . match ($query[$pos + 1])
+				$buffer[] = substr($command, $offset, $pos - $offset) . match ($command[$pos + 1])
 				{
 					'i' => intval($value),
 					'f' => floatval($value),
 					'a' => $this->quote($value),
 					's' => $this->escape($value),
 					'v' => $this->iterator($value),
-					'?', 'A', 'S' => is_iterable($value) ? join(',', array_map([$this, $query[$pos + 1] === 'A' ? 'quote' : 'escape'],
+					'?', 'A', 'S' => is_iterable($value) ? join(',', array_map([$this, $command[$pos + 1] === 'A' ? 'quote' : 'escape'],
 						is_array($value) ? $value : iterator_to_array($value))) : (string)$value,
-					default => substr($query, $pos, 2)
+					default => substr($command, $pos, 2)
 				};
 				$offset = $pos + 2;
 				continue;
@@ -103,7 +103,7 @@ class webapp_mysql extends mysqli implements IteratorAggregate
 		}
 		if ($offset < $length)
 		{
-			$buffer[] = substr($query, $offset);
+			$buffer[] = substr($command, $offset);
 		}
 		return join($buffer);
 		// if ($values)
@@ -135,9 +135,9 @@ class webapp_mysql extends mysqli implements IteratorAggregate
 		// }
 		// return $query;
 	}
-	function real_query(mixed ...$commands):bool
+	function real_query(string $command, ...$values):bool
 	{
-		if (parent::real_query($this->format(...$commands)))
+		if (parent::real_query($this->format($command, ...$values)))
 		{
 			return TRUE;
 		}
@@ -350,9 +350,9 @@ abstract class webapp_mysql_table implements IteratorAggregate, Countable, Strin
 	// }
 
 
-	function append(mixed ...$params):int
+	function append():int
 	{
-		$this->insert(...$params);
+		$this->insert(...func_get_args());
 		return $this->mysql->insert_id;
 	}
 	function insert(iterable|string $data):bool
@@ -396,7 +396,7 @@ abstract class webapp_mysql_table implements IteratorAggregate, Countable, Strin
 	}
 	function rename(string $name):bool
 	{
-		if ($this->mysql('ALTER TABLE ?a RENAME TO ?a', $this->tablename, $name))
+		if ($this->mysql->real_query('ALTER TABLE ?a RENAME TO ?a', $this->tablename, $name))
 		{
 			$this->tablename = $name;
 			return TRUE;
@@ -405,131 +405,10 @@ abstract class webapp_mysql_table implements IteratorAggregate, Countable, Strin
 	}
 	function truncate():bool
 	{
-		return $this->mysql('TRUNCATE TABLE ?a', $this->tablename);
+		return $this->mysql->real_query('TRUNCATE TABLE ?a', $this->tablename);
 	}
 	function drop():bool
 	{
-		return $this->mysql('DROP TABLE ?a', $this->tablename);
+		return $this->mysql->real_query('DROP TABLE ?a', $this->tablename);
 	}
 }
-/*
-class webapp_mysql_target implements ArrayAccess
-{
-	private $rawdata = [], $change = [];
-	protected $table, $mysql, $tablename, $primary, $key;
-	final function __construct(webapp_mysql_table $table, $mixed = NULL)
-	{
-		$this->table = $table;
-		$this->mysql = $table->mysql;
-		$this->tablename = &$table->tablename();
-		$this->primary = &$table->primary();
-		if (is_scalar($mixed))
-		{
-			if ($this->rawdata = $this->mysql->row('SELECT * FROM ?a WHERE ?a=?s LIMIT 1', $this->tablename, $this->primary, $mixed))
-			{
-				$this->key = $this->rawdata[$this->primary];
-			}
-		}
-		else
-		{
-			if (is_array($mixed))
-			{
-				if (array_key_exists($this->primary, $mixed))
-				{
-					$this->key = $mixed[$this->primary];
-				}
-				$this->change = $mixed;
-			}
-		}
-	}
-	function __get(string $field)
-	{
-		return $this[$field];
-	}
-	function __set(string $field, $value)
-	{
-		return $this[$field] = $value;
-	}
-	final function offsetExists($key):bool
-	{
-		return array_key_exists($key, $this->rawdata) || array_key_exists($key, $this->change);
-	}
-	final function offsetGet($key)
-	{
-		return array_key_exists($key, $this->change) ? $this->change[$key] : $this->rawdata[$key] ?? NULL;
-	}
-	final function offsetSet($key, $value):void
-	{
-		$data = $value === NULL ? NULL : (string)$value;
-		if (array_key_exists($key, $this->rawdata) === FALSE || $this->rawdata[$key] !== $data)
-		{
-			$this->change[$key] = $data;
-		}
-	}
-	final function offsetUnset($key):void
-	{
-		$this[$key] = NULL;
-	}
-
-	// protected function mysql(...$query):webapp_mysql
-	// {
-	// 	return $this->table->mysql(...$query);
-	// }
-	protected function table(...$cond):webapp_mysql_table
-	{
-		return ($this->table)(...$cond);
-	}
-	function save(string $key = NULL):bool
-	{
-		if ($this->change)
-		{
-			if ($key === NULL)
-			{
-				$key = $this->key;
-			}
-			if ($this->table('WHERE ?a=?s LIMIT 1', $this->primary, $key)->update($this->change))
-			{
-				$this->key = array_key_exists($this->primary, $this->change) ? $this->change[$this->primary] : $key;
-				$this->rawdata = $this->change + $this->rawdata;
-				$this->change = [];
-				return TRUE;
-			}
-			return FALSE;
-		}
-		return TRUE;
-	}
-	function saveas(string $key = NULL):bool
-	{
-		$data = $this->change + $this->rawdata;
-		$data[$this->primary] = $key;
-		if ($this->table->insert($data))
-		{
-			$this->key = $data[$this->primary] === NULL
-				? $data[$this->primary] = $this->mysql->insert_id
-				: $data[$this->primary];
-			$this->rawdata = $data;
-			$this->change = [];
-			return TRUE;
-		}
-		return FALSE;
-	}
-	function exist():bool
-	{
-		return boolval($this->rawdata);
-	}
-	function empty():bool
-	{
-		return empty($this->rawdata);
-	}
-	function delete():bool
-	{
-		if ($this->table->delete('WHERE ?a=?s LIMIT 1', $this->primary, $this->key))
-		{
-			$this->change += $this->rawdata;
-			$this->rawdata = [];
-			return TRUE;
-		}
-		return FALSE;
-	}
-}
-*/
