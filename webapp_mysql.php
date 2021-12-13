@@ -29,7 +29,7 @@ class webapp_mysql extends mysqli implements IteratorAggregate
 		$this->real_query(...$commands);
 		return $this;
 	}
-	function getIterator():Traversable
+	function getIterator():mysqli_result
 	{
 		return $this->store_result();
 	}
@@ -308,7 +308,7 @@ abstract class webapp_mysql_table implements IteratorAggregate, Countable, Strin
 		$cond = $this->cond;
 		return intval(($this->mysql)('SELECT SQL_NO_CACHE COUNT(1) FROM ?a?? LIMIT 1', $this->tablename, (string)$this)->value());
 	}
-	function getIterator():Traversable
+	function getIterator():webapp_mysql
 	{
 		return ($this->mysql)('SELECT ?? FROM ?a??', $this->fields, $this->tablename, (string)$this);
 	}
