@@ -943,21 +943,21 @@ class webapp_form implements ArrayAccess
 				&& (isset($node['minlength']) === FALSE || intval($node['minlength']) <= strlen($value))
 		};
 	}
-	static function from(webapp_html $node):static
-	{
-		$form = new static([]);
-		$form['name'] = ['www'=> 333];
-		$form['age'] = ['class'=> 'wa'];
-		// foreach ($node->xpath('//*[@name]') as $field)
-		// {
-		// 	//if ($field->getName())
-		// 	print_r($field->getName());
-		// }
+	// static function from(webapp_html $node):array
+	// {
+	// 	$form = new static([]);
+	// 	$form['name'] = ['www'=> 333];
+	// 	$form['age'] = ['class'=> 'wa'];
+	// 	// foreach ($node->xpath('//*[@name]') as $field)
+	// 	// {
+	// 	// 	//if ($field->getName())
+	// 	// 	print_r($field->getName());
+	// 	// }
 
 
 
-		return $form;
-	}
+	// 	return $form();
+	// }
 }
 class webapp_table
 {

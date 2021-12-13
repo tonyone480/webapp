@@ -52,7 +52,7 @@ class webapp_echo_html extends webapp_document
 		{
 			$this->loadHTML("<!doctype html><html><head><meta charset='{$webapp['app_charset']}'/></head><body/></html>");
 			$this->xml->head->append('meta', ['name' => 'viewport', 'content' => 'width=device-width,initial-scale=1.0']);
-			// $this->xml->head->append('link', ['rel' => 'stylesheet', 'type' => 'text/css', 'href' => '?scss/webapp', 'media' => 'all']);
+			$this->xml->head->append('link', ['rel' => 'stylesheet', 'type' => 'text/css', 'href' => '?scss/webapp', 'media' => 'all']);
 			// $this->xml->head->append('link', ['rel' => 'stylesheet', 'type' => 'text/css', 'href' => $webapp->resroot('ps/font-awesome.css')]);
 			// $this->xml->head->append('script', ['type' => 'javascript/module', 'src' => $webapp->resroot('js/webapp.js')]);
 			$this->article = $this->xml->body->append('article', ['class' => 'webapp']);
