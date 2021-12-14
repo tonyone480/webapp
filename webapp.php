@@ -382,7 +382,7 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 		// return match (TRUE)
 		// {
 		// 	property_exists($this, 'app') && property_exists($this->app, $name) => $this->app->{$name}
-		// };  ? $this->app->{$name} : NULL;
+		// }; ? $this->app->{$name} : NULL;
 	}
 	final function __invoke(object $object, string $errors = 'errors'):object
 	{
@@ -473,8 +473,6 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 		}
 		return $this($client->headers(['User-Agent' => 'WebApp/' . self::version]));
 	}
-
-
 	// function formdata(array|webapp_html $node = NULL, string $action = NULL):array|webapp_html_form
 	// {
 	// 	if (is_array($node))
