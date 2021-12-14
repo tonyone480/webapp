@@ -89,6 +89,7 @@ class webapp_echo_html extends webapp_document
 	{
 		$form = new webapp_form($context, $authurl);
 		$form->fieldset('Username');
+		//$form->field('Username');
 		$form['username'] = ['type' => 'text', 'placeholder' => 'Type username', 'required' => NULL, 'autofocus' => NULL];
 		$form->fieldset('Password');
 		$form['password'] = ['type' => 'password', 'placeholder' => 'Type password', 'required' => NULL];

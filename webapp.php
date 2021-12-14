@@ -556,7 +556,7 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	}
 	function request_content(string $format = NULL):array|string|webapp_xml
 	{
-		return match($format ?? strtolower(strpos($type = $this->request_header('Content-Type'), ';') === FALSE ? $type : strstr($type, ';', TRUE)))
+		return match ($format ?? strtolower(strpos($type = $this->request_header('Content-Type'), ';') === FALSE ? $type : strstr($type, ';', TRUE)))
 		{
 			'multipart/form-data',
 			'application/x-www-form-urlencoded' => $this->io->request_formdata(),
@@ -587,9 +587,9 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 				{
 					return join(',', $this->column('file'));
 				}
-				function column(string $key):array
+				function column(string $type):array
 				{
-					return array_column($this->getArrayCopy(), $key);
+					return array_column($this->getArrayCopy(), $type);
 				}
 				function size():int
 				{
@@ -609,7 +609,7 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 					$date = array_combine(['date', 'year', 'month', 'day', 'week', 'yday', 'time', 'hours', 'minutes', 'seconds'], explode(' ', date('Ymd Y m d w z His H i s')));
 					foreach ($this as $hash => $info)
 					{
-						if ((is_dir($rootdir = dirname($file = preg_replace_callback('/\{([a-z]+)(?:\,(-?\d+)(?:\,(-?\d+))?)?\}/i', fn(array $format):string => match($format[1])
+						if ((is_dir($rootdir = dirname($file = preg_replace_callback('/\{([a-z]+)(?:\,(-?\d+)(?:\,(-?\d+))?)?\}/i', fn(array $format):string => match ($format[1])
 						{
 							'hash' => count($format) > 2 ? substr($hash, ...array_slice($format, 2)) : $hash,
 							'name', 'type' => $info[$format[1]],
@@ -752,11 +752,6 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 		return 404;
 	}
 	//这个函数在不久的将来会被移除
-	// function get_home()
-	// {
-	// 	$this->app('webapp_echo_html')->header['style'] = 'font-size:2rem';
-	// 	$this->app->header->text('Welcome in WebApp Framework');
-	// }
 	function get_scss(string $filename)
 	{
 		if (file_exists($input = __DIR__ . "/res/ps/{$filename}.scss"))
