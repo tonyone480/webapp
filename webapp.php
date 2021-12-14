@@ -686,10 +686,11 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	final function init_admin_sign_in(webapp_io $io, array $config = []):bool
 	{
 		self::__construct($io, $config);
-		if ($this->router === $this && in_array($this->method, ['get_captcha', 'get_qrcode', 'get_scss'], TRUE)) return TRUE;
 		if (method_exists(...$this->route))
 		{
-			if ($this->admin === FALSE)
+			if ($this->router === $this && in_array($this->method, ['get_captcha', 'get_qrcode', 'get_scss'], TRUE)) return TRUE;
+			if ($this->admin) return FALSE;
+			if ($this->router === $this)
 			{
 				if ($this['request_method'] === 'post')
 				{
@@ -713,7 +714,6 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 					$this->app->title('Sign In Admin');
 				}
 				$this->response_status(200);
-				return TRUE;
 			}
 			else
 			{
@@ -724,6 +724,7 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 		{
 			$this->response_status(404);
 		}
+		return TRUE;
 
 
 		if ($this->router === $this && in_array($this->method, ['get_captcha', 'get_qrcode', 'get_scss'], TRUE)) return TRUE;
