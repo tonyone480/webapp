@@ -89,7 +89,7 @@ class webapp_echo_html extends webapp_document
 	{
 		$form = new webapp_form($context, $authurl);
 		$form->fieldset('Username');
-		$form->field('Username', 'text', ['placeholder' => 'Type username', 'required' => NULL, 'autofocus' => NULL]);
+		$form->field('username', 'text', ['placeholder' => 'Type username', 'required' => NULL, 'autofocus' => NULL]);
 		$form->fieldset('Password');
 		$form->field('password', 'password', ['placeholder' => 'Type password', 'required' => NULL]);
 		$form->captcha('Captcha');

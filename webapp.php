@@ -265,8 +265,8 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 				do
 				{
 					if (($router = is_string($this->router)
-							&& ($object = new $this->router($this))::class === $this->router
-								? $object : $this->router)::class === 'Closure') {
+							&& ($method = new $this->router($this))::class === $this->router
+								? $method : $this->router)::class === 'Closure') {
 						$status = $router(...$this->entry);
 					}
 					else
@@ -303,7 +303,7 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 						}
 						$status = $tracert->invoke($router, ...$this->entry);
 					}
-					$traceroute = property_exists($this, 'app') ? $this->app : $object ?? $router;
+					$traceroute = property_exists($this, 'app') ? $this->app : $method ?? $router;
 					if ($traceroute !== $this && $traceroute instanceof Stringable)
 					{
 					 	$this->echo((string)$traceroute);
@@ -356,9 +356,9 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	{
 		$this->entry = $params + $this->entry;
 	}
-	final function break(Closure $end, mixed ...$params):void
+	final function break(Closure $router, mixed ...$params):void
 	{
-		[$this->route[0], $this->route[1], $this->entry] = [$end, '__invoke', $params];
+		[$this->route[0], $this->route[1], $this->entry] = [$router, '__invoke', $params];
 	}
 	// function __call(string $name, array $params):mixed
 	// {
@@ -683,12 +683,52 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 		return $this->io->response_sendfile($filename);
 	}
 	//append function
-	final function init_admin(webapp_io $io, array $config = []):bool
+	final function init_admin_sign_in(webapp_io $io, array $config = []):bool
 	{
 		self::__construct($io, $config);
 		if ($this->router === $this && in_array($this->method, ['get_captcha', 'get_qrcode', 'get_scss'], TRUE)) return TRUE;
+		if (method_exists(...$this->route))
+		{
+			if ($this->admin === FALSE)
+			{
+				if ($this['request_method'] === 'post')
+				{
+					$this->app('webapp_echo_json', ['errors' => &$this->errors, 'signature' => NULL]);
+					if ($input = webapp_echo_html::form_sign_in($this))
+					{
+						if ($this->admin($signature = $this->signature($input['username'], $input['password'])))
+						{
+							$this->response_refresh(0);
+							$this->response_cookie($this['admin_cookie'], $this->app['signature'] = $signature);
+						}
+						else
+						{
+							$this->app['errors'][] = 'Sign in failed';
+						}
+					}
+				}
+				else
+				{
+					webapp_echo_html::form_sign_in($this->app('webapp_echo_html')->xml->body->article->section);
+					$this->app->title('Sign In Admin');
+				}
+				$this->response_status(200);
+				return TRUE;
+			}
+			else
+			{
+				$this->response_status(403);
+			}
+		}
+		else
+		{
+			$this->response_status(404);
+		}
+
+
+		if ($this->router === $this && in_array($this->method, ['get_captcha', 'get_qrcode', 'get_scss'], TRUE)) return TRUE;
 		if ($this->admin) return FALSE;
-		if ($this->router === $this || $this['request_query'] === '')
+		if ($this->router === $this)
 		{
 			if ($this['request_method'] === 'post')
 			{
@@ -715,7 +755,7 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 		}
 		else
 		{
-			$this->response_status(403);
+			$this->response_status(method_exists(...$this->route) ? 403 : 404);
 		}
 		return TRUE;
 	}
