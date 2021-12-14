@@ -684,13 +684,13 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	final function init_admin_sign_in(webapp_io $io, array $config = []):bool
 	{
 		self::__construct($io, $config);
-		if ($this->router === $this)
-		{
-			if (in_array($this->method, ['get_captcha', 'get_qrcode', 'get_scss'], TRUE)) return TRUE;
+		// if ($this->router === $this)
+		// {
+		// 	if (in_array($this->method, ['get_captcha', 'get_qrcode', 'get_scss'], TRUE)) return TRUE;
 			
-			//str_ends_with($this->method, $this['app_index'])
-		}
-		return FALSE;
+		// 	//str_ends_with($this->method, $this['app_index'])
+		// }
+		// return FALSE;
 
 
 
