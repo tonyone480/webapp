@@ -726,6 +726,7 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 		} while (0);
 		$this->response_status($status);
 		return TRUE;
+		return FALSE;
 
 
 		if ($this->router === $this && in_array($this->method, ['get_captcha', 'get_qrcode', 'get_scss'], TRUE)) return TRUE;
