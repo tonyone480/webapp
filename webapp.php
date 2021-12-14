@@ -26,6 +26,7 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 {
 	const version = '4.7a', key = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz-';
 	public readonly self $webapp;
+	public readonly object|string $router, $method;
 	private array $errors = [], $cookies = [], $headers = [], $uploadedfiles, $configs, $route, $entry;
 	protected static array $interfaces = [];
 	static function __callStatic(string $name, array $arguments):mixed
@@ -253,6 +254,7 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 			? [[$this, $route], array_slice($entry, 1)]
 			: [[$this['app_router'] . $entry[0], sprintf('%s_%s', $this['request_method'],
 				count($entry) > 1 ? strtr($entry[1], '-', '_') : $this['app_index'])], []];
+		[&$this->router, &$this->method] = $this->route;
 	}
 	function __destruct()
 	{
@@ -262,9 +264,9 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 			{
 				do
 				{
-					if (($router = is_string($route = $this->route[0])
-							&& ($object = new $route($this))::class === $this->route[0]
-								? $object : $this->route[0])::class === 'Closure') {
+					if (($router = is_string($this->router)
+							&& ($object = new $this->router($this))::class === $this->router
+								? $object : $this->router)::class === 'Closure') {
 						$status = $router(...$this->entry);
 					}
 					else
@@ -350,17 +352,13 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	{
 		return class_exists($name, FALSE) ? $this->app = new $name($this, ...$params) : NULL;
 	}
-	final function route(int $track):string
-	{
-		return is_string($route = $this->route[$track & 1]) ? $route : $route::class;
-	}
 	final function entry(array $params):void
 	{
 		$this->entry = $params + $this->entry;
 	}
 	final function break(Closure $end, mixed ...$params):void
 	{
-		[$this->route, $this->entry] = [[$end, '__invoke'], $params];
+		[$this->route[0], $this->route[1], $this->entry] = [$end, '__invoke', $params];
 	}
 	// function __call(string $name, array $params):mixed
 	// {
@@ -688,9 +686,9 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	final function init_admin(webapp_io $io, array $config = []):bool
 	{
 		self::__construct($io, $config);
-		if ($this->route[0] === $this && in_array($this->route[1], ['get_captcha', 'get_qrcode', 'get_scss'], TRUE)) return TRUE;
+		if ($this->router === $this && in_array($this->method, ['get_captcha', 'get_qrcode', 'get_scss'], TRUE)) return TRUE;
 		if ($this->admin) return FALSE;
-		if ($this->route[0] === $this || $this['request_query'] === '')
+		if ($this->router === $this || $this['request_query'] === '')
 		{
 			if ($this['request_method'] === 'post')
 			{

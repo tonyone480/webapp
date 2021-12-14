@@ -750,13 +750,13 @@ class webapp_form
 		if ($this->webapp && $this->webapp['captcha_echo'])
 		{
 			$this->captcha = $this->fieldset($name);
-			$this['captcha_encrypt'] = [];
-			$this['captcha_decrypt'] = ['type' => 'text', 'placeholder' => 'Type following captcha', 'onfocus' => 'this.select()', 'required' => NULL];
+			$this->field('captcha_encrypt');
+			$this->field('captcha_decrypt', 'text', ['placeholder' => 'Type following captcha', 'onfocus' => 'this.select()', 'required' => NULL]);
 			if ($this->echo)
 			{
-				$this['captcha_encrypt']['value'] = $random = $this->webapp->captcha_random($this->webapp['captcha_unit'], $this->webapp['captcha_expire']);
+				$this->fields['captcha_encrypt']['value'] = $this->webapp->captcha_random($this->webapp['captcha_unit'], $this->webapp['captcha_expire']);
 				$this->fieldset()->setattr([
-					'style' => "height:{$this->webapp['captcha_params'][1]}px;background:url(?captcha/{$random}) no-repeat center",
+					'style' => "height:{$this->webapp['captcha_params'][1]}px;background:url(?captcha/{$this->fields['captcha_encrypt']['value']}) no-repeat center",
 					'onckick' => ''
 				]);
 				$this->fieldset = $this->captcha;
@@ -809,31 +809,31 @@ class webapp_form
 			// case 'enuminput':
 			case 'textarea':
 				return $this->fields[$name] = $this->fieldset->append('textarea', ['name' => $alias] + $info);
-			case 'file':
-				$this->xml['enctype'] = 'multipart/form-data';
-			case 'select':
-				if (array_key_exists('multiple', $info))
-				{
-					$alias .= '[]';
-					$attributes['multiple'] = NULL;
-				}
-				if ($typename === 'select')
-				{
-					$node = $this->fieldset->append('select', ['name' => $alias]);
-					if (array_key_exists('value', $attributes) && is_array($attributes['value']))
-					{
-						$node->options($attributes['value']);
-						unset($attributes['value']);
-					}
-					if (array_key_exists('optgroup', $attributes) && is_array($attributes['optgroup']))
-					{
-						$node->optgroup($attributes['optgroup']);
-						unset($attributes['optgroup']);
-					}
-					return $this->fields[$rename] = $node->setattr($attributes);
-				}
+			// case 'file':
+			// 	$this->xml['enctype'] = 'multipart/form-data';
+			// case 'select':
+			// 	if (array_key_exists('multiple', $info))
+			// 	{
+			// 		$alias .= '[]';
+			// 		$attributes['multiple'] = NULL;
+			// 	}
+			// 	if ($typename === 'select')
+			// 	{
+			// 		$node = $this->fieldset->append('select', ['name' => $alias]);
+			// 		if (array_key_exists('value', $attributes) && is_array($attributes['value']))
+			// 		{
+			// 			$node->options($attributes['value']);
+			// 			unset($attributes['value']);
+			// 		}
+			// 		if (array_key_exists('optgroup', $attributes) && is_array($attributes['optgroup']))
+			// 		{
+			// 			$node->optgroup($attributes['optgroup']);
+			// 			unset($attributes['optgroup']);
+			// 		}
+			// 		return $this->fields[$rename] = $node->setattr($attributes);
+			// 	}
 			default:
-				return $this->{$typename === 'file' ? 'files' : 'fields'}[$rename] = $this->fieldset->append('input', ['type' => $typename, 'name' => $alias] + $attributes);
+				return $this->fields[$name] = $this->fieldset->append('input', ['type' => $type, 'name' => $alias] + $info);
 		}
 	}
 	private function setdefault(array $values):static
@@ -928,9 +928,9 @@ class webapp_form
 				&& (isset($node['minlength']) === FALSE || intval($node['minlength']) <= strlen($value))
 		};
 	}
-	// static function from(webapp_html $node):array
+	// static function data(array|webapp_html $fields, array|webapp $contents):array
 	// {
-	// 	$form = new static([]);
+	// 	$form = new static($contents);
 	// 	$form['name'] = ['www'=> 333];
 	// 	$form['age'] = ['class'=> 'wa'];
 	// 	// foreach ($node->xpath('//*[@name]') as $field)
@@ -946,7 +946,8 @@ class webapp_form
 }
 class webapp_table
 {
-	public webapp_html $xml, $tbody, $paging;
+	public readonly webapp_html $xml, $tbody;
+	public readonly array $paging;
 	function __construct(webapp_html $node, iterable $data = [], Closure $output = NULL, mixed ...$params)
 	{
 		$this->xml = &$node->table[];

@@ -89,10 +89,9 @@ class webapp_echo_html extends webapp_document
 	{
 		$form = new webapp_form($context, $authurl);
 		$form->fieldset('Username');
-		//$form->field('Username');
-		$form['username'] = ['type' => 'text', 'placeholder' => 'Type username', 'required' => NULL, 'autofocus' => NULL];
+		$form->field('Username', 'text', ['placeholder' => 'Type username', 'required' => NULL, 'autofocus' => NULL]);
 		$form->fieldset('Password');
-		$form['password'] = ['type' => 'password', 'placeholder' => 'Type password', 'required' => NULL];
+		$form->field('password', 'password', ['placeholder' => 'Type password', 'required' => NULL]);
 		$form->captcha('Captcha');
 		$form->fieldset();
 		$form->button('Sign In', 'submit');
@@ -102,10 +101,10 @@ class webapp_echo_html extends webapp_document
 class webapp_echo_json extends ArrayObject implements Stringable
 {
 	use webapp_echo;
-	function __construct(public readonly webapp $webapp, array|object $array = [])
+	function __construct(public readonly webapp $webapp, array|object $data = [])
 	{
 		$webapp->response_content_type('application/json');
-		parent::__construct($array, ArrayObject::STD_PROP_LIST);
+		parent::__construct($data, ArrayObject::STD_PROP_LIST);
 	}
 	function __toString():string
 	{
