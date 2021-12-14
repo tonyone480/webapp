@@ -685,45 +685,46 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	//append function
 	final function init_admin_sign_in(webapp_io $io, array $config = []):bool
 	{
-		self::__construct($io, $config);
-		if (method_exists(...$this->route))
+		do
 		{
-			if ($this->router === $this && in_array($this->method, ['get_captcha', 'get_qrcode', 'get_scss'], TRUE)) return TRUE;
-			if ($this->admin) return FALSE;
-			if ($this->router === $this)
+			self::__construct($io, $config);
+			if (method_exists(...$this->route))
 			{
-				if ($this['request_method'] === 'post')
+				if ($this->router === $this && in_array($this->method, ['get_captcha', 'get_qrcode', 'get_scss'], TRUE)) return TRUE;
+				if ($this->admin) return FALSE;
+				if ($this->router === $this)
 				{
-					$this->app('webapp_echo_json', ['errors' => &$this->errors, 'signature' => NULL]);
-					if ($input = webapp_echo_html::form_sign_in($this))
+					if (in_array($this->method, ['get_captcha', 'get_qrcode', 'get_scss'], TRUE)) return TRUE;
+					if ($this['request_method'] === 'post')
 					{
-						if ($this->admin($signature = $this->signature($input['username'], $input['password'])))
+						$this->app('webapp_echo_json', ['errors' => &$this->errors, 'signature' => NULL]);
+						if ($input = webapp_echo_html::form_sign_in($this))
 						{
-							$this->response_refresh(0);
-							$this->response_cookie($this['admin_cookie'], $this->app['signature'] = $signature);
-						}
-						else
-						{
-							$this->app['errors'][] = 'Sign in failed';
+							if ($this->admin($signature = $this->signature($input['username'], $input['password'])))
+							{
+								$this->response_refresh(0);
+								$this->response_cookie($this['admin_cookie'], $this->app['signature'] = $signature);
+							}
+							else
+							{
+								$this->app['errors'][] = 'Sign in failed';
+							}
 						}
 					}
+					else
+					{
+						webapp_echo_html::form_sign_in($this->app('webapp_echo_html')->xml->body->article->section);
+						$this->app->title('Sign In Admin');
+					}
+					$status = 200;
+					break;
 				}
-				else
-				{
-					webapp_echo_html::form_sign_in($this->app('webapp_echo_html')->xml->body->article->section);
-					$this->app->title('Sign In Admin');
-				}
-				$this->response_status(200);
+				$status = 403;
+				break;
 			}
-			else
-			{
-				$this->response_status(403);
-			}
-		}
-		else
-		{
-			$this->response_status(404);
-		}
+			$status = 404;
+		} while (0);
+		$this->response_status($status);
 		return TRUE;
 
 
