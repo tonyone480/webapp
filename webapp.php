@@ -684,63 +684,13 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	final function init_admin_sign_in(webapp_io $io, array $config = []):bool
 	{
 		self::__construct($io, $config);
-		// if ($this->router === $this)
-		// {
-		// 	if (in_array($this->method, ['get_captcha', 'get_qrcode', 'get_scss'], TRUE)) return TRUE;
-			
-		// 	//str_ends_with($this->method, $this['app_index'])
-		// }
-		// return FALSE;
-
-
-
-		do
+		if (method_exists(...$this->route))
 		{
-			
-			if (method_exists(...$this->route))
-			{
-				if ($this->router === $this && in_array($this->method, ['get_captcha', 'get_qrcode', 'get_scss'], TRUE)) return TRUE;
-				if ($this->admin) return FALSE;
-				if ($this->router === $this)
-				{
-					if (in_array($this->method, ['get_captcha', 'get_qrcode', 'get_scss'], TRUE)) return TRUE;
-					if ($this['request_method'] === 'post')
-					{
-						$this->app('webapp_echo_json', ['errors' => &$this->errors, 'signature' => NULL]);
-						if ($input = webapp_echo_html::form_sign_in($this))
-						{
-							if ($this->admin($signature = $this->signature($input['username'], $input['password'])))
-							{
-								$this->response_refresh(0);
-								$this->response_cookie($this['admin_cookie'], $this->app['signature'] = $signature);
-							}
-							else
-							{
-								$this->app['errors'][] = 'Sign in failed';
-							}
-						}
-					}
-					else
-					{
-						webapp_echo_html::form_sign_in($this->app('webapp_echo_html')->xml->body->article->section);
-						$this->app->title('Sign In Admin');
-					}
-					$status = 200;
-					break;
-				}
-				$status = 403;
-				break;
-			}
-			$status = 404;
-		} while (0);
-		$this->response_status($status);
-		return TRUE;
-		return FALSE;
-
-
-		if ($this->router === $this && in_array($this->method, ['get_captcha', 'get_qrcode', 'get_scss'], TRUE)) return TRUE;
-		if ($this->admin) return FALSE;
-		if ($this->router === $this)
+			if ($this->router === $this && in_array($this->method, ['get_captcha', 'get_qrcode', 'get_scss'], TRUE)) return TRUE;
+			if ($this->admin) return FALSE;
+			$this->response_status(403);
+		}
+		if ($this['request_query'] === '')
 		{
 			if ($this['request_method'] === 'post')
 			{
@@ -764,10 +714,6 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 				$this->app->title('Sign In Admin');
 			}
 			$this->response_status(200);
-		}
-		else
-		{
-			$this->response_status(method_exists(...$this->route) ? 403 : 404);
 		}
 		return TRUE;
 	}
