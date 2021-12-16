@@ -247,7 +247,8 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 			'qrcode_maxdata'	=> 256,
 			//Misc
 			'copy_webapp'		=> 'Web Application v' . self::version,
-			'gzip_level'		=> -1]];
+			'gzip_level'		=> -1,
+			'smtp_host'			=> 'smtp://username:password@host']];
 		[$this->route, $this->entry] = method_exists($this, $route = sprintf('%s_%s', $this['request_method'],
 			preg_match('/^\w+(?=\/([\-\w]*))?/', $this['request_query'], $entry)
 				? $entry[0] : $entry[] = $this['app_index']))
