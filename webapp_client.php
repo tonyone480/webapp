@@ -6,7 +6,7 @@ class webapp_client implements Stringable, Countable
 	protected $length = 0, $buffer, $client, $context;
 	function __construct(public readonly string $remote)
 	{
-		$this->buffer = fopen('php://memory', 'w+');
+		$this->buffer = fopen('php://memory', 'r+');
 		$this->context = stream_context_create(['ssl' => [
 			'verify_peer' => FALSE,
 			'verify_peer_name' => FALSE,
@@ -72,6 +72,15 @@ class webapp_client implements Stringable, Countable
 	{
 		return stream_set_timeout($this->client, $seconds);
 	}
+
+
+
+
+
+
+
+
+	
 	function receive(int $length):bool
 	{
 		if ($this->readinto($this->buffer, $length) === $length)
@@ -127,10 +136,15 @@ class webapp_client implements Stringable, Countable
 		}
 		return FALSE;
 	}
-	//读取
-	function readdata(string &$output, int $length = NULL):int
+	//窥视数据
+	function peek(string &$output, int $length):bool
 	{
-		return is_string($output = stream_get_contents($this->client, $length)) ? strlen($output) : 0;
+		return is_string($output = @stream_socket_recvfrom($this->client, $length, STREAM_PEEK)) && strlen($output) === $length;
+	}
+	//读取
+	function read(string &$output, int $length = NULL):int
+	{
+		return is_string($output = @stream_get_contents($this->client, $length)) ? strlen($output) : 0;
 	}
 	//读取一行
 	function readline(string &$output = NULL, int $length = 65535, string $ending = "\r\n"):bool
@@ -145,12 +159,13 @@ class webapp_client implements Stringable, Countable
 	//读取至流
 	function readinto($stream, int $length = NULL):int
 	{
-		return stream_copy_to_stream($this->client, $stream, $length);
+		return (int)stream_copy_to_stream($this->client, $stream, $length);
 	}
+
 	//发送
 	function send(string $data):bool
 	{
-		return @fwrite($this->stream, $data) === strlen($data);
+		return @fwrite($this->client, $data) === strlen($data);
 	}
 }
 // class webapp_client_debug extends php_user_filter
