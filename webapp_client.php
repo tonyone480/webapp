@@ -3,7 +3,7 @@ declare(strict_types=1);
 class webapp_client implements Stringable, Countable
 {
 	public array $errors = [];
-	protected $length = 0, $buffer, $client, $context;
+	private $buffer, $filter, $client, $context;
 	function __construct(public readonly string $remote)
 	{
 		$this->buffer = fopen('php://memory', 'r+');
@@ -30,23 +30,25 @@ class webapp_client implements Stringable, Countable
 	// 		default =>			NULL
 	// 	};
 	// }
+	//缓冲区内容
 	function __toString():string
 	{
-		return fread($this->buffer, rewind($this->buffer) ? $this->length : 0);
+		return stream_get_contents($this->buffer, ($length = count($this)) && rewind($this->buffer) ? $length : 0);
 	}
+	//缓冲区大小
 	function count():int
 	{
-		return $this->length;
+		return ftell($this->buffer);
 	}
 	//调试
-	// function debug(int $filter = STREAM_FILTER_WRITE/* STREAM_FILTER_ALL */):void
-	// {
-	// 	if (in_array('webapp_client_debug', stream_get_filters(), TRUE) === FALSE)
-	// 	{
-	// 		stream_filter_register('webapp_client_debug', 'webapp_client_debug');
-	// 		stream_filter_append($this->stream, 'webapp_client_debug', $filter);
-	// 	}
-	// }
+	function debug(int $filter = STREAM_FILTER_WRITE/* STREAM_FILTER_ALL */):void
+	{
+		if (in_array('webapp_client_debug', stream_get_filters(), TRUE) === FALSE)
+		{
+			stream_filter_register('webapp_client_debug', 'webapp_client_debug');
+			stream_filter_append($this->client, 'webapp_client_debug', $filter);
+		}
+	}
 	//重连
 	function reconnect():bool
 	{
@@ -72,95 +74,101 @@ class webapp_client implements Stringable, Countable
 	{
 		return stream_set_timeout($this->client, $seconds);
 	}
-
-
-
-
-
-
-
-
-	
-	function receive(int $length):bool
+	//缓冲区过滤
+	function filter(...$params):bool
 	{
-		if ($this->readinto($this->buffer, $length) === $length)
-		{
-			$this->length += $length;
-			return TRUE;
-		}
-		return FALSE;
+		return $this->remove() && is_resource($this->filter = stream_filter_append($this->buffer, ...$params));
 	}
-	//缓冲区重写
+	//缓冲区过滤移除
+	function remove():bool
+	{
+		if (is_resource($this->filter))
+		{
+			if (stream_filter_remove($this->filter) === FALSE)
+			{
+				return FALSE;
+			}
+			$this->filter = NULL;
+		}
+		return TRUE;
+	}
+	//缓冲区清空
 	function clear():bool
 	{
-		if (rewind($this->buffer))
-		{
-			$this->length = 0;
-			return TRUE;
-		}
-		return FALSE;
+		return $this->remove() && rewind($this->buffer);
 	}
-	//缓冲区追加
-	function append(int $length):bool
+	//缓冲区输入
+	function echo(string $data):bool
 	{
-		if ($this->readinto($this->buffer, $length) === $length)
-		{
-			$this->length = ftell($this->buffer);
-			return TRUE;
-		}
-		return FALSE;
+		return fwrite($this->buffer, $data) === strlen($data);
 	}
-	//缓冲区大小
-	function buffersize():int
+	//缓冲区格式化输入
+	function printf(string $format, mixed ...$values):bool
 	{
-		return $this->length;
+		return $this->echo(sprintf($format, ...$values));
 	}
-	//缓冲区内容
-	function bufferdata():string
+	//缓冲区从
+	function from($stream, int $length = NULL):bool
 	{
-		return stream_get_contents($this->buffer, rewind($this->buffer) ? $this->length : 0);
+		return is_int($copied = stream_copy_to_stream(
+			is_resource($stream) ? $stream : fopen($stream, 'r'),
+			$this->buffer, $length)) && ($length === NULL || $copied === $length);
 	}
-	//缓冲区内容入流
-	function bufferinto($stream):bool
+	//缓冲区拉取
+	function pull(int $length = NULL):bool
 	{
-		return rewind($this->buffer)
-			&& stream_copy_to_stream($this->buffer, $stream, $this->length) === $this->length;
+		return $this->from($this->client, $length);
 	}
-	//缓冲区转储文件
-	function bufferdump(string $filename):bool
+	//缓冲区到
+	function to($stream):bool
 	{
-		if ($file = fopen($filename, 'wb'))
-		{
-			$retval = $this->bufferinto($file);
-			return fclose($file) && $retval;
-		}
-		return FALSE;
+		$length = count($this);
+		return stream_copy_to_stream($this->buffer,
+			is_resource($stream) ? $stream : fopen($stream, 'w'),
+			rewind($this->buffer) ? $length : 0) === $length;
 	}
+	//缓冲区推送
+	function push():bool
+	{
+		return $this->to($this->client);
+	}
+	
+
+
 	//窥视数据
-	function peek(string &$output, int $length):bool
+	function peek(?string &$output, int $length):bool
 	{
 		return is_string($output = @stream_socket_recvfrom($this->client, $length, STREAM_PEEK)) && strlen($output) === $length;
 	}
 	//读取
-	function read(string &$output, int $length = NULL):int
+	function read(?string &$output, int $length = NULL):int
 	{
 		return is_string($output = @stream_get_contents($this->client, $length)) ? strlen($output) : 0;
 	}
 	//读取一行
-	function readline(string &$output = NULL, int $length = 65535, string $ending = "\r\n"):bool
+	function readline(?string &$output = NULL, int $length = 65535, string $ending = "\r\n"):bool
 	{
-		return ($output = @stream_get_line($this->stream, $length, $ending)) !== FALSE;
+		return is_string($output = @stream_get_line($this->client, $length, $ending));
 	}
+	//读取至流
+	function readinto($stream, int $length = NULL):int
+	{
+		return (int)@stream_copy_to_stream($this->client, $stream, $length);
+	}
+
+
+
+
+
+
+
+
 	//读取剩余内容
 	function readfull(int $length = -1):string
 	{
 		return stream_get_contents($this->stream, $length);
 	}
-	//读取至流
-	function readinto($stream, int $length = NULL):int
-	{
-		return (int)stream_copy_to_stream($this->client, $stream, $length);
-	}
+
 
 	//发送
 	function send(string $data):bool
@@ -168,24 +176,24 @@ class webapp_client implements Stringable, Countable
 		return @fwrite($this->client, $data) === strlen($data);
 	}
 }
-// class webapp_client_debug extends php_user_filter
-// {
-// 	//注意：过滤流在内部读取时只能过滤一个队列，这是一个BUG？
-// 	function filter($in, $out, &$consumed, $closing):int
-// 	{
-// 		echo "\r\n", $consumed === NULL
-// 			? '>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'
-// 			: '<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<',
-// 			"\r\n";
-// 		while ($bucket = stream_bucket_make_writeable($in))
-// 		{
-// 			$consumed += $bucket->datalen;
-// 			stream_bucket_append($out, $bucket);
-// 			echo quoted_printable_encode($bucket->data);
-// 		}
-// 		return PSFS_PASS_ON;
-// 	}
-// }
+class webapp_client_debug extends php_user_filter
+{
+	//注意：过滤流在内部读取时只能过滤一个队列，这是一个BUG？
+	function filter($in, $out, &$consumed, $closing):int
+	{
+		echo "\r\n", $consumed === NULL
+			? '>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'
+			: '<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<',
+			"\r\n";
+		while ($bucket = stream_bucket_make_writeable($in))
+		{
+			$consumed += $bucket->datalen;
+			stream_bucket_append($out, $bucket);
+			echo quoted_printable_encode($bucket->data);
+		}
+		return PSFS_PASS_ON;
+	}
+}
 // class webapp_client_smtp extends webapp_client
 // {
 // 	function __construct(string $host)
@@ -229,220 +237,224 @@ class webapp_client implements Stringable, Countable
 // 	{
 // 	}
 // }
-// class webapp_client_http extends webapp_client
-// {
-// 	public $headers = [
-// 		'Host' => '*',
-// 		'Connection' => 'keep-alive',
-// 		'User-Agent' => 'WebApp/Connect',
-// 		'Accept' => '*/*',
-// 		'Accept-Encoding' => 'gzip, deflate',
-// 		'Accept-Language' => 'en'
-// 	], $cookies = [], $path;
-// 	function __construct(private string $url, int $timeout = 4, private ?array &$referers = [])
-// 	{
-// 		[$remote, $this->headers['Host'], $this->path] = $parse = static::parseurl($url);
-// 		$this->referers[$remote] = $this;
-// 		if (count($parse) > 3)
-// 		{
-// 			$this->headers['Authorization'] = 'Basic ' . base64_encode(join(':', array_slice($parse, 3)));
-// 		}
-// 		parent::__construct($remote, $timeout);
-// 	}
-// 	private function multipart(string $contents, string $filename, mixed $data, string $name = NULL):void
-// 	{
-// 		//get_debug_type
-// 		switch (get_debug_type($data))
-// 		{
-// 			case 'array':
-// 				foreach ($data as $key => $value)
-// 				{
-// 					$this->multipart($contents, $filename, $value, $name === NULL ? $key : "{$name}[{$key}]");
-// 				}
-// 				return;
-// 			case 'int':
-// 			case 'float':
-// 			case 'string':
-// 				fwrite($this->buffer, sprintf($contents, $name));
-// 				fwrite($this->buffer, $data);
-// 				fwrite($this->buffer, "\r\n");
-// 				return;
-// 			// case ($data instanceof self):
-// 			// 	fwrite($this->buffer, sprintf($filename, $name, __CLASS__));
-// 			// 	$data->copyto($this->buffer);
-// 			// 	fwrite($this->buffer, "\r\n");
-// 			// 	return;
-// 			// case is_resource($data) && get_resource_type($data) === 'stream':
-// 			// 	fwrite($this->buffer, sprintf($filename, $name, basename(stream_get_meta_data($data)['uri'])));
-// 			// 	stream_copy_to_stream($data, $this->buffer);
-// 			// 	fwrite($this->buffer, "\r\n");
-// 			// 	return;
-// 		}
-// 	}
-// 	function headers(array $replace):static
-// 	{
-// 		foreach ($replace as $name => $value)
-// 		{
-// 			$this->headers[$name] = $value;
-// 		}
-// 		return $this;
-// 	}
-// 	function cookies(string|array $replace):static
-// 	{
-// 		foreach (is_string($replace) && preg_match_all('/(\w+)\=([^;]+)/', $replace, $cookies, PREG_SET_ORDER)
-// 			? array_map('urldecode', array_column($cookies, 2, 1)) : $replace as $name => $value) {
-// 			$this->cookies[$name] = $value;
-// 		}
-// 		return $this;
-// 	}
-// 	function request(string $method, string $path, string|array $data = NULL, bool $multipart = FALSE):array
-// 	{
-// 		$headers = ["{$method} {$path} HTTP/1.1"];
-// 		foreach ($this->headers as $name => $value)
-// 		{
-// 			$headers[] = "{$name}: {$value}";
-// 		}
-// 		if ($this->cookies)
-// 		{
-// 			$headers[] = 'Cookie: '. http_build_query($this->cookies, arg_separator: '; ');
-// 		}
-// 		do
-// 		{
-			
-// 			if ($this->rewind() && $data !== NULL)
-// 			{
-// 				if ($multipart)
-// 				{
-// 					$boundary = uniqid('----WebAppFormBoundarys');
-// 					$contents = join("\r\n", [$boundary, 'Content-Disposition: form-data; name="%s"', "\r\n"]);
-// 					$filename = substr($contents, 0, -4) . "; filename=\"%s\"\r\nContent-Type: application/octet-stream\r\n\r\n";
-// 					$headers[] = "Content-Type: multipart/form-data; boundary={$boundary}";
-// 					$this->multipart("--{$contents}", "--{$filename}", $data);
-// 					fwrite($this->buffer, "--{$boundary}--");
-// 				}
-// 				else
-// 				{
-// 					//get_debug_type
-// 					switch (TRUE)
-// 					{
-// 						case is_array($data):
-// 							$headers[] = 'Content-Type: application/x-www-form-urlencoded';
-// 							fwrite($this->buffer, http_build_query($data));
-// 							break;
-// 						case is_scalar($data):
-// 							fwrite($this->buffer, $data);
-// 							break;
-// 						// case ($data instanceof self):
-// 						// 	$data->copyto($this->buffer);
-// 						// 	break;
-// 						// case is_resource($data) && get_resource_type($data) === 'stream':
-// 						// 	stream_copy_to_stream($data, $this->buffer);
-// 						// 	break;
-// 					}
-// 				}
-// 				if ($this->length = ftell($this->buffer))
-// 				{
-// 					$headers[] = "Content-Length: {$this->length}";
-// 				}
-// 			}
-			
-// 			if ($this->send(join($headers[] = "\r\n", $headers)) === FALSE
-// 				|| ($this->length === 0 || $this->bufferinto($this->stream)) === FALSE
-// 				|| $this->readline($status) === FALSE) {
-// 				break;
-// 			}
-// 			$responses = [$status];
-// 			do
-// 			{
-// 				if ($this->readline($header) === FALSE)
-// 				{
-// 					break 2;
-// 				}
-// 				if ($offset = strpos($header, ': '))
-// 				{
-// 					$key = ucwords(substr($header, 0, $offset), '-');
-// 					$value = substr($header, $offset + 2);
-// 					if ($key !== 'Set-Cookie')
-// 					{
-// 						$responses[$key] = $value;
-// 						continue;
-// 					}
-// 					if (preg_match('/^([^=]+)=([^;]+)(?:; expires=([^;]+))?/', $value, $cookies))
-// 					{
-// 						if (array_key_exists(3, $cookies) && strtotime($cookies[3]) < time())
-// 						{
-// 							unset($this->cookies[$cookies[1]]);
-// 							continue;
-// 						}
-// 						$this->cookies[$cookies[1]] = $cookies[2];
-// 					}
-// 				}
-// 			} while ($header);
-// 			if ($this->rewind() === FALSE)
-// 			{
-// 				break;
-// 			}
-// 			if (array_key_exists('Content-Encoding', $responses))
-// 			{
-// 				if (($filter = match ($responses['Content-Encoding']) {
-// 					'gzip' => stream_filter_append($this->buffer, 'zlib.inflate', STREAM_FILTER_WRITE, ['window' => 31]),
-// 					'deflate' => stream_filter_append($this->buffer, 'zlib.inflate', STREAM_FILTER_WRITE),
-// 					default => FALSE}) === FALSE) {
-// 					break;
-// 				};
-// 			}
-// 			if (array_key_exists('Content-Length', $responses))
-// 			{
-// 				if ($this->append(intval($responses['Content-Length'])) === FALSE)
-// 				{
-// 					break;
-// 				}
-// 			}
-// 			else
-// 			{
-// 				if (array_key_exists('Transfer-Encoding', $responses) && $responses['Transfer-Encoding'] === 'chunked')
-// 				{
-// 					do
-// 					{
-// 						if ($this->readline($size, 8) === FALSE)
-// 						{
-// 							break 2;
-// 						}
-// 						if ($length = hexdec($size))
-// 						{
-// 							if ($this->append($length) === FALSE)
-// 							{
-// 								break 2;
-// 							}
-// 						}
-// 						if ($this->readline($line, 2) === FALSE)
-// 						{
-// 							break 2;
-// 						}
-// 					} while ($length);
-// 				}
-// 			}
-// 			if ($filter)
-// 			{
-// 				if (stream_filter_remove($filter) === FALSE)
-// 				{
-// 					break;
-// 				}
-// 			}
-// 			return $responses;
-// 		} while (0);
-// 		return [];
-// 	}
-// 	function content(string $method, string $path, $data = NULL, bool $multipart = FALSE)
-// 	{
-// 		return match (static::mimetype($this->request($method, $path, $data, $multipart))[1])
-// 		{
-// 			'xml' => new webapp_xml($this->bufferdata()),
-// 			//'html' => webapp_document::html($this->bufferdata()),
-// 			'json' => json_decode($this->bufferdata(), TRUE),
-// 			default => $this->bufferdata()
-// 		};
-// 	}
+class webapp_client_http extends webapp_client implements ArrayAccess
+{
+	public readonly string $path;
+	private array $headers = [
+		'Host' => '*',
+		'Connection' => 'keep-alive',
+		'User-Agent' => 'WebApp/Client',
+		'Accept' => 'application/json,application/xml,text/html;q=0.9, */*;q=0.8',
+		'Accept-Encoding' => 'gzip, deflate',
+		'Accept-Language' => 'zh-CN, zh;q=0.9, en;q=0.8'
+	], $cookies = [], $responses = [];
+	function __construct(public readonly string $url, private array &$referers = [])
+	{
+		[$remote, $this->headers['Host'], $this->path] = $parse = static::parseurl($url);
+		$this->referers[$remote] = $this;
+		if (count($parse) > 3)
+		{
+			$this->headers['Authorization'] = 'Basic ' . base64_encode(join(':', array_slice($parse, 3)));
+		}
+		parent::__construct($remote);
+	}
+	function offsetExists(mixed $offset):bool
+	{
+		return array_key_exists($offset, $this->responses);
+	}
+	function offsetGet(mixed $offset):mixed
+	{
+		return $this->responses[$offset] ?? NULL;
+	}
+	function offsetSet(mixed $offset, mixed $value):void
+	{
+		$this->headers[$offset] = $value;
+	}
+	function offsetUnset(mixed $offset):void
+	{
+		unset($this->headers[$offset]);
+	}
+	function headers(array $replace):static
+	{
+		foreach ($replace as $name => $value)
+		{
+			$this->headers[$name] = $value;
+		}
+		return $this;
+	}
+	function cookies(string|array $replace):static
+	{
+		foreach (is_string($replace) && preg_match_all('/(\w+)\=([^;]+)/', $replace, $cookies, PREG_SET_ORDER)
+			? array_map('urldecode', array_column($cookies, 2, 1)) : $replace as $name => $value) {
+			$this->cookies[$name] = $value;
+		}
+		return $this;
+	}
+	private function form($data, string $name, string $contents, string $filename):bool
+	{
+		if (is_array($data))
+		{
+			foreach ($data as $key => $value)
+			{
+				if ($this->form($value, $key, $contents, $filename) === FALSE)
+				{
+					return FALSE;
+				}
+			}
+			return TRUE;
+		}
+		return match (TRUE)
+		{
+			is_null($data), is_scalar($data) => $this->printf($contents, $name) && $this->echo((string)$data),
+			is_resource($data) => $this->printf($filename, $name, basename(stream_get_meta_data($data)['uri'])) && $this->from($data),
+			//$data instanceof self => $this->from($data),
+			default => FALSE
+		} && $this->echo("\r\n");
+	}
+	function request(string $method, string $path, $data = NULL, string $type = 'application/x-www-form-urlencoded'):bool
+	{
+		$this->responses = [];
+		$request = ["{$method} {$path} HTTP/1.1"];
+		foreach ($this->headers as $name => $value)
+		{
+			$request[] = "{$name}: {$value}";
+		}
+		if ($this->cookies)
+		{
+			$request[] = 'Cookie: '. http_build_query($this->cookies, arg_separator: '; ');
+		}
+		do
+		{
+			if ($this->clear() === FALSE)
+			{
+				break;
+			}
+			if ($data)
+			{
+				if ((is_string($data) ? $this->echo($data) : match ($type) {
+					'application/x-www-form-urlencoded' => $this->echo(http_build_query($data)),
+					'multipart/form-data' => $this->form($data, '',
+						$contents = '--' . join("\r\n", [
+							$boundary = uniqid('----WebAppFormBoundarys'),
+							'Content-Disposition: form-data; name="%s"', "\r\n"]),
+						substr($contents, 0, -4) . "; filename=\"%s\"\r\nContent-Type: application/octet-stream\r\n\r\n",
+						$type .= "; boundary={$boundary}")
+						&& $this->echo("--{$boundary}--"),
+					'application/json' => $this->echo(json_encode($data, JSON_UNESCAPED_UNICODE)),
+					'application/xml' => $this->echo($data instanceof DOMDocument ? $data->saveXML() : (string)$data),
+					'application/octet-stream' => $this->from($data),
+					default => FALSE}) === FALSE) {
+					break;
+				}
+				$request[] = "Content-Type: {$type}";
+				$request[] = 'Content-Length: ' . count($this);
+			}
+			if ($this->send(join($request[] = "\r\n", $request)) === FALSE
+				|| (count($this) === 0 || $this->push()) === FALSE
+				|| $this->readline($status) === FALSE) {
+				break;
+			}
+			$responses = [$status];
+			do
+			{
+				if ($this->readline($header) === FALSE)
+				{
+					break 2;
+				}
+				if ($offset = strpos($header, ': '))
+				{
+					$key = ucwords(substr($header, 0, $offset), '-');
+					$value = substr($header, $offset + 2);
+					if ($key !== 'Set-Cookie')
+					{
+						$responses[$key] = $value;
+						continue;
+					}
+					if (preg_match('/^([^=]+)=([^;]+)(?:; expires=([^;]+))?/', $value, $cookies))
+					{
+						if (array_key_exists(3, $cookies) && strtotime($cookies[3]) < time())
+						{
+							unset($this->cookies[$cookies[1]]);
+							continue;
+						}
+						$this->cookies[$cookies[1]] = $cookies[2];
+					}
+				}
+			} while ($header);
+			if ($this->clear() === FALSE)
+			{
+				break;
+			}
+			if (array_key_exists('Content-Encoding', $responses))
+			{
+				if (match ($responses['Content-Encoding']) {
+					'gzip' => $this->filter('zlib.inflate', STREAM_FILTER_WRITE, ['window' => 31]),
+					'deflate' => $this->filter('zlib.inflate', STREAM_FILTER_WRITE),
+					default => FALSE} === FALSE) {
+					break;
+				};
+			}
+			if (array_key_exists('Content-Length', $responses))
+			{
+				if ($this->pull(intval($responses['Content-Length'])) === FALSE)
+				{
+					break;
+				}
+			}
+			else
+			{
+				if (array_key_exists('Transfer-Encoding', $responses) && $responses['Transfer-Encoding'] === 'chunked')
+				{
+					
+					do
+					{
+						if ($this->readline($size, 8) === FALSE)
+						{
+							break 2;
+						}
+						if ($length = hexdec($size))
+						{
+							if ($this->pull($length) === FALSE)
+							{
+								break 2;
+							}
+						}
+						if ($this->readline($line, 2) === FALSE)
+						{
+							break 2;
+						}
+					} while ($length);
+				}
+			}
+			if ($this->remove() === FALSE)
+			{
+				break;
+			}
+			$this->responses = $responses;
+			return TRUE;
+		} while (0);
+		$this->clear();
+		return FALSE;
+	}
+	function type():string
+	{
+		return array_key_exists('Content-Type', $this->responses)
+			? strtolower(is_int($offset = strpos($this->responses['Content-Type'], ';'))
+				? substr($this->responses['Content-Type'], 0, $offset)
+				: $this->responses['Content-Type'])
+			: 'application/octet-stream';
+	}
+
+	function content():string|array|webapp_xml
+	{
+		return match ($this->type())
+		{
+			'application/json' => json_decode((string)$this, TRUE),
+			'application/xml' => new webapp_xml((string)$this),
+			//'html' => webapp_document::html($this->bufferdata()),
+			default => (string)$this
+		};
+	}
 // 	// function goto(string $url = NULL, string $method = 'GET', /*Closure|int*/$detect = 4, $data = NULL, bool $multipart = FALSE):static
 // 	// {
 
@@ -492,53 +504,43 @@ class webapp_client implements Stringable, Countable
 // 	// 	}
 // 	// 	return $host;
 // 	// }
-// 	static function parseurl(string $url):array
-// 	{
-// 		$port = 0;
-// 		if (is_array($parse = parse_url($url)) && array_key_exists('scheme', $parse) && array_key_exists('host', $parse))
-// 		{
-// 			switch (strtolower($parse['scheme']))
-// 			{
-// 			 	case 'https':
-// 					$port = 443;
-// 				case 'wss':
-// 					$parse['scheme'] = 'ssl';
-// 					break;
-// 				case 'http':
-// 					$port = 80;
-// 				case 'ws':
-// 					$parse['scheme'] = 'tcp';
-// 					break;
-// 			}
-// 			$host = array_key_exists('port', $parse) ? $parse['host'] .= ":{$parse['port']}" : "{$parse['host']}:{$port}";
-// 			$result = ["{$parse['scheme']}://{$host}", $parse['host'], $parse['path'] ?? '/'];
-// 			if (array_key_exists('query', $parse))
-// 			{
-// 				$result[2] .= "?{$parse['query']}";
-// 			}
-// 			if (array_key_exists('user', $parse))
-// 			{
-// 				$result[] = $parse['user'];
-// 				if (array_key_exists('pass', $parse))
-// 				{
-// 					$result[] = $parse['pass'];
-// 				}
-// 			}
-// 			return $result;
-// 		}
-// 		return ["tcp://127.0.0.1:{$port}", '127.0.0.1', '/'];
-// 	}
-// 	static function mimetype(array $responses):array
-// 	{
-// 		return preg_match('/^[a-z]+\/([^;]+)(?:[^=]+=([^\n]+))?/i', $mime = $responses['Content-Type'] ?? 'application/octet-stream', $type) ? $type : [$mime, 'unknown'];
-// 	}
-// 	// static function get(string $url, mixed $data = NULL, bool $multipart = FALSE):static
-// 	// {
-// 	// 	$client = new static($url);
-// 	// 	$client->request('GET', $client->path, $data, $multipart);
-// 	// 	return $client;
-// 	// }
-// }
+	static function parseurl(string $url):array
+	{
+		$port = 0;
+		if (is_array($parse = parse_url($url)) && array_key_exists('scheme', $parse) && array_key_exists('host', $parse))
+		{
+			switch (strtolower($parse['scheme']))
+			{
+			 	case 'https':
+					$port = 443;
+				case 'wss':
+					$parse['scheme'] = 'ssl';
+					break;
+				case 'http':
+					$port = 80;
+				case 'ws':
+					$parse['scheme'] = 'tcp';
+					break;
+			}
+			$host = array_key_exists('port', $parse) ? $parse['host'] .= ":{$parse['port']}" : "{$parse['host']}:{$port}";
+			$result = ["{$parse['scheme']}://{$host}", $parse['host'], $parse['path'] ?? '/'];
+			if (array_key_exists('query', $parse))
+			{
+				$result[2] .= "?{$parse['query']}";
+			}
+			if (array_key_exists('user', $parse))
+			{
+				$result[] = $parse['user'];
+				if (array_key_exists('pass', $parse))
+				{
+					$result[] = $parse['pass'];
+				}
+			}
+			return $result;
+		}
+		return ["tcp://127.0.0.1:{$port}", '127.0.0.1', '/'];
+	}
+}
 // class webapp_client_websocket extends webapp_client_http
 // {
 // 	/*

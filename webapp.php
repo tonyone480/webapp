@@ -461,19 +461,19 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 
 
 	//----------------
-	function http(string $url, int $timeout = 4):webapp_client_http
-	{
-		return $this(new webapp_client_http($url, $timeout))->headers([
-			'Authorization' => 'Digest ' . $this->signature($this['admin_username'], $this['admin_password']),
-			'User-Agent' => 'WebApp/' . self::version
-		]);
-		$client = new webapp_client_http($url);
-		if ($client->errors)
-		{
-			array_push($this->errors, ...$client->errors);
-		}
-		return $this($client->headers(['User-Agent' => 'WebApp/' . self::version]));
-	}
+	// function http(string $url, int $timeout = 4):webapp_client_http
+	// {
+	// 	return $this(new webapp_client_http($url, $timeout))->headers([
+	// 		'Authorization' => 'Digest ' . $this->signature($this['admin_username'], $this['admin_password']),
+	// 		'User-Agent' => 'WebApp/' . self::version
+	// 	]);
+	// 	$client = new webapp_client_http($url);
+	// 	if ($client->errors)
+	// 	{
+	// 		array_push($this->errors, ...$client->errors);
+	// 	}
+	// 	return $this($client->headers(['User-Agent' => 'WebApp/' . self::version]));
+	// }
 	// function formdata(array|webapp_html $node = NULL, string $action = NULL):array|webapp_html_form
 	// {
 	// 	if (is_array($node))
@@ -551,12 +551,22 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	{
 		return $this->request_header('Referer');
 	}
+	function request_content_type():string
+	{
+		return is_string($type = $this->request_header('Content-Type'))
+			? strtolower(is_int($offset = strpos($type, ';')) ? substr($type, 0, $offset) : $type)
+			: 'application/octet-stream';
+	}
+	function request_content_length():int
+	{
+		return intval($this->request_header('Content-Length'));
+	}
 	function request_content(string $format = NULL):array|string|webapp_xml
 	{
-		return match ($format ?? strtolower(strpos($type = $this->request_header('Content-Type'), ';') === FALSE ? $type : strstr($type, ';', TRUE)))
+		return match ($format ?? $this->request_content_type())
 		{
-			'multipart/form-data',
-			'application/x-www-form-urlencoded' => $this->io->request_formdata(),
+			'application/x-www-form-urlencoded',
+			'multipart/form-data' => $this->io->request_formdata(),
 			'application/json' => json_decode($this->io->request_content(), TRUE),
 			'application/xml' => $this->xml($this->io->request_content()),
 			default => $this->io->request_content()
