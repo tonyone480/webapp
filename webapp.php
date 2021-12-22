@@ -248,7 +248,7 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 			//Misc
 			'copy_webapp'		=> 'Web Application v' . self::version,
 			'gzip_level'		=> -1,
-			'smtp_host'			=> 'smtp://username:password@host']];
+			'smtp_host'			=> 'tcp://username:password@host']];
 		[$this->route, $this->entry] = method_exists($this, $route = sprintf('%s_%s', $this['request_method'],
 			preg_match('/^\w+(?=\/([\-\w]*))?/', $this['request_query'], $entry)
 				? $entry[0] : $entry[] = $this['app_index']))
@@ -461,7 +461,7 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 
 
 	//----------------
-	// function http(string $url, int $timeout = 4):webapp_client_http
+	// function http(string $url):webapp_client_http
 	// {
 	// 	return $this(new webapp_client_http($url, $timeout))->headers([
 	// 		'Authorization' => 'Digest ' . $this->signature($this['admin_username'], $this['admin_password']),
@@ -502,7 +502,6 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 		return $this($mysql);
 	}
 	//function redis():webapp_redis{}
-
 	//request
 	function request_ip():string
 	{

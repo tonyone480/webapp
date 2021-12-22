@@ -4,7 +4,7 @@ class webapp_client implements Stringable, Countable
 {
 	public array $errors = [];
 	private $buffer, $filter, $client, $context;
-	function __construct(public readonly string $remote)
+	function __construct(public readonly string $socket)
 	{
 		$this->buffer = fopen('php://memory', 'r+');
 		$this->context = stream_context_create(['ssl' => [
@@ -52,7 +52,7 @@ class webapp_client implements Stringable, Countable
 	//重连
 	function reconnect():bool
 	{
-		if ($this->client = @stream_socket_client($this->remote, $erron, $error, 4, context: $this->context))
+		if ($this->client = @stream_socket_client($this->socket, $erron, $error, 4, context: $this->context))
 		{
 			return TRUE;
 		}
@@ -132,7 +132,7 @@ class webapp_client implements Stringable, Countable
 	{
 		return $this->to($this->client);
 	}
-	
+
 
 
 	//窥视数据
@@ -239,7 +239,8 @@ class webapp_client_debug extends php_user_filter
 // }
 class webapp_client_http extends webapp_client implements ArrayAccess
 {
-	public readonly string $path;
+	public string $path;
+	public int $reconnect = 0;
 	private array $headers = [
 		'Host' => '*',
 		'Connection' => 'keep-alive',
@@ -250,13 +251,13 @@ class webapp_client_http extends webapp_client implements ArrayAccess
 	], $cookies = [], $responses = [];
 	function __construct(public readonly string $url, private array &$referers = [])
 	{
-		[$remote, $this->headers['Host'], $this->path] = $parse = static::parseurl($url);
-		$this->referers[$remote] = $this;
+		[$socket, $this->headers['Host'], $this->path] = $parse = static::parseurl($url);
+		$this->referers[$socket] = $this;
 		if (count($parse) > 3)
 		{
 			$this->headers['Authorization'] = 'Basic ' . base64_encode(join(':', array_slice($parse, 3)));
 		}
-		parent::__construct($remote);
+		parent::__construct($socket);
 	}
 	function offsetExists(mixed $offset):bool
 	{
@@ -311,7 +312,7 @@ class webapp_client_http extends webapp_client implements ArrayAccess
 			default => FALSE
 		} && $this->echo("\r\n");
 	}
-	function request(string $method, string $path, $data = NULL, string $type = 'application/x-www-form-urlencoded'):bool
+	function request(string $method, string $path, $data = NULL, string $type = NULL):bool
 	{
 		$this->responses = [];
 		$request = ["{$method} {$path} HTTP/1.1"];
@@ -331,7 +332,7 @@ class webapp_client_http extends webapp_client implements ArrayAccess
 			}
 			if ($data)
 			{
-				if ((is_string($data) ? $this->echo($data) : match ($type) {
+				if ((is_string($data) ? $this->echo($data) : match ($type ??= 'application/x-www-form-urlencoded') {
 					'application/x-www-form-urlencoded' => $this->echo(http_build_query($data)),
 					'multipart/form-data' => $this->form($data, '',
 						$contents = '--' . join("\r\n", [
@@ -343,12 +344,35 @@ class webapp_client_http extends webapp_client implements ArrayAccess
 					'application/json' => $this->echo(json_encode($data, JSON_UNESCAPED_UNICODE)),
 					'application/xml' => $this->echo($data instanceof DOMDocument ? $data->saveXML() : (string)$data),
 					'application/octet-stream' => $this->from($data),
-					default => FALSE}) === FALSE) {
+					default => FALSE}) === FALSE
+					|| is_resource($buffer = fopen('php://memory', 'r+')) === FALSE
+					|| $this->to($buffer) === FALSE) {
 					break;
 				}
 				$request[] = "Content-Type: {$type}";
-				$request[] = 'Content-Length: ' . count($this);
+				$request[] = 'Content-Length: ' . ftell($buffer);
 			}
+			$reconnect = $this->reconnect;
+			$request = join($request[] = "\r\n", $request);
+			$buffer ??= NULL;
+			do
+			{
+				do
+				{
+					if ($this->send($request) === FALSE
+						|| (count($this) === 0 || $this->push()) === FALSE
+						|| $this->readline($status) === FALSE) {
+						continue;
+					}
+					$responses = [$status];
+
+
+					break 2;
+				} while (--$reconnect > -1 && $this->reconnect());
+				break 2;
+			} while (0);
+			
+
 			if ($this->send(join($request[] = "\r\n", $request)) === FALSE
 				|| (count($this) === 0 || $this->push()) === FALSE
 				|| $this->readline($status) === FALSE) {
@@ -438,13 +462,44 @@ class webapp_client_http extends webapp_client implements ArrayAccess
 	}
 	function type():string
 	{
-		return array_key_exists('Content-Type', $this->responses)
-			? strtolower(is_int($offset = strpos($this->responses['Content-Type'], ';'))
-				? substr($this->responses['Content-Type'], 0, $offset)
-				: $this->responses['Content-Type'])
+		return is_string($type = $this['Content-Type'])
+			? strtolower(is_int($offset = strpos($type, ';')) ? substr($type, 0, $offset) : $type)
 			: 'application/octet-stream';
 	}
+	function goto(string|array $entry, Closure $success, ...$params)
+	{
 
+		// if (is_string($entry))
+		// {
+		// 	$entry = ['method' => 'GET', 'url' => $entry];
+		// }
+		$url = is_string($entry) ? $entry : $entry['url'] ??= $this->path;
+
+		
+		do
+		{
+			if (preg_match('/^https?\:\/\//i', $url) === 0)
+			{
+				$client = $this;
+				$client->path = $url;
+				break;
+			}
+			[$socket,, $path] = static::parseurl($url);
+			if (array_key_exists($socket, $this->referers))
+			{
+				$client = $this->referers[$socket];
+				$client->path = $path;
+				break;
+			}
+			$client = new static($url, $this->referers);
+			$client['User-Agent'] = $this->headers['User-Agent'];
+		} while (0);
+		$client['Referer'] = $this->url;
+		if ($client->request('GET', $client->path))
+		{
+			$success->call($client, ...$params);
+		}
+	}
 	function content():string|array|webapp_xml
 	{
 		return match ($this->type())
@@ -455,10 +510,12 @@ class webapp_client_http extends webapp_client implements ArrayAccess
 			default => (string)$this
 		};
 	}
-// 	// function goto(string $url = NULL, string $method = 'GET', /*Closure|int*/$detect = 4, $data = NULL, bool $multipart = FALSE):static
-// 	// {
+	function download(string $filename):bool
+	{
+		//$this->to()
+		return FALSE;
+	}
 
-// 	// }
 // 	// function http(string $method, string $url, /*Closure|int*/$detect = 4, $data = NULL, bool $multipart = FALSE)
 // 	// {
 // 	// 	do

@@ -35,11 +35,11 @@ class webapp_mysql extends mysqli implements IteratorAggregate
 	}
 	function object(string $class = 'stdClass', array $constructor_args = []):object
 	{
-		return $this->use_result()->fetch_object($class, $constructor_args);
+		return $this->use_result()->fetch_object($class, $constructor_args) ?? new $class;
 	}
 	function array(int $mode = MYSQLI_ASSOC):array
 	{
-		return $this->use_result()->fetch_array($mode);
+		return $this->use_result()->fetch_array($mode) ?? [];
 	}
 	function value(int $index = 0):?string
 	{
@@ -89,8 +89,8 @@ class webapp_mysql extends mysqli implements IteratorAggregate
 				{
 					'i' => intval($value),
 					'f' => floatval($value),
-					'a' => $this->quote($value),
-					's' => $this->escape($value),
+					'a' => $this->quote((string)$value),
+					's' => $this->escape((string)$value),
 					'v' => $this->iterator($value),
 					'?', 'A', 'S' => is_iterable($value) ? join(',', array_map([$this, $command[$pos + 1] === 'A' ? 'quote' : 'escape'],
 						is_array($value) ? $value : iterator_to_array($value))) : (string)$value,
@@ -275,7 +275,7 @@ abstract class webapp_mysql_table implements IteratorAggregate, Countable, Strin
 	private array $paging = [];
 	private string $cond = '', $fields = '*';
 	protected ?string $tablename, $primary;
-	function __construct(protected webapp_mysql $mysql)
+	function __construct(protected readonly webapp_mysql $mysql)
 	{
 	}
 	function __get(string $name):?string
@@ -301,7 +301,7 @@ abstract class webapp_mysql_table implements IteratorAggregate, Countable, Strin
 		$cond = $this->cond;
 		$this->fields = '*';
 		$this->cond = '';
-		return $cond;
+		return strlen($cond) ? ' ' . $cond : $cond;
 	}
 	function count(string &$cond = NULL):int
 	{
