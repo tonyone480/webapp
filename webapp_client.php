@@ -175,6 +175,11 @@ class webapp_client implements Stringable, Countable
 	{
 		return @fwrite($this->client, $data) === strlen($data);
 	}
+	function sendfrom($stream, int $length = NULL):bool
+	{
+		return is_int($copied = stream_copy_to_stream($stream, $this->client, $length))
+			&& ($length === NULL || $copied === $length);
+	}
 }
 class webapp_client_debug extends php_user_filter
 {
@@ -240,7 +245,7 @@ class webapp_client_debug extends php_user_filter
 class webapp_client_http extends webapp_client implements ArrayAccess
 {
 	public string $path;
-	public int $reconnect = 0;
+	public int $reconnect = 4;
 	private array $headers = [
 		'Host' => '*',
 		'Connection' => 'keep-alive',
@@ -349,107 +354,98 @@ class webapp_client_http extends webapp_client implements ArrayAccess
 					|| $this->to($buffer) === FALSE) {
 					break;
 				}
+				$length = ftell($buffer);
 				$request[] = "Content-Type: {$type}";
-				$request[] = 'Content-Length: ' . ftell($buffer);
-			}
-			$reconnect = $this->reconnect;
-			$request = join($request[] = "\r\n", $request);
-			$buffer ??= NULL;
-			do
-			{
-				do
-				{
-					if ($this->send($request) === FALSE
-						|| (count($this) === 0 || $this->push()) === FALSE
-						|| $this->readline($status) === FALSE) {
-						continue;
-					}
-					$responses = [$status];
-
-
-					break 2;
-				} while (--$reconnect > -1 && $this->reconnect());
-				break 2;
-			} while (0);
-			
-
-			if ($this->send(join($request[] = "\r\n", $request)) === FALSE
-				|| (count($this) === 0 || $this->push()) === FALSE
-				|| $this->readline($status) === FALSE) {
-				break;
-			}
-			$responses = [$status];
-			do
-			{
-				if ($this->readline($header) === FALSE)
-				{
-					break 2;
-				}
-				if ($offset = strpos($header, ': '))
-				{
-					$key = ucwords(substr($header, 0, $offset), '-');
-					$value = substr($header, $offset + 2);
-					if ($key !== 'Set-Cookie')
-					{
-						$responses[$key] = $value;
-						continue;
-					}
-					if (preg_match('/^([^=]+)=([^;]+)(?:; expires=([^;]+))?/', $value, $cookies))
-					{
-						if (array_key_exists(3, $cookies) && strtotime($cookies[3]) < time())
-						{
-							unset($this->cookies[$cookies[1]]);
-							continue;
-						}
-						$this->cookies[$cookies[1]] = $cookies[2];
-					}
-				}
-			} while ($header);
-			if ($this->clear() === FALSE)
-			{
-				break;
-			}
-			if (array_key_exists('Content-Encoding', $responses))
-			{
-				if (match ($responses['Content-Encoding']) {
-					'gzip' => $this->filter('zlib.inflate', STREAM_FILTER_WRITE, ['window' => 31]),
-					'deflate' => $this->filter('zlib.inflate', STREAM_FILTER_WRITE),
-					default => FALSE} === FALSE) {
-					break;
-				};
-			}
-			if (array_key_exists('Content-Length', $responses))
-			{
-				if ($this->pull(intval($responses['Content-Length'])) === FALSE)
-				{
-					break;
-				}
+				$request[] = "Content-Length: {$length}";
 			}
 			else
 			{
-				if (array_key_exists('Transfer-Encoding', $responses) && $responses['Transfer-Encoding'] === 'chunked')
-				{
-					
-					do
-					{
-						if ($this->readline($size, 8) === FALSE)
-						{
-							break 2;
-						}
-						if ($length = hexdec($size))
-						{
-							if ($this->pull($length) === FALSE)
-							{
-								break 2;
-							}
-						}
-						if ($this->readline($line, 2) === FALSE)
-						{
-							break 2;
-						}
-					} while ($length);
-				}
+				$length = 0;
 			}
+			$reconnect = $this->reconnect;
+			$request = join($request[] = "\r\n", $request);
+			do
+			{
+				if ($this->send($request) === FALSE
+					|| ($length === 0 || (rewind($buffer) && $this->sendfrom($buffer, $length))) === FALSE
+					|| $this->readline($status) === FALSE) {
+					continue;
+				}
+				$responses = [$status];
+				do
+				{
+					if ($this->readline($header) === FALSE)
+					{
+						continue 2;
+					}
+					if ($offset = strpos($header, ': '))
+					{
+						$key = ucwords(substr($header, 0, $offset), '-');
+						$value = substr($header, $offset + 2);
+						if ($key !== 'Set-Cookie')
+						{
+							$responses[$key] = $value;
+							continue;
+						}
+						if (preg_match('/^([^=]+)=([^;]+)(?:; expires=([^;]+))?/', $value, $cookies))
+						{
+							if (array_key_exists(3, $cookies) && strtotime($cookies[3]) < time())
+							{
+								unset($this->cookies[$cookies[1]]);
+								continue;
+							}
+							$this->cookies[$cookies[1]] = $cookies[2];
+						}
+					}
+				} while ($header);
+				if ($this->clear() === FALSE)
+				{
+					continue;
+				}
+				if (array_key_exists('Content-Encoding', $responses))
+				{
+					if (match ($responses['Content-Encoding']) {
+						'gzip' => $this->filter('zlib.inflate', STREAM_FILTER_WRITE, ['window' => 31]),
+						'deflate' => $this->filter('zlib.inflate', STREAM_FILTER_WRITE),
+						default => FALSE} === FALSE) {
+						continue;
+					};
+				}
+				if (array_key_exists('Content-Length', $responses))
+				{
+					if ($this->pull(intval($responses['Content-Length'])) === FALSE)
+					{
+						continue;
+					}
+				}
+				else
+				{
+					if (array_key_exists('Transfer-Encoding', $responses) && $responses['Transfer-Encoding'] === 'chunked')
+					{
+						
+						do
+						{
+							if ($this->readline($size, 8) === FALSE)
+							{
+								continue 2;
+							}
+							if ($length = hexdec($size))
+							{
+								if ($this->pull($length) === FALSE)
+								{
+									continue 2;
+								}
+							}
+							if ($this->readline($line, 2) === FALSE)
+							{
+								continue 2;
+							}
+						} while ($length);
+					}
+				}
+
+				break;
+			} while (--$reconnect > -1 && $this->reconnect());
 			if ($this->remove() === FALSE)
 			{
 				break;
@@ -712,3 +708,90 @@ class webapp_client_http extends webapp_client implements ArrayAccess
 // 		return $this->send($this->packfhi(strlen($content), $opcode, $fin, $rsv, $mask)) && $this->send($content);
 // 	}
 // }
+			/*
+			if ($this->send(join($request[] = "\r\n", $request)) === FALSE
+				|| (count($this) === 0 || $this->push()) === FALSE
+				|| $this->readline($status) === FALSE) {
+				break;
+			}
+			$responses = [$status];
+			do
+			{
+				if ($this->readline($header) === FALSE)
+				{
+					break 2;
+				}
+				if ($offset = strpos($header, ': '))
+				{
+					$key = ucwords(substr($header, 0, $offset), '-');
+					$value = substr($header, $offset + 2);
+					if ($key !== 'Set-Cookie')
+					{
+						$responses[$key] = $value;
+						continue;
+					}
+					if (preg_match('/^([^=]+)=([^;]+)(?:; expires=([^;]+))?/', $value, $cookies))
+					{
+						if (array_key_exists(3, $cookies) && strtotime($cookies[3]) < time())
+						{
+							unset($this->cookies[$cookies[1]]);
+							continue;
+						}
+						$this->cookies[$cookies[1]] = $cookies[2];
+					}
+				}
+			} while ($header);
+			if ($this->clear() === FALSE)
+			{
+				break;
+			}
+			if (array_key_exists('Content-Encoding', $responses))
+			{
+				if (match ($responses['Content-Encoding']) {
+					'gzip' => $this->filter('zlib.inflate', STREAM_FILTER_WRITE, ['window' => 31]),
+					'deflate' => $this->filter('zlib.inflate', STREAM_FILTER_WRITE),
+					default => FALSE} === FALSE) {
+					break;
+				};
+			}
+			if (array_key_exists('Content-Length', $responses))
+			{
+				if ($this->pull(intval($responses['Content-Length'])) === FALSE)
+				{
+					break;
+				}
+			}
+			else
+			{
+				if (array_key_exists('Transfer-Encoding', $responses) && $responses['Transfer-Encoding'] === 'chunked')
+				{
+					
+					do
+					{
+						if ($this->readline($size, 8) === FALSE)
+						{
+							break 2;
+						}
+						if ($length = hexdec($size))
+						{
+							if ($this->pull($length) === FALSE)
+							{
+								break 2;
+							}
+						}
+						if ($this->readline($line, 2) === FALSE)
+						{
+							break 2;
+						}
+					} while ($length);
+				}
+			}
+			if ($this->remove() === FALSE)
+			{
+				break;
+			}
+			
+
+			$this->responses = $responses;
+			return TRUE;
+			*/
