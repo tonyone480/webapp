@@ -11,6 +11,7 @@ class webapp_mysql extends mysqli implements IteratorAggregate
 		//$this->real_connect($host, $user, $password, $database);
 		parent::__construct();
 		parent::real_connect($host, $user, $password, $database, flags: MYSQLI_CLIENT_FOUND_ROWS | MYSQLI_CLIENT_INTERACTIVE);
+		parent::ping();
 	}
 	function __destruct()
 	{

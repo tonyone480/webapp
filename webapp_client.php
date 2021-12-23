@@ -54,11 +54,12 @@ class webapp_client implements Stringable, Countable
 	{
 		do
 		{
-			var_dump("reconnect");
-			if ($client = @stream_socket_client($this->socket, $erron, $error, 4, 
-				STREAM_CLIENT_CONNECT | STREAM_CLIENT_PERSISTENT, $this->context)) {
+			//var_dump("reconnect");
+			if (is_resource($client = @stream_socket_client($this->socket, $erron, $error, 4, 
+				STREAM_CLIENT_CONNECT | STREAM_CLIENT_PERSISTENT, $this->context))
+				&& fwrite($client, '') === 0) {
 				$this->client = $client;
-				var_dump( fwrite($client, '') );
+				//var_dump( fwrite($client, '') );
 				return TRUE;
 			}
 			
@@ -437,7 +438,7 @@ class webapp_client_http extends webapp_client implements ArrayAccess
 				break;
 			} while ($retrycount > 0 && $this->reconnect(--$retrycount));
 		}
-		$this->responses = [];
+		$this->response = [];
 		$this->clear();
 		return FALSE;
 	}
@@ -496,6 +497,10 @@ class webapp_client_http extends webapp_client implements ArrayAccess
 	{
 		//$this->to()
 		return FALSE;
+	}
+	static function open(string $url):static
+	{
+
 	}
 	static function parseurl(string $url):array
 	{
