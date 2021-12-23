@@ -58,8 +58,10 @@ class webapp_client implements Stringable, Countable
 			if ($client = @stream_socket_client($this->socket, $erron, $error, 4, 
 				STREAM_CLIENT_CONNECT | STREAM_CLIENT_PERSISTENT, $this->context)) {
 				$this->client = $client;
+				var_dump( fwrite($client, '') );
 				return TRUE;
 			}
+			
 			$this->errors[] = "{$erron}: {$error}";
 		} while ($retry-- > 0);
 		return FALSE;
