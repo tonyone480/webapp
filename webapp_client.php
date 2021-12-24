@@ -444,7 +444,7 @@ class webapp_client_http extends webapp_client implements ArrayAccess
 	}
 	function then(Closure $success, Closure $failure = NULL):static
 	{
-		#That you like Promise
+		#look then like that promise
 		$closure = $this->response
 			? $success->call($this)
 			: ($failure ? $failure->call($this) : NULL);
@@ -505,6 +505,7 @@ class webapp_client_http extends webapp_client implements ArrayAccess
 	}
 	function download(string $filename):bool
 	{
+		var_dump( basename($filename) );
 		//$this->to()
 		return FALSE;
 	}
@@ -514,17 +515,14 @@ class webapp_client_http extends webapp_client implements ArrayAccess
 		$client = new static($url);
 		$client->headers($options['headers'] ?? []);
 		$client->cookies($options['cookies'] ?? []);
-		if (str_starts_with($url, 'ws'))
-		{
-			//$client->websocket();
-		}
-		
-
-
 		$client->request($options['method'] ?? 'GET',
 			$client->path,
 			$options['data'] ?? NULL,
 			$options['type'] ?? NULL);
+		// if (str_starts_with($url, 'ws'))
+		// {
+		// 	$client->websocket();
+		// }
 		return $client;
 	}
 	static function parseurl(string $url):array
