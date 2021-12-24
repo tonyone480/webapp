@@ -505,9 +505,12 @@ class webapp_client_http extends webapp_client implements ArrayAccess
 	}
 	function download(string $filename):bool
 	{
-		var_dump( basename($filename) );
-		//$this->to()
-		return FALSE;
+		// if (is_dir($dir = dirname($filename)) || mkdir($dir, recursive: TRUE))
+		// {
+		// 	var_dump( $this->filetype() );
+		// 	var_dump( basename($filename) );
+		// }
+		return (is_dir($dir = dirname($filename)) || mkdir($dir, recursive: TRUE)) && $this->to($filename);
 	}
 
 	static function open(string $url, array $options = []):static
