@@ -442,54 +442,56 @@ class webapp_client_http extends webapp_client implements ArrayAccess
 		$this->clear();
 		return FALSE;
 	}
-	
-	function type():string
-	{
-		return is_string($type = $this['Content-Type'])
-			? strtolower(is_int($offset = strpos($type, ';')) ? substr($type, 0, $offset) : $type)
-			: 'application/octet-stream';
-	}
 	function goto(string|array $entry, Closure $success, ...$params)
 	{
-
-		// if (is_string($entry))
-		// {
-		// 	$entry = ['method' => 'GET', 'url' => $entry];
-		// }
-		$url = is_string($entry) ? $entry : $entry['url'] ??= $this->path;
-
-		
+		$entry = ['method' => 'GET', 'url' => $this->path, ...is_string($entry) ? ['url' => $entry] : $entry];
 		do
 		{
-			if (preg_match('/^https?\:\/\//i', $url) === 0)
+			if (preg_match('/^https?\:\/\//i', $entry['url']) === 0)
 			{
 				$client = $this;
-				$client->path = $url;
+				$client->path = $entry['url'];
 				break;
 			}
-			[$socket,, $path] = static::parseurl($url);
+			[$socket,, $path] = static::parseurl($entry['url']);
 			if (array_key_exists($socket, $this->referers))
 			{
 				$client = $this->referers[$socket];
 				$client->path = $path;
 				break;
 			}
-			$client = new static($url, $this->referers);
+			$client = new static($entry['url'], $this->referers);
 			$client['User-Agent'] = $this->headers['User-Agent'];
 		} while (0);
 		$client['Referer'] = $this->url;
-		if ($client->request('GET', $client->path))
+		if ($client->request($entry['method'], $client->path, $entry['data'] ?? NULL, $entry['type'] ?? NULL))
 		{
 			$success->call($client, ...$params);
 		}
 	}
+	function mimetype():string
+	{
+		return is_string($type = $this['Content-Type'])
+			? strtolower(is_int($offset = strpos($type, ';')) ? substr($type, 0, $offset) : $type)
+			: 'application/octet-stream';
+	}
+	function filetype():string
+	{
+		[$mime, $type] = explode('/', $this->mimetype(), 2);
+		return match ($mime)
+		{
+			'text' => preg_match('/^(html|csv)$/', $type) ? $type : 'txt',
+			'image' => $type === 'jpeg' ? 'jpg' : $type,
+			default => 'unknown'
+		};
+	}
 	function content():string|array|webapp_xml
 	{
-		return match ($this->type())
+		return match ($this->mimetype())
 		{
 			'application/json' => json_decode((string)$this, TRUE),
 			'application/xml' => new webapp_xml((string)$this),
-			//'html' => webapp_document::html($this->bufferdata()),
+			//'html' => webapp_document::html((string)$this),
 			default => (string)$this
 		};
 	}
