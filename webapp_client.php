@@ -442,32 +442,40 @@ class webapp_client_http extends webapp_client implements ArrayAccess
 		$this->clear();
 		return FALSE;
 	}
-	function goto(string|array $entry, Closure $success, ...$params)
+	function then(Closure $success, Closure $failure = NULL):static
 	{
-		$entry = ['method' => 'GET', 'url' => $this->path, ...is_string($entry) ? ['url' => $entry] : $entry];
+		#That you like Promise
+		$closure = $this->response
+			? $success->call($this)
+			: ($failure ? $failure->call($this) : NULL);
+		return $closure instanceof static ? $closure : $this;
+	}
+	function goto(string $url, array $options = []):static
+	{
 		do
 		{
-			if (preg_match('/^https?\:\/\//i', $entry['url']) === 0)
+			if (preg_match('/^https?\:\/\//i', $url) === 0)
 			{
 				$client = $this;
-				$client->path = $entry['url'];
+				$client->path = $url;
 				break;
 			}
-			[$socket,, $path] = static::parseurl($entry['url']);
+			[$socket,, $path] = static::parseurl($url);
 			if (array_key_exists($socket, $this->referers))
 			{
 				$client = $this->referers[$socket];
 				$client->path = $path;
 				break;
 			}
-			$client = new static($entry['url'], $this->referers);
+			$client = new static($url, $this->referers);
 			$client['User-Agent'] = $this->headers['User-Agent'];
 		} while (0);
 		$client['Referer'] = $this->url;
-		if ($client->request($entry['method'], $client->path, $entry['data'] ?? NULL, $entry['type'] ?? NULL))
-		{
-			$success->call($client, ...$params);
-		}
+		$client->request($options['method'] ?? 'GET',
+			$client->path,
+			$options['data'] ?? NULL,
+			$options['type'] ?? NULL);
+		return $client;
 	}
 	function mimetype():string
 	{
@@ -500,9 +508,24 @@ class webapp_client_http extends webapp_client implements ArrayAccess
 		//$this->to()
 		return FALSE;
 	}
-	static function open(string $url):static
-	{
 
+	static function open(string $url, array $options = []):static
+	{
+		$client = new static($url);
+		$client->headers($options['headers'] ?? []);
+		$client->cookies($options['cookies'] ?? []);
+		if (str_starts_with($url, 'ws'))
+		{
+			//$client->websocket();
+		}
+		
+
+
+		$client->request($options['method'] ?? 'GET',
+			$client->path,
+			$options['data'] ?? NULL,
+			$options['type'] ?? NULL);
+		return $client;
 	}
 	static function parseurl(string $url):array
 	{
