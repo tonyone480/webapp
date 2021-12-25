@@ -455,7 +455,7 @@ class webapp_client_http extends webapp_client implements ArrayAccess
 	}
 	// function catch(Closure $failure):static
 	// {
-	// 	$this->then(NULL, $failure);
+	// 	return $this->then(fn() => NULL, $failure);
 	// }
 	function goto(string $url, array $options = []):static
 	{
