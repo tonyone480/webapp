@@ -253,7 +253,7 @@ class webapp_client_debug extends php_user_filter
 class webapp_client_http extends webapp_client implements ArrayAccess
 {
 	public string $path;
-	public int $retrycount = 4;
+	public int $autoretry = 4, $autojump = 4;
 	private array $headers = [
 		'Host' => '*',
 		'Connection' => 'keep-alive',
@@ -355,7 +355,7 @@ class webapp_client_http extends webapp_client implements ArrayAccess
 			&& ($request[] = "Content-Type: {$type}")
 			&& ($request[] = "Content-Length: {$length}"))) {
 			$request = join($request[] = "\r\n", $request);
-			$retrycount = $this->retrycount;
+			$autoretry = $this->autoretry;
 			do
 			{
 				if ($this->send($request) === FALSE
@@ -436,7 +436,7 @@ class webapp_client_http extends webapp_client implements ArrayAccess
 					return $this->remove();
 				}
 				break;
-			} while ($retrycount > 0 && $this->reconnect(--$retrycount));
+			} while ($autoretry > 0 && $this->reconnect(--$autoretry));
 		}
 		$this->response = [];
 		$this->clear();
@@ -452,29 +452,35 @@ class webapp_client_http extends webapp_client implements ArrayAccess
 	}
 	function goto(string $url, array $options = []):static
 	{
+		$autojump = $this->autojump;
 		do
 		{
 			if (preg_match('/^https?\:\/\//i', $url) === 0)
 			{
 				$client = $this;
 				$client->path = $url;
-				break;
+				continue;
 			}
 			[$socket,, $path] = static::parseurl($url);
 			if (array_key_exists($socket, $this->referers))
 			{
 				$client = $this->referers[$socket];
 				$client->path = $path;
-				break;
+				continue;
 			}
 			$client = new static($url, $this->referers);
 			$client['User-Agent'] = $this->headers['User-Agent'];
-		} while (0);
-		$client['Referer'] = $this->url;
-		$client->request($options['method'] ?? 'GET',
-			$client->path,
-			$options['data'] ?? NULL,
-			$options['type'] ?? NULL);
+			$client->autoretry = $this->autoretry;
+			$client->autojump = $this->autojump;
+		} while ($client
+			->headers(['Referer' => $this->url])
+			->request($options['method'] ?? 'GET',
+				$client->path,
+				$options['data'] ?? NULL,
+				$options['type'] ?? NULL)
+			&& $autojump-- > 0
+			&& array_key_exists('Location', $this->response)
+			&& ($url = $this->response['Location']));
 		return $client;
 	}
 	function mimetype():string
@@ -490,38 +496,37 @@ class webapp_client_http extends webapp_client implements ArrayAccess
 		{
 			'text' => preg_match('/^(html|csv)$/', $type) ? $type : 'txt',
 			'image' => $type === 'jpeg' ? 'jpg' : $type,
-			default => 'unknown'
+			default => $mime === 'application' && preg_match('/^(xml|svg)$/', $type) ? 'xml' : 'unknown'
 		};
 	}
-	function content():string|array|webapp_xml
+	function content():string|array|SimpleXMLElement
 	{
 		return match ($this->mimetype())
 		{
 			'application/json' => json_decode((string)$this, TRUE),
-			'application/xml' => new webapp_xml((string)$this),
-			//'html' => webapp_document::html((string)$this),
+			'application/xml' => class_exists('webapp_xml', FALSE)
+				? new webapp_xml((string)$this)
+				: new SimpleXMLElement((string)$this),
+			'text/html' => class_exists('webapp_document', FALSE)
+				? (($doc = new webapp_document)->loadHTML((string)$this) ? $doc->xml : (string)$this)
+				: (($doc = new DOMDocument)->loadHTML((string)$this, LIBXML_NOWARNING | LIBXML_NOERROR) ? simplexml_import_dom($doc) : (string)$this),
 			default => (string)$this
 		};
 	}
-	function download(string $filename):bool
+	function saveas(string $filename):bool
 	{
-		// if (is_dir($dir = dirname($filename)) || mkdir($dir, recursive: TRUE))
-		// {
-		// 	var_dump( $this->filetype() );
-		// 	var_dump( basename($filename) );
-		// }
-		return (is_dir($dir = dirname($filename)) || mkdir($dir, recursive: TRUE)) && $this->to($filename);
+		return (is_dir($dir = dirname($filename))
+			|| mkdir($dir, recursive: TRUE)) && $this->to($filename);
 	}
 
 	static function open(string $url, array $options = []):static
 	{
 		$client = new static($url);
+		$client->autoretry = $options['autoretry'] ?? 0;
+		$client->autojump = $options['autojump'] ?? 0;
 		$client->headers($options['headers'] ?? []);
 		$client->cookies($options['cookies'] ?? []);
-		$client->request($options['method'] ?? 'GET',
-			$client->path,
-			$options['data'] ?? NULL,
-			$options['type'] ?? NULL);
+		return $client->goto($client->path, $options);
 		// if (str_starts_with($url, 'ws'))
 		// {
 		// 	$client->websocket();

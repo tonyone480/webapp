@@ -542,6 +542,7 @@ class webapp_document extends DOMDocument implements Stringable
 {
 	const xmltype = 'webapp_xml';
 	public readonly webapp $webapp;
+	public webapp_xml $xml;
 	function __toString():string
 	{
 		return $this->saveXML();
