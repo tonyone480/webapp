@@ -442,14 +442,21 @@ class webapp_client_http extends webapp_client implements ArrayAccess
 		$this->clear();
 		return FALSE;
 	}
+	// function status():int
+	// {
+	// 	return $this->response ? intval(substr($this[0], 9)) : 0;
+	// }
 	function then(Closure $success, Closure $failure = NULL):static
 	{
 		#look then like that promise
-		$closure = $this->response
-			? $success->call($this)
-			: ($failure ? $failure->call($this) : NULL);
+		$closure = $this->response && strlen($this[0]) > 9 && $this[0][9] === '2'
+			? $success->call($this) : ($failure ? $failure->call($this) : NULL);
 		return $closure instanceof static ? $closure : $this;
 	}
+	// function catch(Closure $failure):static
+	// {
+	// 	$this->then(NULL, $failure);
+	// }
 	function goto(string $url, array $options = []):static
 	{
 		$autojump = $this->autojump;
@@ -518,7 +525,6 @@ class webapp_client_http extends webapp_client implements ArrayAccess
 		return (is_dir($dir = dirname($filename))
 			|| mkdir($dir, recursive: TRUE)) && $this->to($filename);
 	}
-
 	static function open(string $url, array $options = []):static
 	{
 		$client = new static($url);
