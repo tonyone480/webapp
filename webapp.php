@@ -461,19 +461,21 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 
 
 	//----------------
-	// function http(string $url):webapp_client_http
-	// {
-	// 	return $this(new webapp_client_http($url, $timeout))->headers([
-	// 		'Authorization' => 'Digest ' . $this->signature($this['admin_username'], $this['admin_password']),
-	// 		'User-Agent' => 'WebApp/' . self::version
-	// 	]);
-	// 	$client = new webapp_client_http($url);
-	// 	if ($client->errors)
-	// 	{
-	// 		array_push($this->errors, ...$client->errors);
-	// 	}
-	// 	return $this($client->headers(['User-Agent' => 'WebApp/' . self::version]));
-	// }
+	function open(string $url, array $options = []):webapp_client_http
+	{
+		return webapp_client_http::open($url, $options);
+
+		// return $this(new webapp_client_http($url, $timeout))->headers([
+		// 	'Authorization' => 'Digest ' . $this->signature($this['admin_username'], $this['admin_password']),
+		// 	'User-Agent' => 'WebApp/' . self::version
+		// ]);
+		// $client = new webapp_client_http($url);
+		// if ($client->errors)
+		// {
+		// 	array_push($this->errors, ...$client->errors);
+		// }
+		// return $this($client->headers(['User-Agent' => 'WebApp/' . self::version]));
+	}
 	// function formdata(array|webapp_html $node = NULL, string $action = NULL):array|webapp_html_form
 	// {
 	// 	if (is_array($node))

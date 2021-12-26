@@ -2,15 +2,12 @@
 declare(strict_types=1);
 class webapp_client implements Stringable, Countable
 {
+	const timeout = 4, flags = STREAM_CLIENT_CONNECT;
 	public array $errors = [];
-	private $buffer, $filter, $client, $context;
+	private $filter, $buffer, $client;
 	function __construct(public readonly string $socket)
 	{
 		$this->buffer = fopen('php://memory', 'r+');
-		$this->context = stream_context_create(['ssl' => [
-			'verify_peer' => FALSE,
-			'verify_peer_name' => FALSE,
-			'allow_self_signed' => TRUE]]);
 		$this->reconnect();
 	}
 	function __destruct()
@@ -55,8 +52,11 @@ class webapp_client implements Stringable, Countable
 		do
 		{
 			//var_dump("reconnect");
-			if (is_resource($client = @stream_socket_client($this->socket, $erron, $error, 4, 
-				STREAM_CLIENT_CONNECT | STREAM_CLIENT_PERSISTENT, $this->context))
+			if (is_resource($client = @stream_socket_client($this->socket, $erron, $error,
+				static::timeout, static::flags, stream_context_create(['ssl' => [
+					'verify_peer' => FALSE,
+					'verify_peer_name' => FALSE,
+					'allow_self_signed' => TRUE]])))
 				&& fwrite($client, '') === 0) {
 				$this->client = $client;
 				//var_dump( fwrite($client, '') );
@@ -253,7 +253,7 @@ class webapp_client_debug extends php_user_filter
 class webapp_client_http extends webapp_client implements ArrayAccess
 {
 	public string $path;
-	public int $autoretry = 4, $autojump = 4;
+	public int $autoretry = 0, $autojump = 0;
 	private array $headers = [
 		'Host' => '*',
 		'Connection' => 'keep-alive',
@@ -537,7 +537,7 @@ class webapp_client_http extends webapp_client implements ArrayAccess
 		// {
 		// 	$client->websocket();
 		// }
-		return $client;
+		// return $client;
 	}
 	static function parseurl(string $url):array
 	{
