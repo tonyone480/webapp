@@ -67,10 +67,11 @@ class webapp_xml extends SimpleXMLElement
 		}
 		return $this->addChild($name, $contents);
 	}
-	function insert(DOMNode|string $element, string $position = NULL):DOMNode
+	function insert(DOMNode|string $element, string $position = NULL):DOMNode|static
 	{
 		$dom = $this[0]->dom();
 		$node = is_string($element) ? $dom->ownerDocument->createElement($element) : $element;
+		//$node->nodeType === XML_ELEMENT_NODE ? static::from($node) : $node;
 		return match ($position)
 		{
 			//插入到当前节点之后
@@ -82,6 +83,8 @@ class webapp_xml extends SimpleXMLElement
 			//插入到当前节点下末尾
 			default => $dom->appendChild($node)
 		};
+
+		
 	}
 	function parent():static
 	{
@@ -169,7 +172,7 @@ class webapp_xml extends SimpleXMLElement
 		}
 		return $values;
 	}
-	static function from(DOMNode $node):?static
+	static function from(DOMElement $node):?static
 	{
 		return simplexml_import_dom($node, static::class);
 	}
