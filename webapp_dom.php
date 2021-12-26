@@ -94,7 +94,7 @@ class webapp_xml extends SimpleXMLElement
 		$child = $this[0]->dom();
 		$parent = $child->parentNode;
 		$parent->removeChild($child);
-		return simplexml_import_dom($parent, static::class);
+		return static::from($parent);
 		unset($this[0]);
 	}
 	function clear():string
