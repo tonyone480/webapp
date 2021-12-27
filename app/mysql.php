@@ -1,52 +1,5 @@
 <?php
 require __DIR__ . '/../webapp_io_std.php';
-// header('Content-Type: text/html');
-// for ($i=0;$i<360;$i++) {
-// $rgb=webapp_image::octbit_decode($i);
-// echo '<div style="background-color:#'.webapp_image::hex_encode($rgb).';height:1px;"></div>';
-// }
-
-
-
-
-// exit;
-
-
-
-// for ($i = 0; $i < 360; $i++)
-// {
-// 	echo join(',', webapp_image::hslcolor($i) ), "\n";
-// }
-
-// $a = new webapp_mysql;
-
-
-// $a->select_db('gzh');
-
-
-// var_dump( $a->gzh_issue->append([
-// 	'key' => 'zzR9UA5EOPBS',
-//     'time' => 0,
-//     'name' => 123,
-//     'email' => '22@123.com',
-//     'contacttel' => 123,
-//     'photo' => '0D70FM9ARURN.png',
-//     'describe' => '123333',
-//     'answer' => '阿萨大大'
-// ]) );
-
-//print_r( $a->gzh_issue->asd );
-
-
-
-// foreach ($a->gzh_issue('where time>-1') as $p)
-// {
-// 	print_r($p);
-// }
-
-
-//var_dump( $a->sprintf('select now(?S)', ['as' => 'ee']) );
-
 class webapp_mysql_api extends webapp_echo_json
 {
 	function __construct(webapp $webapp)
@@ -90,6 +43,21 @@ new class extends webapp
 		if ($this->router === $this)
 		{
 			$this->app('webapp_echo_html')->title('MySQL Admin');
+
+			$this->app->header->atree([
+				['Home', '?'],
+				['Console', '?console'],
+				['Microsoft', [
+					['Windows Server 2016', '#'],
+					['Windows XP Profession', '#'],
+					['Windows XP Home', '#'],
+					['Else Windows', [
+						['Windows 98', '#'],
+						['Windows 2000', '#'],
+						['Windows Me', '#']
+					]]
+				]]
+			]);
 			$this->app->header->navbar([
 				['Home', 'href' => '?'],
 				['Console', 'href' => '?console'],
@@ -166,24 +134,6 @@ new class extends webapp
 	}
 	function get_home(string $charset = NULL)
 	{
-		
-		// $this->app('webapp_echo_svg');
-		// $this->app->xml->setattr([
-		// 	'viewBox' => '0 0 100 100',
-		// 	'version' => 1.1,
-		// 	'xmlns' => 'http://www.w3.org/2000/svg'
-		// ]);
-		// //$this->app->xml->append('defs')->append('style', ['type' => 'text/css'])->cdata('rect{fill:#00f;}');
-
-		// foreach ($this->qrcode('http://q.fusenpack.com/qr/zOmy5z2w') as $x => $y)
-		// {
-		// 	$this->app->xml->append('rect', ['x' => $x, 'y' => $y, 'width' => 1, 'height' => 1, 'style' => 'border:none']);
-		// 	//<rect x="2" y="2" width="7" height="1"/><rect x="10" y="2" width="5" height="1"/>
-		// 	//var_dump($k);
-		// }
-
-		
-		return;
 		if (is_string($charset))
 		{
 			$this->response_location($this->request_referer() ?? '?home');

@@ -54,18 +54,36 @@ class webapp_xml extends SimpleXMLElement
 		}
 		return $this[0];
 	}
-	function append(string $name, array|string $contents = NULL):static
+	//获取属性
+	function getattr(string $name = NULL):NULL|string|array
 	{
-		if (is_array($contents))
+		$attributes = ((array)$this[0]->attributes())['@attributes'] ?? [];
+		return is_string($name) ? $attributes[$name] ?? NULL : $attributes;
+	}
+	//设置属性
+	function setattr(string|array $name, $value = NULL):static
+	{
+		$node = $this[0];
+		foreach (is_string($name) ? [$name => $value] : $name as $name => $value)
 		{
-			$node = &$this[0]->{$name}[];
-			foreach ($contents as $attribute => $value)
+			if (is_scalar($value))
 			{
-				$node[$attribute] = $value;
+				$node[$name] = $value;
+				continue;
 			}
-			return $node;
+			if ($value === NULL)
+			{
+				$dom ??= $node->dom();
+				$dom->appendChild($dom->ownerDocument->createAttribute($name));
+			}
 		}
-		return $this->addChild($name, $contents);
+		return $node;
+	}
+	function append(string $name, NULL|string|array $contents = NULL):static
+	{
+		return is_array($contents)
+			? ($node = &$this[0]->{$name}[])->setattr($contents)
+			: $this[0]->addChild($name, $contents);
 	}
 	function insert(DOMNode|string $element, string $position = NULL):DOMNode|static
 	{
@@ -102,22 +120,6 @@ class webapp_xml extends SimpleXMLElement
 		$text = (string)$this[0];
 		$this[0] = NULL;
 		return $text;
-	}
-	//获取属性
-	function getattr(string $name = NULL):NULL|string|array
-	{
-		$attributes = ((array)$this[0]->attributes())['@attributes'] ?? [];
-		return is_string($name) ? $attributes[$name] ?? NULL : $attributes;
-	}
-	//设置属性
-	function setattr(string|array $name, string $value = NULL):static
-	{
-		$node = $this[0];
-		foreach (is_string($name) ? [$name => $value] : $name as $name => $value)
-		{
-			$node[$name] = $value;
-		}
-		return $node;
 	}
 	//以数组递归方式导入当前节点下所有内容
 	function import(iterable $values):static
@@ -313,9 +315,9 @@ class webapp_html extends webapp_xml
 	{
 		return $this[0]->append('select')->options($values, ...$default);
 	}
-	function appendelement(array $context):static
+	function appendnode(array $element):static
 	{
-		return $this->append(array_shift($context), $context);
+		return $this[0]->append(array_shift($element), $element);
 	}
 	function appenditer(iterable $contents):static
 	{
@@ -611,8 +613,9 @@ class webapp_form
 			? [$context->webapp(), $context->append('form', [
 				'method' => 'post',
 				'autocomplete' => 'off',
-				'action' => $action,
-				'class' => 'webapp'])]
+				//'onsubmit' => 'webapp.submit(this)',
+				'class' => 'webapp',
+				'action' => $action])]
 			: [$context instanceof webapp ? $context : NULL, new webapp_html('<form/>')];
 		$this->xml['enctype'] = 'application/x-www-form-urlencoded';
 		$this->fieldset();
