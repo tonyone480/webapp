@@ -45,7 +45,7 @@ new class extends webapp
 			$this->app('webapp_echo_html')->title('MySQL Admin');
 
 			$this->app->header->atree([
-				['Home', '?'],
+				['Home', '?', 'style'=> 'color:red'],
 				['Console', '?console'],
 				['Microsoft', [
 					['Windows Server 2016', '#'],
@@ -57,7 +57,7 @@ new class extends webapp
 						['Windows Me', '#']
 					]]
 				]]
-			]);
+			], TRUE);
 			$this->app->header->navbar([
 				['Home', 'href' => '?'],
 				['Console', 'href' => '?console'],
