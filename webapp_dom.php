@@ -44,13 +44,28 @@ class webapp_xml extends SimpleXMLElement
 		}
 		return $xml;
 	}
-	function iter(iterable $contents, Closure $iterator = NULL):static
+	function iter(iterable $contents, Closure $iterator = NULL, ...$params):static
 	{
-		//神奇骚操作，未来某个PHP版本不会改了吧？
-		$iterator ??= debug_backtrace(DEBUG_BACKTRACE_PROVIDE_OBJECT | DEBUG_BACKTRACE_IGNORE_ARGS, 3)[2]['object'];
-		foreach ($contents as $index => $value)
+		// $doc = $this[0]->dom()->ownerDocument;
+		// $iterator ? $doc->iter = [$iterator, $params] : [$iterator, $params] = $doc->iter;
+		if ($iterator === NULL)
 		{
-			$iterator->call($this[0], $value, $index);
+			//神奇骚操作，未来某个PHP版本不会改了吧？
+			$backtrace = debug_backtrace(DEBUG_BACKTRACE_PROVIDE_OBJECT, 3)[2];
+			$backtrace['object'] instanceof Closure
+				? [$iterator, $params] = [$backtrace['object'], array_slice($backtrace['args'], 2)]
+				: $params = [$iterator = function(array $element, Closure $iterator):void
+				{
+					$node = $this->append(array_shift($element), $element);
+					if (is_iterable($element[0]))
+					{
+						$node->iter($element[0], $iterator, $iterator);
+					}
+				}];
+		}
+		foreach ($contents as $value)
+		{
+			$iterator->call($this[0], $value, ...$params);
 		}
 		return $this[0];
 	}
@@ -66,12 +81,12 @@ class webapp_xml extends SimpleXMLElement
 		$node = $this[0];
 		foreach (is_string($name) ? [$name => $value] : $name as $name => $value)
 		{
-			if (is_scalar($value))
+			if ((is_string($name) || $name === 0) && is_scalar($value))
 			{
 				$node[$name] = $value;
 				continue;
 			}
-			if ($value === NULL)
+			if (is_string($name) && $value === NULL)
 			{
 				$dom ??= $node->dom();
 				$dom->appendChild($dom->ownerDocument->createAttribute($name));
@@ -291,6 +306,11 @@ class webapp_html extends webapp_xml
 		}
 		return $node;
 	}
+	// function figure(string $src):static
+	// {
+	// 	$node = &$this[0]->figure[];
+	// 	return $node;
+	// }
 	function labelinput(string $name, string $type, string $value, string $comment):static
 	{
 		$node = &$this[0]->label[];
@@ -315,6 +335,8 @@ class webapp_html extends webapp_xml
 	{
 		return $this[0]->append('select')->options($values, ...$default);
 	}
+
+	
 	function appendnode(array $element):static
 	{
 		return $this[0]->append(array_shift($element), $element);
@@ -330,30 +352,29 @@ class webapp_html extends webapp_xml
 			}
 		});
 	}
-	function atree(iterable $contents, bool $fold = FALSE)
+	function atree(iterable $link, bool $fold = FALSE)
 	{
-		return $this[0]->append('ul')->iter($contents, function(array $context) use($fold)
+		return $this[0]->append('ul')->iter($link, function(array $link, bool $fold):void
 		{
 			$node = &$this->li[];
-			if (is_iterable($context[1]))
+			if (is_iterable($link[1]))
 			{
 				if ($fold)
 				{
-					$node = $node->details($context[0]);
+					$node = $node->details($link[0]);
 				}
 				else
 				{
-					$node->append('span', $context[0]);
+					$node->append('span', $link[0]);
 				}
-				$node->append('ul')->iter($context[1]);
+				$node->append('ul')->iter($link[1]);
 			}
 			else
 			{
-				$context['href'] = $context[1];
-				unset($context[1]);
-				$node->append('a', $context);
+				$link['href'] ??= $link[1];
+				$node->append('a', $link);
 			}
-		});
+		}, $fold);
 	}
 	
 	function appenditer1(iterable $iterator, Closure $generator = NULL):static

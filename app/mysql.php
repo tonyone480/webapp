@@ -58,20 +58,7 @@ new class extends webapp
 					]]
 				]]
 			], TRUE);
-			$this->app->header->navbar([
-				['Home', 'href' => '?'],
-				['Console', 'href' => '?console'],
-				['Microsoft', [
-					['Windows Server 2016', 'href' => '#'],
-					['Windows XP Profession', 'href' => '#'],
-					['Windows XP Home', 'href' => '#'],
-					['Else Windows', [
-						['Windows 98', 'href' => '#'],
-						['Windows 2000', 'href' => '#'],
-						['Windows Me', 'href' => '#']
-					]]
-				]]
-			]);
+
 			return;
 			if ($this->mysql_connected() === FALSE || $this['app_index'] === 'get_home')
 			{

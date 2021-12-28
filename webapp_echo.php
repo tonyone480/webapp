@@ -42,7 +42,7 @@ class webapp_echo_html extends webapp_document
 		$webapp->response_content_type("text/html; charset={$webapp['app_charset']}");
 		if (func_num_args() === 1)
 		{
-			$this->loadHTML("<!doctype html><html><head><meta charset='{$webapp['app_charset']}'/></head><body/></html>");
+			$this->loadHTML("<!doctype html><html lang='en'><head><meta charset='{$webapp['app_charset']}'/></head><body/></html>");
 			$this->xml->head->append('meta', ['name' => 'viewport', 'content' => 'width=device-width,initial-scale=1.0']);
 			$this->xml->head->append('link', ['rel' => 'stylesheet', 'type' => 'text/css', 'href' => '?scss/webapp', 'media' => 'all']);
 			// $this->xml->head->append('link', ['rel' => 'stylesheet', 'type' => 'text/css', 'href' => $webapp->resroot('ps/font-awesome.css')]);
