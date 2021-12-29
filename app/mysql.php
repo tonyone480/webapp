@@ -129,11 +129,11 @@ new class extends webapp
 		}
 		$form = $this->app->section->form('?home');
 		$form->fieldset('MySQL Host');
-		$form->field('host', 'text')['value'] = $this['mysql_host'];
+		$form->field('host', 'text', ['value' => $this['mysql_host']]);
 		$form->fieldset('Username');
-		$form->field('user', 'text')['value'] = $this['mysql_user'];
+		$form->field('user', 'text', ['value' => $this['mysql_user']]);
 		$form->fieldset('Password');
-		$form->field('password', 'text')['value'] = $this['mysql_password'];
+		$form->field('password', 'text', ['value' => $this['mysql_password']]);
 		$form->fieldset();
 		$form->button('Connect to MySQL', 'submit');
 	}
