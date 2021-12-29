@@ -127,7 +127,7 @@ new class extends webapp
 			$this->response_cookie('mysql_charset', $charset);
 			return;
 		}
-		$form = $this->app->section->form('?home');
+		$form = $this->app->node->form('?home');
 		$form->fieldset('MySQL Host');
 		$form->field('host', 'text', ['value' => $this['mysql_host']]);
 		$form->fieldset('Username');

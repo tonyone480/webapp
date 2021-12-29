@@ -5,14 +5,14 @@ trait webapp_echo
 	public readonly webapp $webapp;
 	abstract function __construct(webapp $webapp);
 	abstract function __toString():string;
-	function __get(string $name):mixed
-	{
-		return $this->{$name} = &$this->webapp->{$name};
-	}
-	function __call(string $name, array $params):mixed
-	{
-		return $this->webapp->{$name}(...$params);
-	}
+	// function __get(string $name):mixed
+	// {
+	// 	return $this->{$name} = &$this->webapp->{$name};
+	// }
+	// function __call(string $name, array $params):mixed
+	// {
+	// 	return $this->webapp->{$name}(...$params);
+	// }
 }
 class webapp_echo_xml extends webapp_document
 {
@@ -36,9 +36,11 @@ class webapp_echo_html extends webapp_document
 {
 	use webapp_echo;
 	const xmltype = 'webapp_html';
+	public readonly webapp_html $header, $main, $footer;
 	function __construct(public readonly webapp $webapp)
 	{
 		//parent::__construct($webapp);
+		//https://validator.w3.org/nu/#textarea
 		$webapp->response_content_type("text/html; charset={$webapp['app_charset']}");
 		if (func_num_args() === 1)
 		{
@@ -47,10 +49,11 @@ class webapp_echo_html extends webapp_document
 			$this->xml->head->append('link', ['rel' => 'stylesheet', 'type' => 'text/css', 'href' => '?scss/webapp', 'media' => 'all']);
 			// $this->xml->head->append('link', ['rel' => 'stylesheet', 'type' => 'text/css', 'href' => $webapp->resroot('ps/font-awesome.css')]);
 			// $this->xml->head->append('script', ['type' => 'javascript/module', 'src' => $webapp->resroot('js/webapp.js')]);
-			$this->article = $this->xml->body->append('article', ['class' => 'webapp']);
-			$this->header = $this->article->append('header');
-			$this->section = $this->article->append('section');
-			$this->footer = $this->article->append('footer', $webapp['copy_webapp']);
+			[$this->root, $this->header, $this->main, $this->footer] = [
+				$root = $this->xml->body->append('div', ['class' => 'webapp']),
+				&$root->header, &$root->main,
+				$root->append('footer', $webapp['copy_webapp'])
+			];
 		}
 		else
 		{
@@ -68,11 +71,26 @@ class webapp_echo_html extends webapp_document
 	{
 		$this->xml->head->title = $title;
 	}
-	function aside(bool $before = FALSE):webapp_html
+	function nav(array $link):webapp_html
 	{
-		$this->aside = $this->section->insert('aside', 'first');
-		$this->section = $this->aside->insert('section', $before ? 'before' : 'after');
-		return $this->aside;
+		$node = $this->header->append('nav', ['class' => 'webapp']);
+		$node->atree($link, TRUE);
+		return $node;
+	}
+	// function search(?string $action = NULL):webapp_form
+	// {
+	// 	$form = $this->header->form($action);
+	// 	$form->xml['method'] = 'get';
+	// 	$form->field('search', 'search');
+	// 	$form->button('Search', 'submit');
+	// 	return $form;
+	// }
+	function aside(bool $after = FALSE):webapp_html
+	{
+		return $this->main->insert('aside', $after ? 'after' : 'before');
+		// $this->aside = $this->section->insert('aside', 'first');
+		// $this->section = $this->aside->insert('section', $before ? 'before' : 'after');
+		// return $this->aside;
 	}
 
 

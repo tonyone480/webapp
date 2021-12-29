@@ -57,7 +57,7 @@ class webapp_xml extends SimpleXMLElement
 				: $params = [$iterator = function(array $element, Closure $iterator):void
 				{
 					$node = $this->append(array_shift($element), $element);
-					if (is_iterable($element[0]))
+					if (isset($element[0]) && is_iterable($element[0]))
 					{
 						$node->iter($element[0], $iterator, $iterator);
 					}
@@ -279,6 +279,10 @@ class webapp_svg extends webapp_xml
 }
 class webapp_html extends webapp_xml
 {
+	function template(iterable $struct, array|string $attr = []):static
+	{
+		return $this[0]->append('template')->iter($struct)->setattr(is_array($attr) ? $attr : ['id' => $attr]);
+	}
 	function progress(float $value = 0, float $max = 1):static
 	{
 		$node = &$this[0]->progress[];
@@ -306,6 +310,15 @@ class webapp_html extends webapp_xml
 		}
 		return $node;
 	}
+	// function meter(float $value, float $min = 0, float $max = 1, float $low = NULL, float $high = NULL, float $optimum = NULL):static
+	// {
+	// 	return $this->append('meter', [
+	// 		'value' => $value, 'min' => $min, 'max' => $max,
+	// 		'low' => $low ?? $min + ($max - $min) * 0.4,
+	// 		'high' => $high ?? $min + ($max - $min) * 0.9,
+	// 		'optimum' => $optimum ?? $min + ($max - $min) * 0.7
+	// 	]);
+	// }
 	// function figure(string $src):static
 	// {
 	// 	$node = &$this[0]->figure[];
@@ -335,6 +348,13 @@ class webapp_html extends webapp_xml
 	{
 		return $this[0]->append('select')->options($values, ...$default);
 	}
+	function section(string $title, int $level = 1):static
+	{
+		$node = &$this[0]->section[];
+		$node->{'h' . max(1, min(6, $level))} = $title;
+		return $node;
+	}
+
 
 	
 	function appendnode(array $element):static
@@ -554,7 +574,7 @@ class webapp_html extends webapp_xml
 		$node['class'] = 'webapp';
 		return $node;
 	}
-	function form(string $action):webapp_form
+	function form(?string $action = NULL):webapp_form
 	{
 		return new webapp_form($this[0], $action);
 	}
@@ -636,7 +656,7 @@ class webapp_form
 				'autocomplete' => 'off',
 				//'onsubmit' => 'webapp.submit(this)',
 				'class' => 'webapp',
-				'action' => $action])]
+				...is_string($action) ? ['action' => $action] : []])]
 			: [$context instanceof webapp ? $context : NULL, new webapp_html('<form/>')];
 		$this->xml['enctype'] = 'application/x-www-form-urlencoded';
 		$this->fieldset();
