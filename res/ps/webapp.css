@@ -41,6 +41,23 @@ html {
 *[class|=webapp][class*=-right] {
   text-align: right;
 }
+*[class|=webapp][class*=-ib] {
+  display: inline-block;
+}
+*[class|=webapp][class*=-none] {
+  display: none;
+}
+*[class|=webapp][class*=-hidden] {
+  visibility: hidden;
+}
+*[class|=webapp][class*=-dialog] {
+  border: 0.09rem solid black;
+  border-radius: 0.3rem;
+  background-color: white;
+  border: 1px solid rgba(27, 31, 35, 0.23);
+  border-radius: 0.5em;
+  box-shadow: 0 0.5em 2em rgba(27, 31, 35, 0.175);
+}
 body.webapp a {
   color: #0366d6;
   outline: none;
@@ -55,18 +72,46 @@ body.webapp a.danger {
 body.webapp > div > footer {
   padding: 0.6rem;
 }
-nav.webapp ul {
-  margin: 0;
-  padding: 0;
-  display: inline-block;
+nav[class|=webapp] ul {
   list-style-type: none;
 }
-nav.webapp ul > li {
+nav[class|=webapp] > ul {
+  margin: 0;
+  padding: 0;
+}
+nav[class|=webapp] > ul > li {
   display: inline-block;
 }
-nav.webapp ul > li > a, nav.webapp ul > li details {
-  padding: 0.6rem;
-  display: inline-block;
+nav[class|=webapp] ul:not(ul:first-child) {
+  border: 0.09rem solid black;
+  border-radius: 0.3rem;
+  background-color: white;
+  border: 1px solid rgba(27, 31, 35, 0.23);
+  border-radius: 0.5em;
+  box-shadow: 0 0.5em 2em rgba(27, 31, 35, 0.175);
+  margin: 0;
+  padding: 0.4rem 0;
+  position: absolute;
+  line-height: 1.8rem;
+}
+nav[class|=webapp] ul:not(ul:first-child) > li > details {
+  position: relative;
+}
+nav[class|=webapp] ul:not(ul:first-child) > li > a, nav[class|=webapp] ul:not(ul:first-child) > li > details > summary {
+  display: block;
+  padding: 0 1rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+nav[class|=webapp] ul:not(ul:first-child) > li summary:hover {
+  text-decoration: underline;
+}
+nav[class|=webapp][class*=-show] ul:not(ul:first-child) > li:hover {
+  background-color: #0366d6;
+}
+nav[class|=webapp][class*=-show] ul:not(ul:first-child) > li:hover > a, nav[class|=webapp][class*=-show] ul:not(ul:first-child) > li:hover > details > summary {
+  color: white;
+  text-decoration: none;
 }
 form[class|=webapp] {
   display: inline-block;
@@ -79,7 +124,7 @@ table[class|=webapp] {
   border-spacing: 0.1rem;
   empty-cells: show;
 }
-table[class|=webapp] > tbody > tr > td {
+table[class|=webapp][class*=-grid] > tbody > tr > td {
   border: 1px solid black;
 }
 table[class|=webapp][class*=-even] > tbody > tr:nth-child(even) {

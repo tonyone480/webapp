@@ -53,6 +53,7 @@ html{
 	&[class*=-m]{
 		margin: 0 auto;
 	}
+	
 	&[class*=-m1]{
 		@include margin(1);
 	}
@@ -83,6 +84,28 @@ html{
 	&[class*=-right]{
 		@include textalign(right);
 	}
+
+
+	&[class*=-ib]{
+		display: inline-block;
+	}
+	&[class*=-none]{
+		display: none;
+	}
+	&[class*=-hidden]{
+		visibility: hidden;
+	}
+	&[class*=-dialog]{
+		
+		@include borderliner;
+		@include borderradius;
+		background-color: $background;
+		
+		border: 1px solid rgba($border, 0.23);
+		border-radius: 0.5em;
+		box-shadow: 0 0.5em 2em rgba($border, 0.175);
+	}
+	
 }
 body.webapp{
 	a{
@@ -102,17 +125,48 @@ body.webapp{
 		}
 	}	
 }
-nav.webapp{
+nav[class|=webapp]{
 	ul{
+		list-style-type: none;
+	}
+	>ul{
 		margin: 0;
 		padding: 0;
-		display: inline-block;
-		list-style-type: none;
 		>li{
 			display: inline-block;
-			>a, details{
-				@include padding(2);
-				display: inline-block;
+		}
+	}
+	ul:not(ul:first-child){
+		@include dialog;
+		margin: 0;
+		padding: 0.4rem 0;
+		position: absolute;
+		line-height: 1.8rem;
+		>li{
+			>details{
+				position: relative;
+			}
+			>a,>details>summary{
+				display: block;
+				padding: 0 1rem;
+				white-space: nowrap;
+				cursor: pointer;
+			}
+			summary:hover{
+				text-decoration: underline;
+			}
+		}
+	}
+	
+
+	&[class*=-show]{
+		ul:not(ul:first-child){
+			>li:hover{
+				background-color: $link;
+				>a,>details>summary{
+					color: $background;
+					text-decoration: none;
+				}
 			}
 		}
 	}
@@ -128,8 +182,11 @@ table[class|=webapp]{
 	border-collapse: collapse;
 	border-spacing: 0.1rem;
 	empty-cells: show;
-	>tbody>tr>td{
-		border: 1px solid $foreground;
+	
+	&[class*=-grid]{
+		>tbody>tr>td{
+			border: 1px solid $foreground;
+		}
 	}
 	&[class*=-even]{
 		>tbody>tr:nth-child(even) {

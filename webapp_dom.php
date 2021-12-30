@@ -993,14 +993,15 @@ class webapp_form
 }
 class webapp_table
 {
-	public readonly webapp_html $xml, $tbody;
 	public readonly array $paging;
+	public readonly webapp_html $xml, $tbody;
 	function __construct(webapp_html $node, iterable $data = [], Closure $output = NULL, mixed ...$params)
 	{
-		$this->xml = $node->append('table', ['class' => 'webapp']);
-		//$this->xml = &$node->table[];
-		$this->tbody = $this->xml->append('tbody');
-		//$this->xml['class'] = 'webapp';
+		[$this->paging, $this->xml, $this->tbody] = [
+			$data?->paging ?? [],
+			$root = &$node->table[],
+			&$root->tbody];
+		$root['class'] = 'webapp';
 		if ($output)
 		{
 			foreach ($data as $values)
@@ -1024,7 +1025,6 @@ class webapp_table
 				$row->td[] = $values;
 			}
 		}
-		//$this->paging = $data->paging ?? NULL;
 	}
 	function __get(string $name)
 	{
@@ -1045,8 +1045,8 @@ class webapp_table
 			case 'caption': return $this->caption = $this->xml->insert('caption', 'first');
 			case 'colgroup': return $this->colgroup = $this->caption->insert('colgroup', 'after');
 			case 'thead': return $this->thead = $this->tbody->insert('thead', 'before');
-			case 'fieldname': return $this->fieldname = &$this->thead->tr[];
-			case 'title': return (property_exists($this, 'fieldname') ? $this->fieldname->insert('tr', 'before') : $this->thead->append('tr'))->append('td', ['colspan' => $this->column]);
+			case 'fieldset': return $this->fieldset = &$this->thead->tr[];
+			case 'title': return (property_exists($this, 'fieldset') ? $this->fieldset->insert('tr', 'before') : $this->thead->append('tr'))->append('td', ['colspan' => $this->column]);
 			case 'column': return isset($this->tbody->tr->td) ? count($this->tbody->tr->td) : 0;
 			case 'tfoot': return $this->tfoot = $this->tbody->insert('tfoot', 'after');
 		}
@@ -1082,9 +1082,9 @@ class webapp_table
 		}
 		return $this;
 	}
-	function fieldname(...$names):webapp_html
+	function fieldset(string ...$names):webapp_html
 	{
-		$node = $this->fieldname;
+		$node = $this->fieldset;
 		foreach ($names as $name)
 		{
 			$node->td[] = $name;
