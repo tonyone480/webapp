@@ -44,13 +44,13 @@ class webapp_echo_html extends webapp_document
 		$webapp->response_content_type("text/html; charset={$webapp['app_charset']}");
 		if (func_num_args() === 1)
 		{
-			$this->loadHTML("<!doctype html><html lang='en'><head><meta charset='{$webapp['app_charset']}'/></head><body/></html>");
-			$this->xml->head->append('meta', ['name' => 'viewport', 'content' => 'width=device-width,initial-scale=1.0']);
+			$this->loadHTML("<!doctype html><html lang='en'><head><meta charset='{$webapp['app_charset']}'/></head><body class='webapp'/></html>");
+			$this->xml->head->append('meta', ['name' => 'viewport', 'content' => 'width=device-width,initial-scale=1']);
 			$this->xml->head->append('link', ['rel' => 'stylesheet', 'type' => 'text/css', 'href' => '?scss/webapp', 'media' => 'all']);
 			// $this->xml->head->append('link', ['rel' => 'stylesheet', 'type' => 'text/css', 'href' => $webapp->resroot('ps/font-awesome.css')]);
 			// $this->xml->head->append('script', ['type' => 'javascript/module', 'src' => $webapp->resroot('js/webapp.js')]);
 			[$this->root, $this->header, $this->main, $this->footer] = [
-				$root = $this->xml->body->append('div', ['class' => 'webapp']),
+				$root = $this->xml->body->append('div'),
 				&$root->header, &$root->main,
 				$root->append('footer', $webapp['copy_webapp'])
 			];
@@ -94,14 +94,16 @@ class webapp_echo_html extends webapp_document
 	}
 
 
+
+
+
+
+
+	
 	function xpath(string $expression):array
 	{
 		return iterator_to_array((new DOMXPath($this))->evaluate($expression));
 	}
-
-
-
-
 
 	static function form_sign_in(array|webapp|webapp_html $context, ?string $authurl = NULL):NULL|array|webapp_form
 	{

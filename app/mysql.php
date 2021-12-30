@@ -43,9 +43,8 @@ new class extends webapp
 		if ($this->router === $this)
 		{
 			$this->app('webapp_echo_html')->title('MySQL Admin');
-
-			$this->app->header->atree([
-				['Home', '?', 'style'=> 'color:red'],
+			$this->app->nav([
+				['Home', '?'],
 				['Console', '?console'],
 				['Microsoft', [
 					['Windows Server 2016', '#'],
@@ -127,7 +126,7 @@ new class extends webapp
 			$this->response_cookie('mysql_charset', $charset);
 			return;
 		}
-		$form = $this->app->node->form('?home');
+		$form = $this->app->main->form('?home');
 		$form->fieldset('MySQL Host');
 		$form->field('host', 'text', ['value' => $this['mysql_host']]);
 		$form->fieldset('Username');

@@ -997,8 +997,10 @@ class webapp_table
 	public readonly array $paging;
 	function __construct(webapp_html $node, iterable $data = [], Closure $output = NULL, mixed ...$params)
 	{
-		$this->xml = &$node->table[];
-		$this->tbody = &$this->xml->tbody;
+		$this->xml = $node->append('table', ['class' => 'webapp']);
+		//$this->xml = &$node->table[];
+		$this->tbody = $this->xml->append('tbody');
+		//$this->xml['class'] = 'webapp';
 		if ($output)
 		{
 			foreach ($data as $values)
@@ -1022,7 +1024,7 @@ class webapp_table
 				$row->td[] = $values;
 			}
 		}
-		$this->paging = $data->paging ?? NULL;
+		//$this->paging = $data->paging ?? NULL;
 	}
 	function __get(string $name)
 	{

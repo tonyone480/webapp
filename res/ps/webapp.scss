@@ -41,21 +41,18 @@ $danger: rgb(203, 36, 49);
 	border-radius: 0.5em;
 	box-shadow: 0 0.5em 2em rgba($border, 0.175);
 }
-
-body>article.webapp>section{
-	display: table-row;
-	>aside,>section{
-		vertical-align: top;
-		display: table-cell;
-	}
-	>section{
-		@include padding(4);
-	}
+html{
+	@include font(1em);
+	color: $foreground;
+	background-color: $background;
+	
 }
-/*
 *[class|=webapp]{
 	margin: 0;
 	padding: 0;
+	&[class*=-m]{
+		margin: 0 auto;
+	}
 	&[class*=-m1]{
 		@include margin(1);
 	}
@@ -86,79 +83,9 @@ body>article.webapp>section{
 	&[class*=-right]{
 		@include textalign(right);
 	}
-
-	&[class*=-dialog]{
-		
-		@include borderliner;
-		@include borderradius;
-		background-color: $background;
-		
-		border: 1px solid rgba($border, 0.23);
-		border-radius: 0.5em;
-		box-shadow: 0 0.5em 2em rgba($border, 0.175);
-	}
-
-	//borderliner
 }
-nav[class|=webapp]{
-	ul{
-		list-style: none;
-	}
-	li{
-		white-space: nowrap;
-	}
+body.webapp{
 	a{
-		padding: 8px 16px;
-		display: block;
-	}
-	details{
-		position: relative;
-		display: inline-block;
-		
-		summary{
-			padding: 8px 16px;
-			cursor: pointer;
-		}
-	}
-	details>ul{
-		position: absolute;
-		top: 0;
-		left: 100%;
-		background-color: $background;
-		@include dialog;
-	}
-
-
-}
-form.webapp{
-	@include padding(2);
-	>fieldset{
-		border: none;
-	}
-}
-table.webapp{
-	border-collapse: collapse;
-	border-spacing: 0.1rem;
-	empty-cells: show;
-	&,th,td{
-		@include borderliner;
-		white-space: nowrap;
-	}
-
-}
-body.webapp
-{
-	@include font;
-	color: $foreground;
-	&,dl,ul,pre,input,textarea,fieldset{
-		margin: 0;
-		padding: 0;
-	}
-	//超连接
-	summary,summary::-webkit-details-marker{
-		color: $foreground;
-	}
-	a,summary{
 		color: $link;
 		outline: none;
 		text-decoration: none;
@@ -169,31 +96,44 @@ body.webapp
 			color: $danger;
 		}
 	}
-
+	>div{
+		>footer{
+			@include padding(2);
+		}
+	}	
 }
-body.webapp>article>header>nav>ul>li{
+nav.webapp{
+	ul{
+		margin: 0;
+		padding: 0;
+		display: inline-block;
+		list-style-type: none;
+		>li{
+			display: inline-block;
+			>a, details{
+				@include padding(2);
+				display: inline-block;
+			}
+		}
+	}
+}
+form[class|=webapp]{
 	display: inline-block;
-	>a{
-
+	>fieldset{
+		border: none;
 	}
 }
-body.webapp>article>section{
-	display: table-row;
-	>aside,>section{
-		vertical-align: top;
-		display: table-cell;
+
+table[class|=webapp]{
+	border-collapse: collapse;
+	border-spacing: 0.1rem;
+	empty-cells: show;
+	>tbody>tr>td{
+		border: 1px solid $foreground;
 	}
-	>section{
-		@include padding(4);
+	&[class*=-even]{
+		>tbody>tr:nth-child(even) {
+			background-color: $hint;
+		}
 	}
 }
-body.webapp>article>footer{
-	@include padding(2);
-}
-*/
-
-
-
-
-
-

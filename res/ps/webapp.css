@@ -1,140 +1,87 @@
 @charset "utf-8";
-body > article.webapp > section {
-  display: table-row;
+html {
+  font: 1em sans-serif, simhei;
+  color: black;
+  background-color: white;
 }
-body > article.webapp > section > aside, body > article.webapp > section > section {
-  vertical-align: top;
-  display: table-cell;
+*[class|=webapp] {
+  margin: 0;
+  padding: 0;
 }
-body > article.webapp > section > section {
-  padding: 1.2rem;
+*[class|=webapp][class*=-m] {
+  margin: 0 auto;
 }
-/*
- *[class|=webapp]{
- margin: 0;
- padding: 0;
- &[class*=-m1]{
- @include margin(1);
- }
- &[class*=-m2]{
- @include margin(2);
- }
- &[class*=-p1]{
- @include padding(1);
- }
- &[class*=-p2]{
- @include padding(2);
- }
- &[class*=-bl]{
- @include borderliner;
- }
- &[class*=-br]{
- @include borderradius;
- }
- &[class*=-bs]{
- box-shadow: 0 0.5em 2em rgba($border, 0.175);
- }
- &[class*=-left]{
- @include textalign(left);
- }
- &[class*=-center]{
- @include textalign(center);
- }
- &[class*=-right]{
- @include textalign(right);
- }
- &[class*=-dialog]{
- @include borderliner;
- @include borderradius;
- background-color: $background;
- border: 1px solid rgba($border, 0.23);
- border-radius: 0.5em;
- box-shadow: 0 0.5em 2em rgba($border, 0.175);
- }
- //borderliner
- }
- nav[class|=webapp]{
- ul{
- list-style: none;
- }
- li{
- white-space: nowrap;
- }
- a{
- padding: 8px 16px;
- display: block;
- }
- details{
- position: relative;
- display: inline-block;
- summary{
- padding: 8px 16px;
- cursor: pointer;
- }
- }
- details>ul{
- position: absolute;
- top: 0;
- left: 100%;
- background-color: $background;
- @include dialog;
- }
- }
- form.webapp{
- @include padding(2);
- >fieldset{
- border: none;
- }
- }
- table.webapp{
- border-collapse: collapse;
- border-spacing: 0.1rem;
- empty-cells: show;
- &,th,td{
- @include borderliner;
- white-space: nowrap;
- }
- }
- body.webapp
- {
- @include font;
- color: $foreground;
- &,dl,ul,pre,input,textarea,fieldset{
- margin: 0;
- padding: 0;
- }
- //超连接
- summary,summary::-webkit-details-marker{
- color: $foreground;
- }
- a,summary{
- color: $link;
- outline: none;
- text-decoration: none;
- &:hover{
- text-decoration: underline;
- }
- &.danger{
- color: $danger;
- }
- }
- }
- body.webapp>article>header>nav>ul>li{
- display: inline-block;
- >a{
- }
- }
- body.webapp>article>section{
- display: table-row;
- >aside,>section{
- vertical-align: top;
- display: table-cell;
- }
- >section{
- @include padding(4);
- }
- }
- body.webapp>article>footer{
- @include padding(2);
- }
- */
+*[class|=webapp][class*=-m1] {
+  margin: 0.3rem;
+}
+*[class|=webapp][class*=-m2] {
+  margin: 0.6rem;
+}
+*[class|=webapp][class*=-p1] {
+  padding: 0.3rem;
+}
+*[class|=webapp][class*=-p2] {
+  padding: 0.6rem;
+}
+*[class|=webapp][class*=-bl] {
+  border: 0.09rem solid black;
+}
+*[class|=webapp][class*=-br] {
+  border-radius: 0.3rem;
+}
+*[class|=webapp][class*=-bs] {
+  box-shadow: 0 0.5em 2em rgba(27, 31, 35, 0.175);
+}
+*[class|=webapp][class*=-left] {
+  text-align: left;
+}
+*[class|=webapp][class*=-center] {
+  text-align: center;
+}
+*[class|=webapp][class*=-right] {
+  text-align: right;
+}
+body.webapp a {
+  color: #0366d6;
+  outline: none;
+  text-decoration: none;
+}
+body.webapp a:hover {
+  text-decoration: underline;
+}
+body.webapp a.danger {
+  color: #cb2431;
+}
+body.webapp > div > footer {
+  padding: 0.6rem;
+}
+nav.webapp ul {
+  margin: 0;
+  padding: 0;
+  display: inline-block;
+  list-style-type: none;
+}
+nav.webapp ul > li {
+  display: inline-block;
+}
+nav.webapp ul > li > a, nav.webapp ul > li details {
+  padding: 0.6rem;
+  display: inline-block;
+}
+form[class|=webapp] {
+  display: inline-block;
+}
+form[class|=webapp] > fieldset {
+  border: none;
+}
+table[class|=webapp] {
+  border-collapse: collapse;
+  border-spacing: 0.1rem;
+  empty-cells: show;
+}
+table[class|=webapp] > tbody > tr > td {
+  border: 1px solid black;
+}
+table[class|=webapp][class*=-even] > tbody > tr:nth-child(even) {
+  background-color: #c0c0c0;
+}
