@@ -47,7 +47,7 @@ html{
 	background-color: $background;
 	
 }
-*[class|=webapp]{
+[class|=webapp]{
 	margin: 0;
 	padding: 0;
 	&[class*=-m]{
@@ -107,7 +107,8 @@ html{
 	}
 	
 }
-body.webapp{
+
+body[class|=webapp]{
 	a{
 		color: $link;
 		outline: none;
@@ -125,6 +126,7 @@ body.webapp{
 		}
 	}	
 }
+
 nav[class|=webapp]{
 	ul{
 		list-style-type: none;

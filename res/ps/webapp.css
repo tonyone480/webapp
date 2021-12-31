@@ -4,53 +4,53 @@ html {
   color: black;
   background-color: white;
 }
-*[class|=webapp] {
+[class|=webapp] {
   margin: 0;
   padding: 0;
 }
-*[class|=webapp][class*=-m] {
+[class|=webapp][class*=-m] {
   margin: 0 auto;
 }
-*[class|=webapp][class*=-m1] {
+[class|=webapp][class*=-m1] {
   margin: 0.3rem;
 }
-*[class|=webapp][class*=-m2] {
+[class|=webapp][class*=-m2] {
   margin: 0.6rem;
 }
-*[class|=webapp][class*=-p1] {
+[class|=webapp][class*=-p1] {
   padding: 0.3rem;
 }
-*[class|=webapp][class*=-p2] {
+[class|=webapp][class*=-p2] {
   padding: 0.6rem;
 }
-*[class|=webapp][class*=-bl] {
+[class|=webapp][class*=-bl] {
   border: 0.09rem solid black;
 }
-*[class|=webapp][class*=-br] {
+[class|=webapp][class*=-br] {
   border-radius: 0.3rem;
 }
-*[class|=webapp][class*=-bs] {
+[class|=webapp][class*=-bs] {
   box-shadow: 0 0.5em 2em rgba(27, 31, 35, 0.175);
 }
-*[class|=webapp][class*=-left] {
+[class|=webapp][class*=-left] {
   text-align: left;
 }
-*[class|=webapp][class*=-center] {
+[class|=webapp][class*=-center] {
   text-align: center;
 }
-*[class|=webapp][class*=-right] {
+[class|=webapp][class*=-right] {
   text-align: right;
 }
-*[class|=webapp][class*=-ib] {
+[class|=webapp][class*=-ib] {
   display: inline-block;
 }
-*[class|=webapp][class*=-none] {
+[class|=webapp][class*=-none] {
   display: none;
 }
-*[class|=webapp][class*=-hidden] {
+[class|=webapp][class*=-hidden] {
   visibility: hidden;
 }
-*[class|=webapp][class*=-dialog] {
+[class|=webapp][class*=-dialog] {
   border: 0.09rem solid black;
   border-radius: 0.3rem;
   background-color: white;
@@ -58,18 +58,18 @@ html {
   border-radius: 0.5em;
   box-shadow: 0 0.5em 2em rgba(27, 31, 35, 0.175);
 }
-body.webapp a {
+body[class|=webapp] a {
   color: #0366d6;
   outline: none;
   text-decoration: none;
 }
-body.webapp a:hover {
+body[class|=webapp] a:hover {
   text-decoration: underline;
 }
-body.webapp a.danger {
+body[class|=webapp] a.danger {
   color: #cb2431;
 }
-body.webapp > div > footer {
+body[class|=webapp] > div > footer {
   padding: 0.6rem;
 }
 nav[class|=webapp] ul {
