@@ -129,7 +129,7 @@ nav[class|=webapp]{
 	ul{
 		list-style-type: none;
 	}
-	>ul{
+	ul:first-child{
 		margin: 0;
 		padding: 0;
 		>li{
@@ -142,24 +142,25 @@ nav[class|=webapp]{
 		padding: 0.4rem 0;
 		position: absolute;
 		line-height: 1.8rem;
+		display: inline-block;
 		>li{
 			>details{
 				position: relative;
 			}
 			>a,>details>summary{
-				display: block;
+				display: inline-block;
 				padding: 0 1rem;
 				white-space: nowrap;
 				cursor: pointer;
 			}
-			summary:hover{
+			>details>summary:hover{
 				text-decoration: underline;
 			}
 		}
 	}
 	
 
-	&[class*=-show]{
+	&[class*=-highlight]{
 		ul:not(ul:first-child){
 			>li:hover{
 				background-color: $link;

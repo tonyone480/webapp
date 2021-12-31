@@ -75,11 +75,11 @@ body.webapp > div > footer {
 nav[class|=webapp] ul {
   list-style-type: none;
 }
-nav[class|=webapp] > ul {
+nav[class|=webapp] ul:first-child {
   margin: 0;
   padding: 0;
 }
-nav[class|=webapp] > ul > li {
+nav[class|=webapp] ul:first-child > li {
   display: inline-block;
 }
 nav[class|=webapp] ul:not(ul:first-child) {
@@ -93,23 +93,24 @@ nav[class|=webapp] ul:not(ul:first-child) {
   padding: 0.4rem 0;
   position: absolute;
   line-height: 1.8rem;
+  display: inline-block;
 }
 nav[class|=webapp] ul:not(ul:first-child) > li > details {
   position: relative;
 }
 nav[class|=webapp] ul:not(ul:first-child) > li > a, nav[class|=webapp] ul:not(ul:first-child) > li > details > summary {
-  display: block;
+  display: inline-block;
   padding: 0 1rem;
   white-space: nowrap;
   cursor: pointer;
 }
-nav[class|=webapp] ul:not(ul:first-child) > li summary:hover {
+nav[class|=webapp] ul:not(ul:first-child) > li > details > summary:hover {
   text-decoration: underline;
 }
-nav[class|=webapp][class*=-show] ul:not(ul:first-child) > li:hover {
+nav[class|=webapp][class*=-highlight] ul:not(ul:first-child) > li:hover {
   background-color: #0366d6;
 }
-nav[class|=webapp][class*=-show] ul:not(ul:first-child) > li:hover > a, nav[class|=webapp][class*=-show] ul:not(ul:first-child) > li:hover > details > summary {
+nav[class|=webapp][class*=-highlight] ul:not(ul:first-child) > li:hover > a, nav[class|=webapp][class*=-highlight] ul:not(ul:first-child) > li:hover > details > summary {
   color: white;
   text-decoration: none;
 }
