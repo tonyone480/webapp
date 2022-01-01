@@ -56,8 +56,19 @@ new class extends webapp
 						['Windows Me', '#']
 					]]
 				]]
-			], TRUE);
+			]);
+			if ($this->method !== 'get_home')
+			{
+				if ($this->mysql->connect_errno)
+				{
+					return $this->break($this->get_home(...));
+				}
 
+			}
+			
+			
+			
+			
 			return;
 			if ($this->mysql_connected() === FALSE || $this['app_index'] === 'get_home')
 			{
@@ -83,6 +94,23 @@ new class extends webapp
 				$node->append('a', [$item['Database'], 'href' => "?database/{$item['Database']}"]);
 			});
 		}
+	}
+	function mysql():webapp_mysql
+	{
+		$mysql = new webapp_mysql(...json_decode($this->request_cookie_decrypt('mysql_connect') ?? 'NULL', TRUE)
+			?? [$this['mysql_host'], $this['mysql_user'], $this['mysql_password']]);
+		if ($mysql->connect_errno)
+		{
+			//$this->errors[] = $mysql->connect_error;
+		}
+		else
+		{
+			if (in_array($charset = $this->request_cookie('mysql_charset') ?? $this['mysql_charset'],
+				$this->charset = $mysql('show character set')->column('Charset'), TRUE)) {
+				$mysql->set_charset($charset);
+			}
+		}
+		return $mysql;
 	}
 	function mysql_connected():bool
 	{
@@ -138,12 +166,12 @@ new class extends webapp
 	}
 	function get_console()
 	{
-		$form = $this->app->section->form('?api/console');
-		$form->field('uploadfile', 'file', ['multiple' => NULL]);
+		// $form = $this->app->section->form('?api/console');
+		// $form->field('uploadfile', 'file', ['multiple' => NULL]);
 		//$form->field('createdb', 'text');
 		//$form->button('Create Database', 'submit');
-		$form->button('Query', 'submit');
-		$form->fieldset();
+		// $form->button('Query', 'submit');
+		// $form->fieldset();
 		//$form->field('console', 'textarea');
 		//$form->fieldset();
 		

@@ -1,5 +1,8 @@
 <?php
 declare(strict_types=1);
+
+use Leafo\ScssPhp\Node;
+
 trait webapp_echo
 {
 	public readonly webapp $webapp;
@@ -76,6 +79,10 @@ class webapp_echo_html extends webapp_document
 	{
 		$this->xml->head->title = $title;
 	}
+	// function addcss(string $rule):DOMText
+	// {
+	// 	return ($this->style ??= $this->xml->head->append('style', ['media' => 'all']))->text($rule);
+	// }
 	function nav(array $link):webapp_html
 	{
 		$node = $this->header->append('nav', ['class' => 'webapp']);

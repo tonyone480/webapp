@@ -105,7 +105,10 @@ html{
 		border-radius: 0.5em;
 		box-shadow: 0 0.5em 2em rgba($border, 0.175);
 	}
-	
+	&[class*=-highlight] a:hover{
+		background-color: $link;
+		color: $background;
+	}
 }
 
 body[class|=webapp]{
@@ -129,51 +132,52 @@ body[class|=webapp]{
 
 nav[class|=webapp]{
 	ul{
+		margin: 0;
+		padding: .4rem;
 		list-style-type: none;
-	}
-	ul:first-child{
-		margin: 0;
-		padding: 0;
 		>li{
-			display: inline-block;
-		}
-	}
-	ul:not(ul:first-child){
-		@include dialog;
-		margin: 0;
-		padding: 0.4rem 0;
-		position: absolute;
-		line-height: 1.8rem;
-		display: inline-block;
-		>li{
-			>details{
-				position: relative;
-			}
-			>a,>details>summary{
-				display: inline-block;
-				padding: 0 1rem;
+			>a,>details{
+				display: block;
+				padding: .4rem 1rem;
 				white-space: nowrap;
-				cursor: pointer;
 			}
-			>details>summary:hover{
-				text-decoration: underline;
-			}
-		}
-	}
-	
-
-	&[class*=-highlight]{
-		ul:not(ul:first-child){
-			>li:hover{
-				background-color: $link;
-				>a,>details>summary{
-					color: $background;
-					text-decoration: none;
+			>details{
+				color: $link;
+				position: relative;
+				>summary{
+					cursor: pointer;
+					&:hover{
+						text-decoration: underline;
+					}
 				}
 			}
 		}
 	}
+	ul:first-child{
+		>li{
+			display: inline-block;
+			>details{
+				>ul{
+					top: auto;
+					left: 0;
+				}
+			}
+		}
+	}
+	ul:not(ul:first-child){
+		@include dialog;
+		position: absolute;
+		top: -.4rem;
+		left: 100%;
+	}
+	&[class*=-highlight]{
+		details:hover{
+			color: $background;
+			background-color: $link;
+		}
+	}
 }
+
 form[class|=webapp]{
 	display: inline-block;
 	>fieldset{

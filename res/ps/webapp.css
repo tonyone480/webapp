@@ -58,6 +58,10 @@ html {
   border-radius: 0.5em;
   box-shadow: 0 0.5em 2em rgba(27, 31, 35, 0.175);
 }
+[class|=webapp][class*=-highlight] a:hover {
+  background-color: #0366d6;
+  color: white;
+}
 body[class|=webapp] a {
   color: #0366d6;
   outline: none;
@@ -73,14 +77,31 @@ body[class|=webapp] > div > footer {
   padding: 0.6rem;
 }
 nav[class|=webapp] ul {
+  margin: 0;
+  padding: 0.4rem;
   list-style-type: none;
 }
-nav[class|=webapp] ul:first-child {
-  margin: 0;
-  padding: 0;
+nav[class|=webapp] ul > li > a, nav[class|=webapp] ul > li > details {
+  display: block;
+  padding: 0.4rem 1rem;
+  white-space: nowrap;
+}
+nav[class|=webapp] ul > li > details {
+  color: #0366d6;
+  position: relative;
+}
+nav[class|=webapp] ul > li > details > summary {
+  cursor: pointer;
+}
+nav[class|=webapp] ul > li > details > summary:hover {
+  text-decoration: underline;
 }
 nav[class|=webapp] ul:first-child > li {
   display: inline-block;
+}
+nav[class|=webapp] ul:first-child > li > details > ul {
+  top: auto;
+  left: 0;
 }
 nav[class|=webapp] ul:not(ul:first-child) {
   border: 0.09rem solid black;
@@ -89,30 +110,13 @@ nav[class|=webapp] ul:not(ul:first-child) {
   border: 1px solid rgba(27, 31, 35, 0.23);
   border-radius: 0.5em;
   box-shadow: 0 0.5em 2em rgba(27, 31, 35, 0.175);
-  margin: 0;
-  padding: 0.4rem 0;
   position: absolute;
-  line-height: 1.8rem;
-  display: inline-block;
+  top: -0.4rem;
+  left: 100%;
 }
-nav[class|=webapp] ul:not(ul:first-child) > li > details {
-  position: relative;
-}
-nav[class|=webapp] ul:not(ul:first-child) > li > a, nav[class|=webapp] ul:not(ul:first-child) > li > details > summary {
-  display: inline-block;
-  padding: 0 1rem;
-  white-space: nowrap;
-  cursor: pointer;
-}
-nav[class|=webapp] ul:not(ul:first-child) > li > details > summary:hover {
-  text-decoration: underline;
-}
-nav[class|=webapp][class*=-highlight] ul:not(ul:first-child) > li:hover {
-  background-color: #0366d6;
-}
-nav[class|=webapp][class*=-highlight] ul:not(ul:first-child) > li:hover > a, nav[class|=webapp][class*=-highlight] ul:not(ul:first-child) > li:hover > details > summary {
+nav[class|=webapp][class*=-highlight] details:hover {
   color: white;
-  text-decoration: none;
+  background-color: #0366d6;
 }
 form[class|=webapp] {
   display: inline-block;
