@@ -57,7 +57,7 @@ new class extends webapp
 					]]
 				]]
 			]);
-			if ($this->method !== 'get_home')
+			if (in_array($this->method, ['get_home', 'post_home']) === FALSE)
 			{
 				if ($this->mysql->connect_errno)
 				{

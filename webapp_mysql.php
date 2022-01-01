@@ -9,9 +9,16 @@ class webapp_mysql extends mysqli implements IteratorAggregate
 		//ini_set('mysqli.reconnect', TRUE);
 		//$this->options(MYSQLI_OPT_CONNECT_TIMEOUT, 1);
 		//$this->real_connect($host, $user, $password, $database);
-		parent::__construct();
-		parent::real_connect($host, $user, $password, $database, flags: MYSQLI_CLIENT_FOUND_ROWS | MYSQLI_CLIENT_INTERACTIVE);
-		parent::ping();
+		try
+		{
+			parent::__construct();
+			parent::real_connect($host, $user, $password, $database, flags: MYSQLI_CLIENT_FOUND_ROWS | MYSQLI_CLIENT_INTERACTIVE);
+			parent::ping();
+		} catch (mysqli_sql_exception)
+		{
+			$this->errors[] = $this->connect_error;
+		}
+		
 	}
 	function __destruct()
 	{

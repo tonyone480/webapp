@@ -231,7 +231,7 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 			//MySQL
 			'mysql_host'		=> 'p:127.0.0.1:3306',
 			'mysql_user'		=> 'root',
-			'mysql_password'	=> '',
+			'mysql_password'	=> '1',
 			'mysql_database'	=> 'webapp',
 			'mysql_maptable'	=> 'webapp_maptable_',
 			'mysql_charset'		=> 'utf8mb4',//latin1
