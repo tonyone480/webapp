@@ -59,7 +59,7 @@ class webapp_echo_html extends webapp_document
 			// $this->xml->head->append('script', ['type' => 'javascript/module', 'src' => $webapp->resroot('js/webapp.js')]);
 			[$this->root, $this->header, $this->main, $this->footer] = [
 				$root = $this->xml->body->append('div'),
-				&$root->header, &$root->main,
+				&$root->header, &$root->append('div')->main,
 				$root->append('footer', $webapp['copy_webapp'])
 			];
 		}

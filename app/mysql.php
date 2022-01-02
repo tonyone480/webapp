@@ -40,6 +40,11 @@ new class extends webapp
 	function __construct()
 	{
 		if ($this->init_admin_sign_in(new io)) return;
+		[$this->mysql_host, $this->mysql_user, $this->mysql_password]
+			= json_decode($this->request_cookie_decrypt('mysql_connectto') ?? 'NULL', TRUE)
+				?? [$this['mysql_host'], $this['mysql_user'], $this['mysql_password']];
+		$this->mysql_database = $this->request_cookie('mysql_database') ?? $this['mysql_database'];
+		$this->mysql_charset = $this->request_cookie('mysql_charset') ?? $this['mysql_charset'];
 		if ($this->router === $this)
 		{
 			$this->app('webapp_echo_html')->title('MySQL Admin');
@@ -57,77 +62,63 @@ new class extends webapp
 					]]
 				]]
 			]);
-			if (in_array($this->method, ['get_home', 'post_home']) === FALSE)
+			if (in_array($this->method, ['get_home', 'post_home'], TRUE))
 			{
-				if ($this->mysql->connect_errno)
-				{
-					return $this->break($this->get_home(...));
-				}
-
+				return;
 			}
-			
-			
-			
-			
-			return;
-			if ($this->mysql_connected() === FALSE || $this['app_index'] === 'get_home')
+			if ($this->mysql->connect_errno)
 			{
-				return $this['app_index'] = $this['app_index'] === 'post_home' ? 'post_home' : 'get_home';
+				return $this->break($this->get_home(...));
 			}
-			$this->app->aside();
-			$mysql_charset = $this['mysql_charset'];
-			$this->app->aside->append('div', ['style' => 'padding:0.6rem'])->append('select', [
-				'style' => 'width:100%',
+			$this->app->main['style'] = 'padding:10px';
+			$aside = $this->app->aside();
+			$aside['style'] = 'width: 200px;overflow:scroll';
+			
+			$aside->select(array_combine($this->charset, $this->charset), $this->mysql_charset)->setattr([
+				'style' => 'display: inline',
 				'onchange' => 'location.href=`?home/${this.value}`'
-			])->iter($this->mysql->iter('show character set'), function(array $item) use($mysql_charset)
+			]);
+			
+
+			$ul = $aside->append('ul');
+			foreach ($this->query('SHOW DATABASES') as $db)
 			{
-				$node = $this->append('option', [$item['Charset'], 'value' => $item['Charset']]);
-				if ($item['Charset'] === $mysql_charset)
+				$node = $ul->append('li');
+				$node->append('a', [$db['Database'], 'href' => "?database/{$db['Database']}"]);
+				if ($db['Database'] === $this->mysql_database)
 				{
-					$node['selected'] = NULL;
+					$node = $node->append('ul');
+					foreach ($this->query('SHOW TABLE STATUS') as $tab)
+					{
+						$node->append('li')->append('a', ["{$tab['Name']}:{$tab['Rows']}", 'href' => "?table/{$tab['Name']}"]);
+					}
 				}
-			});
-			$mysql_database = $this['mysql_database'];
-			$this->app->aside->append('ul')->iter($this->mysql->iter('show databases'), function(array $item) use($mysql_database)
-			{
-				$node = &$this->li[];
-				$node->append('a', [$item['Database'], 'href' => "?database/{$item['Database']}"]);
-			});
+			}
 		}
 	}
+
 	function mysql():webapp_mysql
 	{
-		$mysql = new webapp_mysql(...json_decode($this->request_cookie_decrypt('mysql_connect') ?? 'NULL', TRUE)
-			?? [$this['mysql_host'], $this['mysql_user'], $this['mysql_password']]);
+		$mysql = new webapp_mysql($this->mysql_host,
+			$this->mysql_user, $this->mysql_password, $this->mysql_database);
 		if ($mysql->connect_errno)
 		{
 			//$this->errors[] = $mysql->connect_error;
 		}
 		else
 		{
-			if (in_array($charset = $this->request_cookie('mysql_charset') ?? $this['mysql_charset'],
+			if (in_array($this->mysql_charset,
 				$this->charset = $mysql('show character set')->column('Charset'), TRUE)) {
-				$mysql->set_charset($charset);
+				$mysql->set_charset($this->mysql_charset);
 			}
 		}
 		return $mysql;
 	}
-	function mysql_connected():bool
+	function query(...$params):webapp_mysql
 	{
-		if (count($connect = json_decode($this->request_cookie_decrypt('mysql_connect'), TRUE) ?? []) === 3)
-		{
-			//$this->request_query('db')
-			[
-				$this['mysql_host'],
-				$this['mysql_user'],
-				$this['mysql_password'],
-				$this['mysql_database'],
-				$this['mysql_charset'],
-			] = [...$connect, '', $this->request_cookie('mysql_charset') ?? $this['mysql_charset']];
-			return @$this->mysql->connect_errno === 0;
-		}
-		return FALSE;
+		return ($this->mysql)(...$params);
 	}
+
 	// function datatable():string
 	// {
 	// 	return $this->request_query('datatable');
@@ -143,42 +134,108 @@ new class extends webapp
 
 	function post_home()
 	{
+		$this->response_cookie_encrypt('mysql_connectto', json_encode(array_values($this->request_content()), JSON_UNESCAPED_UNICODE));
+		$this->response_cookie('mysql_database');
 		$this->response_location('?console');
-		$this->response_cookie_encrypt('mysql_connect', json_encode(array_values($this->request_content()), JSON_UNESCAPED_UNICODE));
 	}
-	function get_home(string $charset = NULL)
+	function get_home(string $database = NULL)
 	{
-		if (is_string($charset))
+		if (is_string($database))
 		{
+			$this->response_cookie('mysql_database', $database);
 			$this->response_location($this->request_referer() ?? '?home');
-			$this->response_cookie('mysql_charset', $charset);
 			return;
 		}
 		$form = $this->app->main->form('?home');
 		$form->fieldset('MySQL Host');
-		$form->field('host', 'text', ['value' => $this['mysql_host']]);
+		$form->field('host', 'text', ['value' => $this->mysql_host]);
 		$form->fieldset('Username');
-		$form->field('user', 'text', ['value' => $this['mysql_user']]);
+		$form->field('user', 'text', ['value' => $this->mysql_user]);
 		$form->fieldset('Password');
-		$form->field('password', 'text', ['value' => $this['mysql_password']]);
+		$form->field('password', 'text', ['value' => $this->mysql_password]);
 		$form->fieldset();
 		$form->button('Connect to MySQL', 'submit');
 	}
 	function get_console()
 	{
-		// $form = $this->app->section->form('?api/console');
-		// $form->field('uploadfile', 'file', ['multiple' => NULL]);
-		//$form->field('createdb', 'text');
-		//$form->button('Create Database', 'submit');
-		// $form->button('Query', 'submit');
-		// $form->fieldset();
-		//$form->field('console', 'textarea');
+		$form = $this->app->main->form('?api/console');
+		$form->field('createdb', 'text');
+		$form->button('Create Database', 'submit');
+		$form->button('Query', 'submit');
+		$form->fieldset();
+		$form->field('console', 'textarea');
 		//$form->fieldset();
+		//$form->field('uploadfile', 'file', ['multiple' => NULL]);
 		
 	}
 	function get_database()
 	{
-	
+		$table = $this->app->main->table($this->query('SHOW TABLE STATUS')->result($fields), function(array $tab)
+		{
+			$tr = &$this->tbody->tr[];
+			$td = &$tr->td[];
+
+			$td->span[] = $tab['Name'];
+			$td->span[] = $tab['Comment'];
+
+			$td = &$tr->td[];
+			//$td->span[] = $tab['Collation'];
+			$td->span[] = "{$tab['Engine']}:{$tab['Version']}";
+			$td->span[] = "{$tab['Row_format']}:{$tab['Rows']}";
+
+			$td = &$tr->td[];
+			$td->span[] = "{$tab['Data_length']}/{$tab['Data_free']}";
+			$td->span[] = "{$tab['Index_length']}/{$tab['Avg_row_length']}";
+			
+
+			$td = &$tr->td[];
+			$td->span[] = $tab['Create_time'] ?? '-';
+			$td->span[] = $tab['Update_time'] ?? '-';
+
+			$td = &$tr->td[];
+			$td->span[] = $tab['Check_time'] ?? '-';
+			$td->span[] = $tab['Checksum'] ?? '-';
+
+			$td = &$tr->td[];
+			$td->span[] = $tab['Create_options'] ?? '-';
+			$td->span[] = $tab['Auto_increment'] ?? '-';
+		});
+
+		
+
+		$td = &$table->fieldset->td[];
+		$td->span[] = 'Name';
+		$td->span[] = 'Comment';
+
+		$td = &$table->fieldset->td[];
+		//$td->span[] = 'Collation';
+		$td->span[] = 'Engine:Version';
+		$td->span[] = 'Row format:Rows';
+
+		$td = &$table->fieldset->td[];
+		$td->span[] = 'Data length/Data free';
+		$td->span[] = 'Index length/Avg row length';
+
+		$td = &$table->fieldset->td[];
+		$td->span[] = 'Create time';
+		$td->span[] = 'Update time';
+
+		$td = &$table->fieldset->td[];
+		$td->span[] = 'Check time';
+		$td->span[] = 'Checksum';
+
+		$td = &$table->fieldset->td[];
+		$td->span[] = 'Create options';
+		$td->span[] = 'Auto increment';
+		
+
+
+		//$table->fieldset('Name', 'Engine/Ver');
+
+		//print_r($fields);
+		$table->footer($this->query('SHOW CREATE DATABASE ?a', $this->mysql_database)->value(1));
+		$table->xml['class'] .= '-span-grid-even-top-ellipsis';
+		
 		return;
 		$this->app->section->style[] = <<<STYLE
 table.mysql>thead>tr>td>span,

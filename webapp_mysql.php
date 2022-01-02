@@ -250,7 +250,7 @@ class webapp_mysql extends mysqli implements IteratorAggregate
 			}
 		};
 	}
-	function result(array &$fields = NULL, bool $detailed = FALSE):iterable
+	function result(&$fields = NULL, bool $detailed = FALSE):iterable
 	{
 		$result = $this->getIterator();
 		$fields = $detailed ? $result->fetch_fields() : array_column($result->fetch_fields(), 'name');
@@ -280,7 +280,7 @@ class webapp_mysql extends mysqli implements IteratorAggregate
 }
 abstract class webapp_mysql_table implements IteratorAggregate, Countable, Stringable
 {
-	private array $paging = [];
+	public array $paging = [];
 	private string $cond = '', $fields = '*';
 	protected ?string $tablename, $primary;
 	function __construct(protected readonly webapp_mysql $mysql)

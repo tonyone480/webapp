@@ -805,7 +805,7 @@ class webapp_table
 	function __construct(webapp_html $node, iterable $data = [], Closure $output = NULL, mixed ...$params)
 	{
 		[$this->paging, $this->xml, $this->tbody] = [
-			$data?->paging ?? [],
+			is_object($data) && property_exists($data, 'paging') && is_array($data->paging) ? $data->paging : [],
 			$root = &$node->table[],
 			&$root->tbody];
 		$root['class'] = 'webapp';
@@ -835,28 +835,21 @@ class webapp_table
 	}
 	function __get(string $name)
 	{
-		// return match ($name)
-		// {
-		// 	'caption'	=> $this->caption = $this->xml->insert('caption', 'first'),
-		// 	'colgroup'	=> $this->colgroup = $this->caption->insert('colgroup', 'after'),
-		// 	'thead'		=> $this->thead = $this->tbody->insert('thead', 'before'),
-		// 	'fieldname'	=> $this->fieldname = &$this->thead->tr[],
-		// 	'title'		=> (property_exists($this, 'fieldname') ? $this->fieldname->insert('tr', 'before') : $this->thead->append('tr'))->append('td', ['colspan' => $this->column]),
-		// 	'column'	=> isset($this->tbody->tr->td) ? count($this->tbody->tr->td) : 0,
-		// 	'tfoot'		=> $this->tfoot = $this->tbody->insert('tfoot', 'after'),
-		// 	default		=> NULL
-		// }
-
-		switch ($name)
+		return match ($name)
 		{
-			case 'caption': return $this->caption = $this->xml->insert('caption', 'first');
-			case 'colgroup': return $this->colgroup = $this->caption->insert('colgroup', 'after');
-			case 'thead': return $this->thead = $this->tbody->insert('thead', 'before');
-			case 'fieldset': return $this->fieldset = &$this->thead->tr[];
-			case 'title': return (property_exists($this, 'fieldset') ? $this->fieldset->insert('tr', 'before') : $this->thead->append('tr'))->append('td', ['colspan' => $this->column]);
-			case 'column': return isset($this->tbody->tr->td) ? count($this->tbody->tr->td) : 0;
-			case 'tfoot': return $this->tfoot = $this->tbody->insert('tfoot', 'after');
-		}
+			'caption'	=> $this->caption = $this->xml->insert('caption', 'first'),
+			'colgroup'	=> $this->colgroup = $this->caption->insert('colgroup', 'after'),
+			'thead'		=> $this->thead = $this->tbody->insert('thead', 'before'),
+			'fieldset'	=> $this->fieldset = &$this->thead->tr[],
+			'title'		=> (property_exists($this, 'fieldset') ? $this->fieldset->insert('tr', 'before') : $this->thead->append('tr'))->append('td', ['colspan' => $this->column]),
+			'column'	=> isset($this->tbody->tr->td) ? count($this->tbody->tr->td) : 0,
+			'tfoot'		=> $this->tfoot = $this->tbody->insert('tfoot', 'after'),
+			default		=> NULL
+		};
+	}
+	function footer(?string $content = NULL):webapp_html
+	{
+		return $this->tfoot->append('tr')->append('td', [$content, 'colspan' => $this->column]);
 	}
 	function paging(string $url, int $max = 9):static
 	{

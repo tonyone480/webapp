@@ -73,6 +73,16 @@ body[class|=webapp] a:hover {
 body[class|=webapp] a.danger {
   color: #cb2431;
 }
+body[class|=webapp] > div div {
+  display: table-row;
+}
+body[class|=webapp] > div div > aside {
+  max-width: 16rem;
+}
+body[class|=webapp] > div div > aside, body[class|=webapp] > div div > main {
+  vertical-align: top;
+  display: table-cell;
+}
 body[class|=webapp] > div > footer {
   padding: 0.6rem;
 }
@@ -128,10 +138,21 @@ table[class|=webapp] {
   border-collapse: collapse;
   border-spacing: 0.1rem;
   empty-cells: show;
+  display: inline;
 }
 table[class|=webapp][class*=-grid] > tbody > tr > td {
   border: 1px solid black;
 }
 table[class|=webapp][class*=-even] > tbody > tr:nth-child(even) {
   background-color: #c0c0c0;
+}
+table[class|=webapp][class*=-span] span {
+  display: block;
+  white-space: nowrap;
+}
+table[class|=webapp][class*=-top] td {
+  vertical-align: top;
+}
+table[class|=webapp][class*=-ellipsis] td {
+  text-overflow: ellipsis;
 }

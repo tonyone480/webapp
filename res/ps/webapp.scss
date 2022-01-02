@@ -124,6 +124,16 @@ body[class|=webapp]{
 		}
 	}
 	>div{
+		div{
+			display: table-row;
+			>aside{
+				max-width: 16rem;
+			}
+			>aside,>main{
+				vertical-align: top;
+				display: table-cell;
+			}
+		}
 		>footer{
 			@include padding(2);
 		}
@@ -183,12 +193,14 @@ form[class|=webapp]{
 	>fieldset{
 		border: none;
 	}
+
 }
 
 table[class|=webapp]{
 	border-collapse: collapse;
 	border-spacing: 0.1rem;
 	empty-cells: show;
+	display: inline;
 	
 	&[class*=-grid]{
 		>tbody>tr>td{
@@ -198,6 +210,23 @@ table[class|=webapp]{
 	&[class*=-even]{
 		>tbody>tr:nth-child(even) {
 			background-color: $hint;
+		}
+	}
+	&[class*=-span]{
+		span{
+			display: block;
+			white-space: nowrap;
+		}
+	}
+	&[class*=-top]{
+		td{
+			vertical-align: top;
+		}
+		
+	}
+	&[class*=-ellipsis]{
+		td{
+			text-overflow: ellipsis;
 		}
 	}
 }
