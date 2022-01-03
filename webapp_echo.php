@@ -47,9 +47,9 @@ class webapp_echo_html extends webapp_document
 		$webapp->response_content_type("text/html; charset={$webapp['app_charset']}");
 		if (func_num_args() === 1)
 		{
-			$this->loadHTML("<!doctype html><html lang='en'><head><meta charset='{$webapp['app_charset']}'/></head><body class='webapp'/></html>");
+			$this->loadHTML("<!doctype html><html lang='en'><head><meta charset='{$webapp['app_charset']}'/></head><body/></html>");
 			$this->xml->head->append('meta', ['name' => 'viewport', 'content' => 'width=device-width,initial-scale=1']);
-			$this->xml->head->append('link', ['rel' => 'stylesheet', 'type' => 'text/css', 'href' => '?scss/webapp', 'media' => 'all']);
+			$this->xml->head->append('link', ['rel' => 'stylesheet', 'type' => 'text/css', 'href' => '/webapp/res/ps/webapp.css', 'media' => 'all']);
 			// $this->xml->head->append('style', ['type' => 'text/css', 'media' => 'print'])->cdata('body>div>*:not(main){display:none}');
 
 
@@ -57,11 +57,11 @@ class webapp_echo_html extends webapp_document
 			// $this->xml->head->append('link', ['rel' => 'stylesheet', 'type' => 'text/css', 'href' => $webapp->resroot('ps/font-awesome.css')]);
 			// $this->xml->head->append('link', ['rel' => 'stylesheet', 'type' => 'text/css', 'href' => $webapp->resroot('ps/font-awesome.css')]);
 			// $this->xml->head->append('script', ['type' => 'javascript/module', 'src' => $webapp->resroot('js/webapp.js')]);
-			[$this->root, $this->header, $this->main, $this->footer] = [
-				$root = $this->xml->body->append('div'),
-				&$root->header, &$root->append('div')->main,
-				$root->append('footer', $webapp['copy_webapp'])
-			];
+			
+			$root = &$this->xml->body->div;
+			[$this->header, $this->main, $this->footer] = [
+				&$root->header, &$root->div->main,
+				$root->append('footer', $webapp['copy_webapp'])];
 		}
 		else
 		{

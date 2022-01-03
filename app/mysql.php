@@ -71,16 +71,16 @@ new class extends webapp
 				return $this->break($this->get_home(...));
 			}
 			$this->app->main['style'] = 'padding:10px';
-			$aside = $this->app->aside();
-			$aside['style'] = 'width: 200px;overflow:scroll';
+			$ul = $this->app->aside()->setattr(['class' => 'webapp-ultree'])->append('ul');
+	
 			
-			$aside->select(array_combine($this->charset, $this->charset), $this->mysql_charset)->setattr([
-				'style' => 'display: inline',
+			$ul->append('li')->select(array_combine($this->charset, $this->charset), $this->mysql_charset)->setattr([
+				'style' => 'display: block',
 				'onchange' => 'location.href=`?home/${this.value}`'
 			]);
 			
 
-			$ul = $aside->append('ul');
+			
 			foreach ($this->query('SHOW DATABASES') as $db)
 			{
 				$node = $ul->append('li');
@@ -138,11 +138,11 @@ new class extends webapp
 		$this->response_cookie('mysql_database');
 		$this->response_location('?console');
 	}
-	function get_home(string $database = NULL)
+	function get_home(string $charset = NULL)
 	{
-		if (is_string($database))
+		if (is_string($charset))
 		{
-			$this->response_cookie('mysql_database', $database);
+			$this->response_cookie('mysql_charset', $charset);
 			$this->response_location($this->request_referer() ?? '?home');
 			return;
 		}
@@ -159,23 +159,31 @@ new class extends webapp
 	function get_console()
 	{
 		$form = $this->app->main->form('?api/console');
+		$form->fieldset('Create');
 		$form->field('createdb', 'text');
 		$form->button('Create Database', 'submit');
 		$form->button('Query', 'submit');
+		$form->fieldset('Command');
 		$form->fieldset();
 		$form->field('console', 'textarea');
 		//$form->fieldset();
 		//$form->field('uploadfile', 'file', ['multiple' => NULL]);
 		
 	}
-	function get_database()
+	function get_database(string $database = NULL)
 	{
+		if (is_string($database))
+		{
+			$this->response_cookie('mysql_database', $database);
+			$this->response_location('?database');
+			return;
+		}
 		$table = $this->app->main->table($this->query('SHOW TABLE STATUS')->result($fields), function(array $tab)
 		{
 			$tr = &$this->tbody->tr[];
 			$td = &$tr->td[];
 
-			$td->span[] = $tab['Name'];
+			$td->append('span')->append('a', [$tab['Name'], 'href' => "?table/{$tab['Name']}"]);
 			$td->span[] = $tab['Comment'];
 
 			$td = &$tr->td[];
@@ -206,6 +214,7 @@ new class extends webapp
 		$td = &$table->fieldset->td[];
 		$td->span[] = 'Name';
 		$td->span[] = 'Comment';
+		$td['style'] = 'width:200px';
 
 		$td = &$table->fieldset->td[];
 		//$td->span[] = 'Collation';
@@ -234,7 +243,7 @@ new class extends webapp
 
 		//print_r($fields);
 		$table->footer($this->query('SHOW CREATE DATABASE ?a', $this->mysql_database)->value(1));
-		$table->xml['class'] .= '-span-grid-even-top-ellipsis';
+		$table->xml['class'] .= '-grid';
 		
 		return;
 		$this->app->section->style[] = <<<STYLE
