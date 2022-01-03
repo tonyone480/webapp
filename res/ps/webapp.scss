@@ -61,13 +61,12 @@ html{
 		}
 		>div:first-child{
 			display: grid;
+			grid-template-columns: auto 1fr;
 			>header:first-child{
-				background-color: $background;
-			}
-			>div{
-				display: flex;
+				grid-column: 1 / -1;
 			}
 			>footer:last-child{
+				grid-column: 1 / -1;
 				@include padding(2);
 			}
 		}
@@ -265,22 +264,25 @@ nav[class|=webapp]{
 
 
 form[class|=webapp]{
-	
+	//display: block;
 	>fieldset{
 		border: none;
 		margin: 0;
 		padding: 0;
 		display: grid;
-		grid-gap: 1rem;
 		grid-template-columns: repeat(auto-fill, 16rem);
-		flex-wrap: nowrap;
+		gap: 1rem;
+		
 		>legend{
 			@include padding(1);
 		}
 		
 		>input,>button{
 			white-space: nowrap;
-			
+			//display: table-column;
+		}
+		>textarea{
+			grid-column: 1 / -1;
 		}
 		>input:not([type=checkbox],[type=radio]),>textarea{
 			

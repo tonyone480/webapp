@@ -60,7 +60,7 @@ class webapp_echo_html extends webapp_document
 			
 			$root = &$this->xml->body->div;
 			[$this->header, $this->main, $this->footer] = [
-				&$root->header, &$root->div->main,
+				&$root->header, &$root->main,
 				$root->append('footer', $webapp['copy_webapp'])];
 		}
 		else

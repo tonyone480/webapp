@@ -25,17 +25,15 @@ html > body a.danger {
 
 html > body > div:first-child {
   display: grid;
+  grid-template-columns: auto 1fr;
 }
 
 html > body > div:first-child > header:first-child {
-  background-color: white;
-}
-
-html > body > div:first-child > div {
-  display: flex;
+  grid-column: 1 / -1;
 }
 
 html > body > div:first-child > footer:last-child {
+  grid-column: 1 / -1;
   padding: 0.6rem;
 }
 
@@ -207,9 +205,8 @@ form[class|=webapp] > fieldset {
   margin: 0;
   padding: 0;
   display: grid;
-  grid-gap: 1rem;
   grid-template-columns: repeat(auto-fill, 16rem);
-  flex-wrap: nowrap;
+  gap: 1rem;
 }
 
 form[class|=webapp] > fieldset > legend {
@@ -218,6 +215,10 @@ form[class|=webapp] > fieldset > legend {
 
 form[class|=webapp] > fieldset > input, form[class|=webapp] > fieldset > button {
   white-space: nowrap;
+}
+
+form[class|=webapp] > fieldset > textarea {
+  grid-column: 1 / -1;
 }
 
 form[class|=webapp] > fieldset > input:not([type=checkbox], [type=radio]), form[class|=webapp] > fieldset > textarea {
