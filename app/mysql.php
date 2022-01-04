@@ -71,7 +71,7 @@ new class extends webapp
 				return $this->break($this->get_home(...));
 			}
 			$this->app->main['style'] = 'padding:10px';
-			$ul = $this->app->aside()->setattr(['class' => 'webapp-ultree', 'style' => 'width:300px'])->append('ul');
+			$ul = $this->app->aside()->setattr(['class' => 'webapp-ultree'])->append('ul');
 	
 			
 			$ul->append('li')->select(array_combine($this->charset, $this->charset), $this->mysql_charset)->setattr([
@@ -90,7 +90,7 @@ new class extends webapp
 					$node = $node->append('ul');
 					foreach ($this->query('SHOW TABLE STATUS') as $tab)
 					{
-						$node->append('li')->append('a', ["{$tab['Name']}:{$tab['Rows']}", 'href' => "?table/{$tab['Name']}"]);
+						$node->append('li')->append('a', ["{$tab['Name']}:{$tab['Rows']}", 'href' => "?datatable/{$tab['Name']}"]);
 					}
 				}
 			}
@@ -162,14 +162,12 @@ new class extends webapp
 		$form->fieldset('Create');
 		$form->field('createdb', 'text');
 		$form->button('Create Database', 'submit');
-		$form->button('Query', 'submit');
-		$form->fieldset('Command');
-		$form->button('wwwwww');
-		$form->button('wwwwww');
-		$form->button('wwwwww');
-		$form->fieldset('ddddddd');
+		
+		$form->fieldset();
 		$form->field('console', 'textarea');
-		$form->field('aa', 'text');
+		$form->fieldset();
+		$form->button('Query', 'submit');
+		$form->xml['style'] = 'width:600px';
 		//$form->fieldset();
 		//$form->field('uploadfile', 'file', ['multiple' => NULL]);
 		
@@ -249,84 +247,28 @@ new class extends webapp
 		$table->footer($this->query('SHOW CREATE DATABASE ?a', $this->mysql_database)->value(1));
 		$table->xml['class'] .= '-grid';
 		
-		return;
-		$this->app->section->style[] = <<<STYLE
-table.mysql>thead>tr>td>span,
-table.mysql>tbody>tr>td>span,
-table.mysql>tbody>tr>td>a{
-	display: list-item;
-	list-style: none;
-}
-STYLE;
-		$table = $this->app->section->table($this->mysql->list('show table status from ?a', $dbname), function(array $val, string $dbname)
-		{
-			$tr = &$this->tbody->tr[];
-			$td = &$tr->td[];
-			$td->append('a', [$val['Name'], 'href' => "?datatable/{$dbname}--{$val['Name']}"]);
-			$td->span[] = "{$val['Rows']}:{$val['Comment']}";
-
-			$td = &$tr->td[];
-			$td->span[] = "{$val['Engine']}/{$val['Version']}";
-			$td->span[] = $val['Collation'];
-
-			$td = &$tr->td[];
-			$td->span[] = $val['Row_format'];
-			$td->span[] = $val['Rows'];
-
-			$td = &$tr->td[];
-			$td->span[] = $val['Avg_row_length'];
-			$td->span[] = $val['Data_length'];
-
-			$td = &$tr->td[];
-			$td->span[] = $val['Index_length'];
-			$td->span[] = $val['Data_free'];
-
-			$td = &$tr->td[];
-			$td->span[] = $val['Auto_increment'];
-			$td->span[] = $val['Create_time'];
-
-			$td = &$tr->td[];
-			$td->span[] = $val['Update_time'];
-			$td->span[] = $val['Check_time'];
-
-			$td = &$tr->td[];
-			$td->span[] = $val['Collation'];
-			$td->span[] = $val['Checksum'];
-
-			$td = &$tr->td[];
-			$td->span[] = $val['Create_options'];
-		}, $dbname);
-		$fieldname = $table->fieldname;
-		foreach ([
-			['Name', 'Rows/Comment'], ['Engine/Version', 'Collation'], ['Row_format', 'Rows'],
-			['Avg_row_length', 'Data_length'], ['Index_length', 'Data_free'], ['Auto_increment', 'Create_time'],
-			['Update_time', 'Check_time'], ['Collation', 'Checksum']
-			] as $titles) {
-			$td = &$fieldname->td[];
-			$td->span[] = $titles[0];
-			$td->span[] = $titles[1];
-		}
-		$table->xml['class'] = 'webapp mysql';
-		// ->fieldname('Name/Comment', 'Engine/Version', 'Row_format',
-		// 'Rows', 'Avg_row_length', 'Data_length', 'Max_data_length',
-		// 'Index_length', 'Data_free', 'Auto_increment', 'Create_time',
-		// 'Update_time', 'Check_time', 'Collation', 'Checksum',
-		// 'Create_options');
 	}
-	function get_datatable(string $fullname)
+	function get_datatable(string $name)
 	{
-
-		$this->app->section->table($this->mysql->list('show full fields from ?a', $this->selectdb($fullname)), function(array $val, string $fullname)
+		$table = $this->app->main->table($this->query('SHOW FULL FIELDS FROM ?a', $name), function(array $row)
 		{
 			$tr = &$this->tbody->tr[];
-			$tr->td[] = $val['Field'];
+			$tr->td[] = $row['Field'];
+			$tr->td[] = $row['Type'];
+			$tr->td[] = $row['Collation'];
+			$tr->td[] = $row['Null'];
+			$tr->td[] = $row['Key'];
+			$tr->td[] = $row['Default'];
+			$tr->td[] = $row['Extra'];
+			$tr->td[] = $row['Privileges'];
+			$tr->td[] = $row['Comment'];
 
 
-
-		}, $fullname)->fieldname('Field', 'Type', 'Collation', 'Null',
-		'Key', 'Default', 'Extra', 'Privileges',
-		'Comment');
-		
+			//print_r( $row );
+		});
+		$table->fieldset('Field', 'Type', 'Collation', 'Null', 'Key', 'Default', 'Extra', 'Privileges', 'Comment');
+		$table->footer()->details('Create Table')->append('code', $this->query('SHOW CREATE TABLE ?a', $name)->value(1));
+		$table->xml['class'] = 'webapp-grid';
 	}
 
 	function get_select(string $fullname)
