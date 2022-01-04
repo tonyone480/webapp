@@ -200,31 +200,33 @@ nav[class|=webapp][class*=-highlight] details:hover {
   background-color: #0366d6;
 }
 
+form[class|=webapp] {
+  display: grid;
+  gap: 1rem;
+}
+
 form[class|=webapp] > fieldset {
   border: none;
   margin: 0;
   padding: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, 16rem);
-  gap: 1rem;
+  display: flex;
 }
 
 form[class|=webapp] > fieldset > legend {
   padding: 0.3rem;
 }
 
-form[class|=webapp] > fieldset > input, form[class|=webapp] > fieldset > button {
-  white-space: nowrap;
+form[class|=webapp] > fieldset > :not(:last-child) {
+  margin-right: 1rem;
 }
 
-form[class|=webapp] > fieldset > textarea {
-  grid-column: 1 / -1;
+form[class|=webapp] > fieldset > input, form[class|=webapp] > fieldset > button, form[class|=webapp] > fieldset > textarea {
+  flex: 1 0 8rem;
+  line-height: 1.6rem;
 }
 
 form[class|=webapp] > fieldset > input:not([type=checkbox], [type=radio]), form[class|=webapp] > fieldset > textarea {
-  min-height: 30px;
-  line-height: 28px;
-  padding-left: 4px;
+  padding-left: .4rem;
   border-radius: 3px;
   border: 1px solid #d1d7dc;
   background-color: rgba(255, 255, 255, 0.6);
@@ -255,8 +257,6 @@ form[class|=webapp] > fieldset > input:not([type=checkbox], [type=radio])::place
 }
 
 form[class|=webapp] > fieldset > button {
-  padding: 4px 12px;
-  line-height: 20px;
   border-radius: 3px;
   border: 1px solid rgba(27, 31, 35, 0.2);
   background-color: #eff3f6;

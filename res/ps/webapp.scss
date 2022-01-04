@@ -264,33 +264,29 @@ nav[class|=webapp]{
 
 
 form[class|=webapp]{
-	//display: block;
+	display: grid;
+	gap: 1rem;
+	//grid-template-columns: 1fr 1fr;
 	>fieldset{
 		border: none;
 		margin: 0;
 		padding: 0;
-		display: grid;
-		grid-template-columns: repeat(auto-fill, 16rem);
-		gap: 1rem;
+		display: flex;
 		
 		>legend{
 			@include padding(1);
 		}
-		
-		>input,>button{
-			white-space: nowrap;
-			//display: table-column;
+		>:not(:last-child){
+			margin-right: 1rem;
 		}
-		>textarea{
-			grid-column: 1 / -1;
+		>input,>button,>textarea{
+			flex: 1 0 8rem;
+			line-height: 1.6rem;
 		}
 		>input:not([type=checkbox],[type=radio]),>textarea{
 			
 
-
-			min-height: 30px;
-			line-height: 28px;
-			padding-left: 4px;
+			padding-left: .4rem;
 			border-radius: 3px;
 			border: 1px solid lighten($border, 72%);
 			background-color: rgba($background, 0.6);
@@ -316,8 +312,7 @@ form[class|=webapp]{
 			}
 		}
 		>button{
-			padding: 4px 12px;
-			line-height: 20px;
+
 			border-radius: 3px;
 			border: 1px solid rgba($border, 0.2);
 			background-color: $button;

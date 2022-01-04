@@ -71,7 +71,7 @@ new class extends webapp
 				return $this->break($this->get_home(...));
 			}
 			$this->app->main['style'] = 'padding:10px';
-			$ul = $this->app->aside()->setattr(['class' => 'webapp-ultree'])->append('ul');
+			$ul = $this->app->aside()->setattr(['class' => 'webapp-ultree', 'style' => 'width:300px'])->append('ul');
 	
 			
 			$ul->append('li')->select(array_combine($this->charset, $this->charset), $this->mysql_charset)->setattr([
@@ -164,8 +164,12 @@ new class extends webapp
 		$form->button('Create Database', 'submit');
 		$form->button('Query', 'submit');
 		$form->fieldset('Command');
-		$form->fieldset();
+		$form->button('wwwwww');
+		$form->button('wwwwww');
+		$form->button('wwwwww');
+		$form->fieldset('ddddddd');
 		$form->field('console', 'textarea');
+		$form->field('aa', 'text');
 		//$form->fieldset();
 		//$form->field('uploadfile', 'file', ['multiple' => NULL]);
 		
