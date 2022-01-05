@@ -1,40 +1,5 @@
 <?php
 require __DIR__ . '/../webapp_io_std.php';
-class webapp_mysql_api extends webapp_echo_json
-{
-	function __construct(webapp $webapp)
-	{
-		parent::__construct($webapp, ['connected' => $webapp->mysql_connected()]);
-		//$webapp->errors($this);
-	}
-	function post_console()
-	{
-		//$this->request_uploadedfile('uploadfile', 10)->moveto('d:/cid');
-
-
-		$a = 123;
-		$b = 'ggg';
-
-		//->moveto("d:/qq/{$a}/{$b}{day}/{hash,-4}.{type}")
-
-		var_dump( $this->hash_time33('d:/qq/{date,0,4}/{date,4}/{hash,-4}.{type}') );
-		var_dump( $this->hash_time33('1:/qq/{date,0,4}/{date,4}/{hash,-4}.{type}', TRUE) );
-		print_r( $this->request_uploadedfile('uploadfile', 5)->moveto('d:/qq/{year}/{month}{day}/{hash,-4}.{type}') );
-
-		// $this['success'] = ($this->webapp->mysql)('sdadwd');
-		// $this['success'] = ($this->webapp->mysql)('sdadaaawd');
-		//$this['success'] = 123;
-	}
-	function post_insert()
-	{
-		print_r($this->form_datatable_build($this->datatable)->fetch() );
-	}
-	function post_update()
-	{
-		print_r($this->form_datatable_build($this->datatable)->fetch() );
-	}
-}
-
 new class extends webapp
 {
 	function __construct()
@@ -43,7 +8,7 @@ new class extends webapp
 		[$this->mysql_host, $this->mysql_user, $this->mysql_password]
 			= json_decode($this->request_cookie_decrypt('mysql_connectto') ?? 'NULL', TRUE)
 				?? [$this['mysql_host'], $this['mysql_user'], $this['mysql_password']];
-		$this->mysql_database = $this->request_cookie('mysql_database') ?? $this['mysql_database'];
+		$this->mysql_database = $this->request_cookie('mysql_database');
 		$this->mysql_charset = $this->request_cookie('mysql_charset') ?? $this['mysql_charset'];
 		if ($this->router === $this)
 		{
@@ -84,13 +49,13 @@ new class extends webapp
 			foreach ($this->query('SHOW DATABASES') as $db)
 			{
 				$node = $ul->append('li');
-				$node->append('a', [$db['Database'], 'href' => "?database/{$db['Database']}"]);
+				$node->append('a', [$db['Database'], 'href' => '?db/' . $this->url64_encode($db['Database'])]);
 				if ($db['Database'] === $this->mysql_database)
 				{
 					$node = $node->append('ul');
 					foreach ($this->query('SHOW TABLE STATUS') as $tab)
 					{
-						$node->append('li')->append('a', ["{$tab['Name']}:{$tab['Rows']}", 'href' => "?datatable/{$tab['Name']}"]);
+						$node->append('li')->append('a', ["{$tab['Name']}[" . ($tab['Rows'] ?? 0) . ']', 'href' => '?tab/' . $this->url64_encode($tab['Name'])]);
 					}
 				}
 			}
@@ -174,44 +139,44 @@ new class extends webapp
 		//$form->field('uploadfile', 'file', ['multiple' => NULL]);
 		
 	}
-	function get_database(string $database = NULL)
+	function get_db(string $database = NULL)
 	{
 		if (is_string($database))
 		{
-			$this->response_cookie('mysql_database', $database);
-			$this->response_location('?database');
-			return;
+			$this->response_cookie('mysql_database', $this->url64_decode($database));
+			$this->response_location('?db');
+			return 302;
 		}
-		$table = $this->app->main->table($this->query('SHOW TABLE STATUS')->result($fields), function(array $tab)
+		$table = $this->app->main->table($this->query('SHOW TABLE STATUS')->result($fields), function(array $row, webapp $webapp)
 		{
 			$tr = &$this->tbody->tr[];
 			$td = &$tr->td[];
 
-			$td->append('span')->append('a', [$tab['Name'], 'href' => "?table/{$tab['Name']}"]);
-			$td->span[] = $tab['Comment'];
+			$td->append('span')->append('a', [$row['Name'], 'href' => '?tab/' . $webapp->url64_encode($row['Name'])]);
+			$td->span[] = $row['Comment'];
 
 			$td = &$tr->td[];
 			//$td->span[] = $tab['Collation'];
-			$td->span[] = "{$tab['Engine']}:{$tab['Version']}";
-			$td->span[] = "{$tab['Row_format']}:{$tab['Rows']}";
+			$td->span[] = "{$row['Engine']}:{$row['Version']}";
+			$td->span[] = "{$row['Row_format']}:{$row['Rows']}";
 
 			$td = &$tr->td[];
-			$td->span[] = "{$tab['Data_length']}/{$tab['Data_free']}";
-			$td->span[] = "{$tab['Index_length']}/{$tab['Avg_row_length']}";
+			$td->span[] = "{$row['Data_length']}/{$row['Data_free']}";
+			$td->span[] = "{$row['Index_length']}/{$row['Avg_row_length']}";
 			
 
 			$td = &$tr->td[];
-			$td->span[] = $tab['Create_time'] ?? '-';
-			$td->span[] = $tab['Update_time'] ?? '-';
+			$td->span[] = $row['Create_time'] ?? '-';
+			$td->span[] = $row['Update_time'] ?? '-';
 
 			$td = &$tr->td[];
-			$td->span[] = $tab['Check_time'] ?? '-';
-			$td->span[] = $tab['Checksum'] ?? '-';
+			$td->span[] = $row['Check_time'] ?? '-';
+			$td->span[] = $row['Checksum'] ?? '-';
 
 			$td = &$tr->td[];
-			$td->span[] = $tab['Create_options'] ?? '-';
-			$td->span[] = $tab['Auto_increment'] ?? '-';
-		});
+			$td->span[] = $row['Create_options'] ?? '-';
+			$td->span[] = $row['Auto_increment'] ?? '-';
+		}, $this);
 
 		
 
@@ -250,9 +215,10 @@ new class extends webapp
 		$table->xml['class'] .= '-grid';
 		
 	}
-	function get_datatable(string $name)
+	function get_tab(string $name)
 	{
-		$table = $this->app->main->table($this->query('SHOW FULL FIELDS FROM ?a', $name), function(array $row)
+		$tabname = $this->url64_decode($name);
+		$table = $this->app->main->table($this->query('SHOW FULL FIELDS FROM ?a', $tabname), function(array $row)
 		{
 			$tr = &$this->tbody->tr[];
 			
@@ -273,12 +239,13 @@ new class extends webapp
 
 			//print_r( $row );
 		});
-		$table->title($name);
+		$table->title($tabname);
 		
 		$table->bar->xml['class'] = 'webapp-bar';
-		$table->bar->button('asd');
+		$table->bar->button('View Data');
+		$table->bar->button('Append Field');
 		$table->bar->field('asd', 'text');
-		$table->bar->button('asd');
+		
 		$table->bar->button('vvvv');
 
 		$table->bar->button('dwdawd');
@@ -289,7 +256,7 @@ new class extends webapp
 		
 
 		$table->footer()->details('Create table')->append('code', [
-			$this->query('SHOW CREATE TABLE ?a', $name)->value(1),
+			$this->query('SHOW CREATE TABLE ?a', $tabname)->value(1),
 			'class' => 'webapp-codeblock'
 		]);
 		$table->xml['class'] = 'webapp-grid';
