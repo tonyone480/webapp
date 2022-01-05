@@ -107,6 +107,11 @@ html > body > div:first-child > footer:last-child {
   box-shadow: 0 0.5em 2em rgba(27, 31, 35, 0.175);
 }
 
+[class|=webapp][class*=-codeblock] {
+  white-space: pre;
+  font-family: Consolas, monospace;
+}
+
 [class|=webapp][class*=-highlight] a:hover {
   background-color: #0366d6;
   color: white;
@@ -201,8 +206,8 @@ nav[class|=webapp][class*=-highlight] details:hover {
 }
 
 form[class|=webapp] {
-  display: grid;
-  gap: 1rem;
+  display: flex;
+  flex-direction: column;
 }
 
 form[class|=webapp] > fieldset {
@@ -210,6 +215,10 @@ form[class|=webapp] > fieldset {
   margin: 0;
   padding: 0;
   display: flex;
+}
+
+form[class|=webapp] > fieldset:not(:first-child, :last-child) {
+  margin-bottom: 1rem;
 }
 
 form[class|=webapp] > fieldset > legend {
@@ -279,6 +288,24 @@ form[class|=webapp] > fieldset > button:active {
   box-shadow: inset 0 0.15em 0.3em rgba(27, 31, 35, 0.15);
 }
 
+form[class|=webapp][class*=-bar] > fieldset > input, form[class|=webapp][class*=-bar] > fieldset > button, form[class|=webapp][class*=-bar] > fieldset > textarea {
+  margin-right: -1px;
+}
+
+form[class|=webapp][class*=-bar] > fieldset > input:not(:first-child, :last-child), form[class|=webapp][class*=-bar] > fieldset > button:not(:first-child, :last-child), form[class|=webapp][class*=-bar] > fieldset > textarea:not(:first-child, :last-child) {
+  border-radius: 0;
+}
+
+form[class|=webapp][class*=-bar] > fieldset > input:first-child, form[class|=webapp][class*=-bar] > fieldset > button:first-child, form[class|=webapp][class*=-bar] > fieldset > textarea:first-child {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+form[class|=webapp][class*=-bar] > fieldset > input:last-child, form[class|=webapp][class*=-bar] > fieldset > button:last-child, form[class|=webapp][class*=-bar] > fieldset > textarea:last-child {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
 table[class|=webapp] {
   display: inline-block;
   border: 1px solid black;
@@ -288,6 +315,7 @@ table[class|=webapp] {
 }
 
 table[class|=webapp] td {
+  padding: 0.4rem;
   white-space: nowrap;
 }
 

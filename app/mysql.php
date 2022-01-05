@@ -167,7 +167,9 @@ new class extends webapp
 		$form->field('console', 'textarea');
 		$form->fieldset();
 		$form->button('Query', 'submit');
-		$form->xml['style'] = 'width:600px';
+
+
+		
 		//$form->fieldset();
 		//$form->field('uploadfile', 'file', ['multiple' => NULL]);
 		
@@ -253,7 +255,13 @@ new class extends webapp
 		$table = $this->app->main->table($this->query('SHOW FULL FIELDS FROM ?a', $name), function(array $row)
 		{
 			$tr = &$this->tbody->tr[];
-			$tr->td[] = $row['Field'];
+			
+			$tr->append('td')->append('a', [
+				$row['Comment'] ? "{$row['Field']}({$row['Comment']})" : $row['Field'],
+				'href' => '#'
+			]);
+
+			
 			$tr->td[] = $row['Type'];
 			$tr->td[] = $row['Collation'];
 			$tr->td[] = $row['Null'];
@@ -261,13 +269,29 @@ new class extends webapp
 			$tr->td[] = $row['Default'];
 			$tr->td[] = $row['Extra'];
 			$tr->td[] = $row['Privileges'];
-			$tr->td[] = $row['Comment'];
 
 
 			//print_r( $row );
 		});
-		$table->fieldset('Field', 'Type', 'Collation', 'Null', 'Key', 'Default', 'Extra', 'Privileges', 'Comment');
-		$table->footer()->details('Create Table')->append('code', $this->query('SHOW CREATE TABLE ?a', $name)->value(1));
+		$table->title($name);
+		
+		$table->bar->xml['class'] = 'webapp-bar';
+		$table->bar->button('asd');
+		$table->bar->field('asd', 'text');
+		$table->bar->button('asd');
+		$table->bar->button('vvvv');
+
+		$table->bar->button('dwdawd');
+		$table->bar->button('wdwdwdwd');
+
+		$table->fieldset('Field', 'Type', 'Collation', 'Null', 'Key', 'Default', 'Extra', 'Privileges');
+
+		
+
+		$table->footer()->details('Create table')->append('code', [
+			$this->query('SHOW CREATE TABLE ?a', $name)->value(1),
+			'class' => 'webapp-codeblock'
+		]);
 		$table->xml['class'] = 'webapp-grid';
 	}
 

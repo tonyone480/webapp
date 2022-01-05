@@ -130,10 +130,15 @@ html{
 		border-radius: 0.5em;
 		box-shadow: 0 0.5em 2em rgba($border, 0.175);
 	}
+	&[class*=-codeblock]{
+		white-space: pre;
+		font-family: Consolas, monospace;
+	}
 	&[class*=-highlight] a:hover{
 		background-color: $link;
 		color: $background;
 	}
+	
 
 	&[class*=-ultree]{
 		ul{
@@ -257,6 +262,7 @@ nav[class|=webapp]{
 			background-color: $link;
 		}
 	}
+	
 }
 
 
@@ -264,15 +270,17 @@ nav[class|=webapp]{
 
 
 form[class|=webapp]{
-	display: grid;
-	gap: 1rem;
-	//grid-template-columns: 1fr 1fr;
+	display: flex;
+	flex-direction: column;
 	>fieldset{
 		border: none;
 		margin: 0;
 		padding: 0;
 		display: flex;
 		
+		&:not(:first-child, :last-child){
+			margin-bottom: 1rem;
+		}
 		>legend{
 			@include padding(1);
 		}
@@ -332,7 +340,24 @@ form[class|=webapp]{
 			}
 		}
 	}
-
+	&[class*=-bar]{
+		>fieldset{
+			>input,>button,>textarea{
+				margin-right: -1px;
+				&:not(:first-child, :last-child){
+					border-radius: 0;
+				}
+				&:first-child{
+					border-top-right-radius: 0;
+					border-bottom-right-radius: 0;
+				}
+				&:last-child{
+					border-top-left-radius: 0;
+					border-bottom-left-radius: 0;
+				}
+			}
+		}
+	}
 }
 
 table[class|=webapp]{
@@ -343,7 +368,7 @@ table[class|=webapp]{
 	empty-cells: show;
 	
 	td{
-		
+		padding: 0.4rem;
 		white-space: nowrap;
 		>span{
 			display: block;

@@ -380,7 +380,7 @@ class webapp_html extends webapp_xml
 			}
 		}, $fold);
 	}
-	
+
 	function form(?string $action = NULL):webapp_form
 	{
 		return new webapp_form($this[0], $action);
@@ -840,13 +840,36 @@ class webapp_table
 			'caption'	=> $this->caption = $this->xml->insert('caption', 'first'),
 			'colgroup'	=> $this->colgroup = $this->caption->insert('colgroup', 'after'),
 			'thead'		=> $this->thead = $this->tbody->insert('thead', 'before'),
+			'title'		=> $this->title = $this->thead->insert('tr', 'first'),
+
+			'bar'		=> $this->bar = $this->thead->append('tr')->append('td',
+								['colspan' => $this->column])->form(),
+
 			'fieldset'	=> $this->fieldset = &$this->thead->tr[],
-			'title'		=> (property_exists($this, 'fieldset') ? $this->fieldset->insert('tr', 'before') : $this->thead->append('tr'))->append('td', ['colspan' => $this->column]),
+			
 			'column'	=> isset($this->tbody->tr->td) ? count($this->tbody->tr->td) : 0,
 			'tfoot'		=> $this->tfoot = $this->tbody->insert('tfoot', 'after'),
 			default		=> NULL
 		};
 	}
+	function title(?string $caption = NULL):webapp_html
+	{
+		return $this->title->append('td', [$caption, 'colspan' => $this->column]);
+	}
+	function asd()
+	{
+
+	}
+	function fieldset(string ...$names):webapp_html
+	{
+		$node = &$this->thead->tr[];
+		foreach ($names as $name)
+		{
+			$node->td[] = $name;
+		}
+		return $node;
+	}
+
 	function footer(?string $content = NULL):webapp_html
 	{
 		return $this->tfoot->append('tr')->append('td', [$content, 'colspan' => $this->column]);
@@ -881,14 +904,5 @@ class webapp_table
 			}
 		}
 		return $this;
-	}
-	function fieldset(string ...$names):webapp_html
-	{
-		$node = $this->fieldset;
-		foreach ($names as $name)
-		{
-			$node->td[] = $name;
-		}
-		return $node;
 	}
 }
