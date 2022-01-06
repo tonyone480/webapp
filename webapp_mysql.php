@@ -320,6 +320,10 @@ abstract class webapp_mysql_table implements IteratorAggregate, Countable, Strin
 	{
 		return ($this->mysql)('SELECT ?? FROM ?a??', $this->fields, $this->tablename, (string)$this);
 	}
+	function result(&$fields = NULL, bool $detailed = FALSE):iterable
+	{
+		return $this->getIterator()->result($fields);
+	}
 	function object(string $class = 'stdClass', array $constructor_args = []):object
 	{
 		return $this->getIterator()->object($class, $constructor_args);

@@ -298,6 +298,11 @@ class webapp_client_http extends webapp_client implements ArrayAccess
 	}
 	function cookies(string|array $replace):static
 	{
+		if (is_string($replace))
+		{
+			$this->cookies[] = $replace;
+		}
+		return $this;
 		foreach (is_string($replace) && preg_match_all('/(\w+)\=([^;]+)/', $replace, $cookies, PREG_SET_ORDER)
 			? array_map('urldecode', array_column($cookies, 2, 1)) : $replace as $name => $value) {
 			$this->cookies[$name] = $value;
@@ -334,7 +339,8 @@ class webapp_client_http extends webapp_client implements ArrayAccess
 		}
 		if ($this->cookies)
 		{
-			$request[] = 'Cookie: '. http_build_query($this->cookies, arg_separator: '; ');
+			$request[] = 'Cookie: 1&_token=224835292&6F9E0110340N552C4905190200FFB442CC08B6A2BBF3BD2B865D99AE2BBBDAC897079FAE82BA29M95DCF71C236250A_';
+			//$request[] = 'Cookie: '. join(';', $this->cookies);
 		}
 		if ($data === NULL || ($this->clear()
 			&& (is_string($data) ? $this->echo($data) : match ($type ??= 'application/x-www-form-urlencoded') {
@@ -506,9 +512,9 @@ class webapp_client_http extends webapp_client implements ArrayAccess
 			default => $mime === 'application' && preg_match('/^(xml|svg)$/', $type) ? 'xml' : 'unknown'
 		};
 	}
-	function content():string|array|SimpleXMLElement
+	function content(?string $type = NULL):string|array|SimpleXMLElement
 	{
-		return match ($this->mimetype())
+		return match ($type ?? $this->mimetype())
 		{
 			'application/json' => json_decode((string)$this, TRUE),
 			'application/xml' => class_exists('webapp_xml', FALSE)

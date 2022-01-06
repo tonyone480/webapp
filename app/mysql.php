@@ -285,9 +285,63 @@ new class extends webapp
 		]);
 		$table->xml['class'] = 'webapp-grid';
 	}
-	function get_viewdata()
+	function get_viewdata(string $name, int $page = 1, int $rows = 40)
 	{
+		$tabname = $this->url64_decode($name);
+		$datatab = $this->mysql->{$tabname};
 
+		
+		
+		$table = $this->app->main->table($datatab->paging($page, $rows)->result($fields));
+		$table->title($tabname);
+		
+		$table->bar->xml->fieldset->append('a', ['Insert', 'href' => '?editor/' . $name]);
+
+		$table->fieldset(...$fields);
+
+		
+
+		
+
+	}
+	function form_field(string $tabname, webapp_html $node = NULL, string $action = NULL)
+	{
+		$form = new webapp_form($node, $action);
+		foreach ($this->query('SHOW FULL FIELDS FROM ?a', $tabname) as $row)
+		{
+			
+			$form->fieldset($row['Field']);
+			$attr = [];
+			if ($row['Null'] === 'NO')
+			{
+				$attr['required'] = NULL;
+			}
+			if ($row['Comment'])
+			{
+				$attr['placeholder'] = $row['Comment'];
+			}
+			preg_match('/(\w+)(?:\((\d+)\)(?:\s(\w+))?)?/', $row['Type'], $type);
+
+			if (isset($type[2]) && is_numeric($type[2]))
+			{
+				$attr['maxlength'] = $type[2];
+			}
+
+			$form->field($row['Field'], match ($type[1])
+			{
+				'tinyint' => 'number',
+				default => 'text'
+			}, $attr);
+			//rint_r($row);
+		}
+		
+		
+
+	}
+	function get_editor(string $name)
+	{
+		$tabname = $this->url64_decode($name);
+		$this->form_field($tabname, $this->app->main);
 	}
 
 	function get_select(string $fullname)
@@ -342,8 +396,5 @@ new class extends webapp
 		$form->button('Update', 'submit');
 		return $form;
 	}
-	function get_editor(string $fullname)
-	{
-		$this->form_datatable_build($fullname, $this->app->section, "?api/insert,datatable:{$fullname}");
-	}
+
 };
