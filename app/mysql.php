@@ -1,5 +1,27 @@
 <?php
 require __DIR__ . '/../webapp_io_std.php';
+class webapp_router_query extends webapp_echo_json
+{
+	function __construct(webapp $webapp)
+	{
+		parent::__construct($webapp);
+		if ($webapp->mysql->connect_errno)
+		{
+			$webapp->break(fn() => 500);
+		}
+		else
+		{
+			// if ($referer = $webapp->request_referer())
+			// {
+			// 	$webapp->response_location($referer);
+			// }
+		}
+	}
+	function post_console()
+	{
+		$this['post'] = $_POST;
+	}
+}
 new class extends webapp
 {
 	function __construct()
@@ -103,14 +125,9 @@ new class extends webapp
 		$this->response_cookie('mysql_database');
 		$this->response_location('?console');
 	}
-	function get_home(string $charset = NULL)
+	function get_home()
 	{
-		if (is_string($charset))
-		{
-			$this->response_cookie('mysql_charset', $charset);
-			$this->response_location($this->request_referer() ?? '?home');
-			return;
-		}
+		
 		$form = $this->app->main->form('?home');
 		$form->fieldset('MySQL Host');
 		$form->field('host', 'text', ['value' => $this->mysql_host]);
@@ -121,15 +138,21 @@ new class extends webapp
 		$form->fieldset();
 		$form->button('Connect to MySQL', 'submit');
 	}
-	function get_console()
+	function get_console(string $charset = NULL)
 	{
-		$form = $this->app->main->form('?api/console');
+		if (is_string($charset))
+		{
+			$this->response_cookie('mysql_charset', $charset);
+			$this->response_location($this->request_referer() ?? '?console');
+			return;
+		}
+		$form = $this->app->main->form('?query/console');
 		$form->fieldset('Create');
 		$form->field('createdb', 'text');
 		$form->button('Create Database', 'submit');
 		
 		$form->fieldset();
-		$form->field('console', 'textarea');
+		$form->field('command', 'textarea');
 		$form->fieldset();
 		$form->button('Query', 'submit');
 
@@ -242,7 +265,8 @@ new class extends webapp
 		$table->title($tabname);
 		
 		$table->bar->xml['class'] = 'webapp-bar';
-		$table->bar->button('View Data');
+		$table->bar->xml['method'] = 'get';
+		$table->bar->button('View Data', 'submit')['formaction'] = '?viewdata';
 		$table->bar->button('Append Field');
 		$table->bar->field('asd', 'text');
 		
@@ -260,6 +284,10 @@ new class extends webapp
 			'class' => 'webapp-codeblock'
 		]);
 		$table->xml['class'] = 'webapp-grid';
+	}
+	function get_viewdata()
+	{
+
 	}
 
 	function get_select(string $fullname)
