@@ -296,16 +296,15 @@ class webapp_client_http extends webapp_client implements ArrayAccess
 		}
 		return $this;
 	}
-	function cookies(string|array $replace):static
+	function cookies(array|string $replace):static
 	{
-		if (is_string($replace))
-		{
-			$this->cookies[] = $replace;
-		}
-		return $this;
-		foreach (is_string($replace) && preg_match_all('/(\w+)\=([^;]+)/', $replace, $cookies, PREG_SET_ORDER)
-			? array_map('urldecode', array_column($cookies, 2, 1)) : $replace as $name => $value) {
-			$this->cookies[$name] = $value;
+		foreach (is_string($replace)
+			? (preg_match_all('/([^=]+)=([^;]+);?/', $replace, $cookies, PREG_SET_ORDER) ? array_column($cookies, 2, 1) : [])
+			: $replace as $name => $value) {
+			if (strpbrk($name, "=,; \f\n\r\t\v") === FALSE)
+			{
+				$this->cookies[$name] = $value;
+			}
 		}
 		return $this;
 	}
@@ -339,8 +338,12 @@ class webapp_client_http extends webapp_client implements ArrayAccess
 		}
 		if ($this->cookies)
 		{
-			$request[] = 'Cookie: 1&_token=224835292&6F9E0110340N552C4905190200FFB442CC08B6A2BBF3BD2B865D99AE2BBBDAC897079FAE82BA29M95DCF71C236250A_';
-			//$request[] = 'Cookie: '. join(';', $this->cookies);
+			$cookies = [];
+			foreach ($this->cookies as $name => $value)
+			{
+				$cookies[] = "{$name}={$value}";
+			}
+			$request[] = 'Cookie: '. join(';', $cookies);
 		}
 		if ($data === NULL || ($this->clear()
 			&& (is_string($data) ? $this->echo($data) : match ($type ??= 'application/x-www-form-urlencoded') {
@@ -486,7 +489,8 @@ class webapp_client_http extends webapp_client implements ArrayAccess
 			$client->autoretry = $this->autoretry;
 			$client->autojump = $this->autojump;
 		} while ($client
-			->headers(['Referer' => $this->url])
+			->headers(['Referer' => $this->url, ...$options['headers'] ?? []])
+			->cookies($options['cookies'] ?? [])
 			->request($options['method'] ?? 'GET',
 				$client->path,
 				$options['data'] ?? NULL,
@@ -512,9 +516,9 @@ class webapp_client_http extends webapp_client implements ArrayAccess
 			default => $mime === 'application' && preg_match('/^(xml|svg)$/', $type) ? 'xml' : 'unknown'
 		};
 	}
-	function content(?string $type = NULL):string|array|SimpleXMLElement
+	function content(?string $mimetype = NULL):string|array|SimpleXMLElement
 	{
-		return match ($type ?? $this->mimetype())
+		return match ($mimetype ?? $this->mimetype())
 		{
 			'application/json' => json_decode((string)$this, TRUE),
 			'application/xml' => class_exists('webapp_xml', FALSE)
@@ -528,16 +532,13 @@ class webapp_client_http extends webapp_client implements ArrayAccess
 	}
 	function saveas(string $filename):bool
 	{
-		return (is_dir($dir = dirname($filename))
-			|| mkdir($dir, recursive: TRUE)) && $this->to($filename);
+		return (is_dir($dir = dirname($filename)) || mkdir($dir, recursive: TRUE)) && $this->to($filename);
 	}
 	static function open(string $url, array $options = []):static
 	{
 		$client = new static($url);
 		$client->autoretry = $options['autoretry'] ?? 0;
 		$client->autojump = $options['autojump'] ?? 0;
-		$client->headers($options['headers'] ?? []);
-		$client->cookies($options['cookies'] ?? []);
 		return $client->goto($client->path, $options);
 		// if (str_starts_with($url, 'ws'))
 		// {
