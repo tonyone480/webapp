@@ -343,7 +343,7 @@ class webapp_client_http extends webapp_client implements ArrayAccess
 			{
 				$cookies[] = "{$name}={$value}";
 			}
-			$request[] = 'Cookie: '. join(';', $cookies);
+			$request[] = 'Cookie: ' . join(';', $cookies);
 		}
 		if ($data === NULL || ($this->clear()
 			&& (is_string($data) ? $this->echo($data) : match ($type ??= 'application/x-www-form-urlencoded') {
