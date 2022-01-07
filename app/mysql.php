@@ -276,15 +276,17 @@ new class extends webapp
 		
 		
 		
-		$table->bar->button('View Data', 'submit')['formaction'] = '?viewdata';
-		$table->cond();
-		$table->bar->button('Append Field');
-		$table->bar->field('asd', 'text');
-		
-		$table->bar->button('vvvv');
+		$a = $table->bar->fieldset();
+		$a->append('button', ['View Data']);//button('View Data', 'submit')['formaction'] = '?viewdata';
 
-		$table->bar->button('dwdawd');
-		$table->bar->button('wdwdwdwd');
+		// $table->cond();
+		// $table->bar->button('Append Field');
+		// $table->bar->field('asd', 'text');
+		
+		// $table->bar->button('vvvv');
+
+		// $table->bar->button('dwdawd');
+		// $table->bar->button('wdwdwdwd');
 
 		$table->fieldset('Field', 'Type', 'Collation', 'Null', 'Key', 'Default', 'Extra', 'Privileges');
 

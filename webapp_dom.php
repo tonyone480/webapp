@@ -878,13 +878,19 @@ class webapp_table
 	}
 	function formbar()
 	{
+		// $form = (match (TRUE)
+		// {
+		// 	isset($this->title) => $this->title->insert('tr', 'after'),
+		// 	isset($this->field) => $this->title->insert('tr', 'before'),
+		// 	default => $this->thead->append('tr')
+		// })->append('td', ['colspan' => $this->recountcolumn()])->form();
 		$form = (match (TRUE)
 		{
 			isset($this->title) => $this->title->insert('tr', 'after'),
 			isset($this->field) => $this->title->insert('tr', 'before'),
 			default => $this->thead->append('tr')
-		})->append('td', ['colspan' => $this->recountcolumn()])->form();
-		$form->xml['class'] .= '-bar';
+		})->append('td', ['colspan' => $this->recountcolumn()])->append('div')->setattr(['class' => 'webapp-bar']);
+		//$form->xml['class'] .= '-bar';
 		
 		return $form;
 	}

@@ -269,10 +269,10 @@ nav[class|=webapp]{
 
 
 
-form[class|=webapp],div[class*=-bar]{
+form[class|=webapp],[class*=-bar]{
 	display: flex;
 	flex-direction: column;
-	>fieldset,>div{
+	>fieldset{
 		border: none;
 		margin: 0;
 		padding: 0;
