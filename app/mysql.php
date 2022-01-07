@@ -253,12 +253,14 @@ new class extends webapp
 		{
 			$tr = &$this->tbody->tr[];
 			
-			$tr->append('td')->append('a', [
-				$row['Comment'] ? "{$row['Field']}({$row['Comment']})" : $row['Field'],
-				'href' => '#'
-			]);
+			$td = &$tr->td[];
+			$td->append('a', [$row['Field'], 'href' => '#']);
+			if ($row['Comment'])
+			{
+				$td['style'] = 'color: gray';
+				$td->text("({$row['Comment']})");
+			}
 
-			
 			$tr->td[] = $row['Type'];
 			$tr->td[] = $row['Collation'];
 			$tr->td[] = $row['Null'];
@@ -272,9 +274,10 @@ new class extends webapp
 		});
 		$table->title($tabname);
 		
-		$table->bar->xml['class'] = 'webapp-bar';
-		$table->bar->xml['method'] = 'get';
+		
+		
 		$table->bar->button('View Data', 'submit')['formaction'] = '?viewdata';
+		$table->cond();
 		$table->bar->button('Append Field');
 		$table->bar->field('asd', 'text');
 		

@@ -100,7 +100,7 @@ class webapp_xml extends SimpleXMLElement
 			? ($node = &$this[0]->{$name}[])->setattr($contents)
 			: $this[0]->addChild($name, $contents);
 	}
-	function insert(DOMNode|string $element, string $position = NULL):DOMNode|static
+	function insert(DOMNode|string $element, ?string $position = NULL):DOMNode|static
 	{
 		$dom = $this[0]->dom();
 		$node = is_string($element) ? $dom->ownerDocument->createElement($element) : $element;
@@ -455,7 +455,7 @@ class webapp_form
 	public readonly webapp_html $xml, $captcha;
 	private webapp_html $fieldset;
 	private $files = [], $fields = [], $index = 0;
-	final function __construct(private readonly array|webapp|webapp_html $context, ?string $action = NULL)
+	function __construct(private readonly array|webapp|webapp_html $context, ?string $action = NULL)
 	{
 		[$this->webapp, $this->xml] = ($this->echo = $context instanceof webapp_html)
 			? [$context->webapp(), $context->append('form', [
@@ -803,6 +803,15 @@ class webapp_form
 	// 	return $form();
 	// }
 }
+class webapp_cond extends webapp_form
+{
+	function __construct(webapp_html $node)
+	{
+		parent::__construct($node);
+		$this->button('Append');
+		$this->button('Submit');
+	}
+}
 class webapp_table
 {
 	public readonly array $paging;
@@ -846,9 +855,10 @@ class webapp_table
 			'colgroup'	=> $this->colgroup = $this->caption->insert('colgroup', 'after'),
 			'thead'		=> $this->thead = $this->tbody->insert('thead', 'before'),
 			'title'		=> $this->title = $this->thead->insert('tr', 'first'),
+			'field'		=> $this->field = &$this->thead->tr[],
 
-			'bar'		=> $this->bar = $this->thead->append('tr')->append('td',
-								['colspan' => $this->column])->form(),
+
+			'bar'		=> $this->bar = $this->formbar(),
 
 			'fieldset'	=> $this->fieldset = &$this->thead->tr[],
 			
@@ -857,12 +867,38 @@ class webapp_table
 			default		=> NULL
 		};
 	}
+	function &recountcolumn()
+	{
+		// var_dump(max(8));
+		// $this->column = max(
+		// 	isset($this->tbody->tr->td) ? count($this->tbody->tr->td) : 1
+		// );
+		$this->column = isset($this->tbody->tr->td) ? count($this->tbody->tr->td) : 1;
+		return $this->column;
+	}
+	function formbar()
+	{
+		$form = (match (TRUE)
+		{
+			isset($this->title) => $this->title->insert('tr', 'after'),
+			isset($this->field) => $this->title->insert('tr', 'before'),
+			default => $this->thead->append('tr')
+		})->append('td', ['colspan' => $this->recountcolumn()])->form();
+		$form->xml['class'] .= '-bar';
+		
+		return $form;
+	}
 	function title(?string $caption = NULL):webapp_html
 	{
-		return $this->title->append('td', [$caption, 'colspan' => $this->column]);
+		return $this->title->append('td', [$caption, 'colspan' => $this->recountcolumn()]);
 	}
-	function asd()
+	function cond()
 	{
+		$cond = $this->bar->xml->fieldset->details('Conditionals');
+
+		$this->bar->xml->fieldset->insert($cond->dom(), 'first');
+
+		new webapp_cond($cond);
 
 	}
 	function fieldset(string ...$names):webapp_html
