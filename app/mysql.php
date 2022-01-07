@@ -21,6 +21,14 @@ class webapp_router_query extends webapp_echo_json
 	{
 		$this['post'] = $_POST;
 	}
+	function post_insert(string $tab)
+	{
+		$tabname = $this->webapp->url64_decode($tab);
+		
+		$data = $this->webapp->form_field($tabname, $this->webapp);
+
+		var_dump($tab, $tabname, $data);
+	}
 }
 new class extends webapp
 {
@@ -304,44 +312,50 @@ new class extends webapp
 		
 
 	}
-	function form_field(string $tabname, webapp_html $node = NULL, string $action = NULL)
+	function form_field(string $tabname, webapp|webapp_html $context = NULL, string $action = NULL):array|webapp_form
 	{
-		$form = new webapp_form($node, $action);
+		$form = new webapp_form($context, $action);
+		$form->legend($tabname);
 		foreach ($this->query('SHOW FULL FIELDS FROM ?a', $tabname) as $row)
 		{
-			
 			$form->fieldset($row['Field']);
-			$attr = [];
-			if ($row['Null'] === 'NO')
-			{
-				$attr['required'] = NULL;
-			}
-			if ($row['Comment'])
-			{
-				$attr['placeholder'] = $row['Comment'];
-			}
 			preg_match('/(\w+)(?:\((\d+)\)(?:\s(\w+))?)?/', $row['Type'], $type);
-
 			if (isset($type[2]) && is_numeric($type[2]))
 			{
 				$attr['maxlength'] = $type[2];
 			}
 
+
+			$attr = [];
+			if ($row['Comment'])
+			{
+				$attr['placeholder'] = $row['Comment'];
+			}
+			if ($row['Null'] === 'NO')
+			{
+				$attr['required'] = NULL;
+			}
+			
+
 			$form->field($row['Field'], match ($type[1])
 			{
 				'tinyint' => 'number',
+				'text' => 'textarea',
 				default => 'text'
 			}, $attr);
 			//rint_r($row);
 		}
+		$form->fieldset();
 		
+		$form->button('Insert', 'submit');
+		$form->button('Reset', 'reset');
 		
-
+		return $form();
 	}
 	function get_editor(string $name)
 	{
 		$tabname = $this->url64_decode($name);
-		$this->form_field($tabname, $this->app->main);
+		$this->form_field($tabname, $this->app->main, '?query/insert,tab:' . $name);
 	}
 
 	function get_select(string $fullname)

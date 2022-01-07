@@ -485,7 +485,7 @@ class webapp_form
 			{
 				$errors = &($this->context)(new stdclass)->errors;
 				$input = $this->context->request_content((string)$this->xml['enctype']);
-				if ($this->captcha)
+				if (isset($this->captcha))
 				{
 					if (array_key_exists('captcha_encrypt', $input)
 						&& array_key_exists('captcha_decrypt', $input)
@@ -590,6 +590,11 @@ class webapp_form
 	function fieldset(string $name = NULL):webapp_html
 	{
 		return $this->fieldset = $this->xml->fieldset($name);
+	}
+	function legend(string $name):webapp_html
+	{
+		$this->fieldset->legend = $name;
+		return $this->fieldset->legend;
 	}
 	function progress():webapp_html
 	{
