@@ -65,16 +65,15 @@ new class extends webapp
 			{
 				return $this->break($this->get_home(...));
 			}
-			$this->app->main['style'] = 'padding:10px';
-			$ul = $this->app->aside->setattr(['class' => 'webapp-ultree'])->append('ul');
-	
-			
-			$ul->append('li')->select(array_combine($this->charset, $this->charset), $this->mysql_charset)->setattr([
-				'style' => 'display: block',
+
+			$this->app->aside->select(array_combine($this->charset, $this->charset), $this->mysql_charset)->setattr([
 				'onchange' => 'location.href=`?home/${this.value}`'
 			]);
-			
 
+			$ul = $this->app->aside->append('ul');
+	
+			
+		
 			
 			foreach ($this->query('SHOW DATABASES') as $db)
 			{
