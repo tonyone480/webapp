@@ -759,22 +759,4 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 		}
 		return 404;
 	}
-	//这个函数在不久的将来会被移除
-	function get_scss(string $filename)
-	{
-		if (file_exists($input = __DIR__ . "/res/ps/{$filename}.scss"))
-		{
-			$this->response_content_type('text/css');
-			$this->response_cache_control('no-cache');
-			if (filemtime($input) > filemtime($output = __DIR__ . "/res/ps/{$filename}.css"))
-			{
-				$scss = static::scss();
-				$scss->setFormatter('Leafo\ScssPhp\Formatter\Expanded');
-				file_put_contents($output, $scss->compile(file_get_contents($input)));
-			}
-			$this->response_sendfile($output);
-			return;
-		}
-		return 404;
-	}
 }

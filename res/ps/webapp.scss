@@ -72,6 +72,7 @@ html{
 		}
 	}
 }
+
 [class|=webapp]{
 	margin: 0;
 	padding: 0;
@@ -213,7 +214,90 @@ html{
 		// 		}
 		// 	}
 		// }
+	&[class*=-bar]{
+		display: flex;
+		gap: 1rem;
+		>input,>select,>textarea,>button,>details{
+			flex: 1 0 8rem;
+			line-height: 1.6rem;
+		}
+		>input:not([type=checkbox],[type=radio]),>textarea{
+			
+
+			padding-left: .4rem;
+			border-radius: 3px;
+			border: 1px solid lighten($border, 72%);
+			background-color: rgba($background, 0.6);
+			box-shadow: inset 0 1px 2px rgba($border, 0.075);
+			box-sizing: border-box;
+			text-overflow: ellipsis;
+			&:focus{
+				outline: none;
+				box-shadow: inset 0 1px 2px rgba($border, 0.075), 0 0 0 0.2em rgba($link, 0.3);
+				border-color: lighten($link, 13.3%);
+			}
+			&:invalid{
+				box-shadow: 0 0 0 0.2em rgba($danger, 0.4);
+				border-color: $danger;
+			}
+			&:disabled{
+				pointer-events: none;
+				box-shadow: none;
+				background-color: lighten($hint, 20%);
+			}
+			&::placeholder{
+				color: $hint;
+			}
+		}
+		>button,>details{
+
+			border-radius: 3px;
+			border: 1px solid rgba($border, 0.2);
+			background-color: $button;
+			background-image: linear-gradient(-180deg, lighten($button, 3.4%) 0%, $button 90%);
+			&:hover{
+				background-image: linear-gradient(-180deg, lighten($button, 0.2%) 0%, darken($button, 2.8%) 90%);
+				border-color: rgba($border, 0.35);
+			}
+			&:focus{
+				box-shadow: 0 0 0 0.2em rgba($link, 0.3);
+			}
+			&:active{
+				background-image: none;
+				background-color: darken($button, 2%);
+				border-color: rgba($border, 0.35);
+				box-shadow: inset 0 0.15em 0.3em rgba($border, 0.15);
+			}
+		}
+		>details{
+			position: relative;
+			>summary{
+				margin-left: 1rem;
+			}
+			>:not(:first-child){
+				position: absolute;
+				@extend [class|=webapp][class*=-dialog];
+			}
+		}
+		&.merge{
+			gap: 0;
+			>input,>select,>textarea,>button,>details{
+				&:not(:first-child, :last-child){
+					border-radius: 0;
+				}
+				&:first-child{
+					border-top-right-radius: 0;
+					border-bottom-right-radius: 0;
+				}
+				&:last-child{
+					border-top-left-radius: 0;
+					border-bottom-left-radius: 0;
+				}
+			}
+		}
+	}
 }
+
 
 nav[class|=webapp]{
 	ul{
@@ -269,93 +353,17 @@ nav[class|=webapp]{
 
 
 
-form[class|=webapp],[class*=-bar]{
+form[class|=webapp]{
 	display: flex;
+	gap: 1rem;
 	flex-direction: column;
 	>fieldset{
 		border: none;
 		margin: 0;
 		padding: 0;
-		display: flex;
-		
-		&:not(:first-child, :last-child){
-			margin-bottom: 1rem;
-		}
+		@extend [class|=webapp][class*=-bar];
 		>legend{
 			@include padding(1);
-		}
-		>:not(:last-child){
-			margin-right: 1rem;
-		}
-		>input,>button,>textarea{
-			flex: 1 0 8rem;
-			line-height: 1.6rem;
-		}
-		>input:not([type=checkbox],[type=radio]),>textarea{
-			
-
-			padding-left: .4rem;
-			border-radius: 3px;
-			border: 1px solid lighten($border, 72%);
-			background-color: rgba($background, 0.6);
-			box-shadow: inset 0 1px 2px rgba($border, 0.075);
-			box-sizing: border-box;
-			text-overflow: ellipsis;
-			&:focus{
-				outline: none;
-				box-shadow: inset 0 1px 2px rgba($border, 0.075), 0 0 0 0.2em rgba($link, 0.3);
-				border-color: lighten($link, 13.3%);
-			}
-			&:invalid{
-				box-shadow: 0 0 0 0.2em rgba($danger, 0.4);
-				border-color: $danger;
-			}
-			&:disabled{
-				pointer-events: none;
-				box-shadow: none;
-				background-color: lighten($hint, 20%);
-			}
-			&::placeholder{
-				color: $hint;
-			}
-		}
-		>button{
-
-			border-radius: 3px;
-			border: 1px solid rgba($border, 0.2);
-			background-color: $button;
-			background-image: linear-gradient(-180deg, lighten($button, 3.4%) 0%, $button 90%);
-			&:hover{
-				background-image: linear-gradient(-180deg, lighten($button, 0.2%) 0%, darken($button, 2.8%) 90%);
-				border-color: rgba($border, 0.35);
-			}
-			&:focus{
-				box-shadow: 0 0 0 0.2em rgba($link, 0.3);
-			}
-			&:active{
-				background-image: none;
-				background-color: darken($button, 2%);
-				border-color: rgba($border, 0.35);
-				box-shadow: inset 0 0.15em 0.3em rgba($border, 0.15);
-			}
-		}
-	}
-	&[class*=-bar]{
-		>fieldset{
-			>input,>button,>textarea{
-				margin-right: -1px;
-				&:not(:first-child, :last-child){
-					border-radius: 0;
-				}
-				&:first-child{
-					border-top-right-radius: 0;
-					border-bottom-right-radius: 0;
-				}
-				&:last-child{
-					border-top-left-radius: 0;
-					border-bottom-left-radius: 0;
-				}
-			}
 		}
 	}
 }

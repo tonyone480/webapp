@@ -1,8 +1,5 @@
 <?php
 declare(strict_types=1);
-
-use Leafo\ScssPhp\Node;
-
 trait webapp_echo
 {
 	public readonly webapp $webapp;

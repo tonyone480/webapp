@@ -276,9 +276,20 @@ new class extends webapp
 		
 		
 		
-		$a = $table->bar->fieldset();
-		$a->append('button', ['View Data']);//button('View Data', 'submit')['formaction'] = '?viewdata';
+		$a = $table->bar;
+		
+		$b = $a->details('asd')->form();
+		$b->xml['class'] .= '-p2';
+		$b->xml['style'] = 'width: 100%';
+		$b->fieldset()['class'] = 'merge';
+		$b->button('Append');
+		$b->button('Submit');
+		$b->fieldset()['class'] = 'merge';
+		$b->button('Removie');
+		$b->field('aaa', 'text');
 
+		$a->append('button', ['View Data']);//button('View Data', 'submit')['formaction'] = '?viewdata';
+		
 		// $table->cond();
 		// $table->bar->button('Append Field');
 		// $table->bar->field('asd', 'text');

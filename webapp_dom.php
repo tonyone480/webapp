@@ -889,7 +889,7 @@ class webapp_table
 			isset($this->title) => $this->title->insert('tr', 'after'),
 			isset($this->field) => $this->title->insert('tr', 'before'),
 			default => $this->thead->append('tr')
-		})->append('td', ['colspan' => $this->recountcolumn()])->append('div')->setattr(['class' => 'webapp-bar']);
+		})->append('td', ['colspan' => $this->recountcolumn()])->append('div')->setattr(['class' => 'webapp-bar merge']);
 		//$form->xml['class'] .= '-bar';
 		
 		return $form;
