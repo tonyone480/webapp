@@ -783,21 +783,13 @@ class webapp_form
 }
 class webapp_cond extends webapp_form
 {
-	function __construct(webapp_html $node)
+	function __construct(array $fields, webapp_html $node)
 	{
 		parent::__construct($node);
-		$this->xml['class'] .= '-bar-p2';
-		$this->fieldset['class'] = 'merge';
-		$this->button('Append');
-		$this->button('Submit');
+		$this->xml['class'] .= '-cond';
 
-		$this->fieldset()['class'] = 'merge';
-		$this->button('Remove');
-		$this->field('F', 'select', ['option' => [
-			'qweqwe' => 'aaaaa',
-			'1eqwe' => 'bbbbbbaaaaaaaaaaaaaaaaaaaaaa',
-			'1eqwea' => 'cccccc'
-		]]);
+		$this->button('Remove')['onclick'] = 'this.parentElement.remove()';
+		$this->field('F', 'select', ['option' => $fields]);
 		$this->field('d', 'select', ['option' => [
 			'eq' => '=',
 			'ne' => '!=',
@@ -811,6 +803,16 @@ class webapp_cond extends webapp_form
 			'ni' => '!()'
 		]]);
 		$this->field('cond', 'search');
+
+
+		$this->fieldset()['class'] = 'merge';
+		$this->button('Append')['onclick'] = 'this.parentElement.parentElement.appendChild(this.parentElement.previousElementSibling.cloneNode(true))';
+		$this->button('Clear')['class'] = 'danger';
+		$this->button('Submit', 'submit')['class'] = 'primary';
+
+
+
+
 
 	}
 
@@ -909,13 +911,15 @@ class webapp_table
 	{
 		return $this->title->append('td', [$caption, 'colspan' => $this->recountcolumn()]);
 	}
-	function cond()
+	function cond(array $fields):webapp_cond
 	{
-		$cond = $this->bar->xml->fieldset->details('Conditionals');
+		$cond = $this->bar->details('Conditionals');
+		
 
-		$this->bar->xml->fieldset->insert($cond->dom(), 'first');
+		//$this->bar->insert($cond->dom(), 'first');
 
-		new webapp_cond($cond);
+		return new webapp_cond($fields, $cond);
+
 
 	}
 	function fieldset(string ...$names):webapp_html

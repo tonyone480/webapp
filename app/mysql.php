@@ -277,8 +277,13 @@ new class extends webapp
 		
 		
 		$a = $table->bar;
+		$table->cond([
+			'qweqwe' => 'aaaaa',
+			'1eqwe' => 'bbbbbb',
+			'1eqwea' => 'cccccc'
+		]);
 		
-		$b = new webapp_cond($a->details('asd'));
+		
 	
 
 		$a->append('button', ['View Data']);//button('View Data', 'submit')['formaction'] = '?viewdata';

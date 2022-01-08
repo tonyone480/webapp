@@ -163,7 +163,7 @@ html > body > div:first-child > footer:last-child {
 }
 
 [class|=webapp][class*=-bar] > input:not([type=checkbox]):not([type=radio]), form[class|=webapp] > fieldset > input:not([type=checkbox]):not([type=radio]), [class|=webapp][class*=-bar] > textarea, form[class|=webapp] > fieldset > textarea {
-  flex: 1 1 content;
+  flex: 1 1 12rem;
   padding-left: .4rem;
   border-radius: 3px;
   border: 1px solid #d1d7dc;
@@ -195,7 +195,8 @@ html > body > div:first-child > footer:last-child {
 }
 
 [class|=webapp][class*=-bar] > button, form[class|=webapp] > fieldset > button, [class|=webapp][class*=-bar] > select, form[class|=webapp] > fieldset > select, [class|=webapp][class*=-bar] > details, form[class|=webapp] > fieldset > details {
-  flex: 0 0 4rem;
+  min-width: 6rem;
+  white-space: nowrap;
   border-radius: 3px;
   border: 1px solid rgba(27, 31, 35, 0.2);
   background-color: #eff3f6;
@@ -216,6 +217,48 @@ html > body > div:first-child > footer:last-child {
   background-color: #e8eef2;
   border-color: rgba(27, 31, 35, 0.35);
   box-shadow: inset 0 0.15em 0.3em rgba(27, 31, 35, 0.15);
+}
+
+[class|=webapp][class*=-bar] > button.primary, form[class|=webapp] > fieldset > button.primary, [class|=webapp][class*=-bar] > select.primary, form[class|=webapp] > fieldset > select.primary, [class|=webapp][class*=-bar] > details.primary, form[class|=webapp] > fieldset > details.primary {
+  color: white;
+  background-color: #28a745;
+  background-image: linear-gradient(-180deg, #34ce57 0%, #28a745 90%);
+}
+
+[class|=webapp][class*=-bar] > button.primary:hover, form[class|=webapp] > fieldset > button.primary:hover, [class|=webapp][class*=-bar] > select.primary:hover, form[class|=webapp] > fieldset > select.primary:hover, [class|=webapp][class*=-bar] > details.primary:hover, form[class|=webapp] > fieldset > details.primary:hover {
+  background-image: linear-gradient(-180deg, #2fc652 0%, #269f42 90%);
+  border-color: rgba(27, 31, 35, 0.5);
+}
+
+[class|=webapp][class*=-bar] > button.primary:focus, form[class|=webapp] > fieldset > button.primary:focus, [class|=webapp][class*=-bar] > select.primary:focus, form[class|=webapp] > fieldset > select.primary:focus, [class|=webapp][class*=-bar] > details.primary:focus, form[class|=webapp] > fieldset > details.primary:focus {
+  box-shadow: 0 0 0 0.2em rgba(52, 206, 87, 0.4);
+}
+
+[class|=webapp][class*=-bar] > button.primary:active, form[class|=webapp] > fieldset > button.primary:active, [class|=webapp][class*=-bar] > select.primary:active, form[class|=webapp] > fieldset > select.primary:active, [class|=webapp][class*=-bar] > details.primary:active, form[class|=webapp] > fieldset > details.primary:active {
+  background-image: none;
+  background-color: #27a143;
+  border-color: rgba(27, 31, 35, 0.5);
+}
+
+[class|=webapp][class*=-bar] > button.danger, form[class|=webapp] > fieldset > button.danger, [class|=webapp][class*=-bar] > select.danger, form[class|=webapp] > fieldset > select.danger, [class|=webapp][class*=-bar] > details.danger, form[class|=webapp] > fieldset > details.danger {
+  color: #cb2431;
+}
+
+[class|=webapp][class*=-bar] > button.danger:hover, form[class|=webapp] > fieldset > button.danger:hover, [class|=webapp][class*=-bar] > select.danger:hover, form[class|=webapp] > fieldset > select.danger:hover, [class|=webapp][class*=-bar] > details.danger:hover, form[class|=webapp] > fieldset > details.danger:hover {
+  color: white;
+  background-image: linear-gradient(-180deg, #de4450 0%, #cb2431 90%);
+  border-color: rgba(27, 31, 35, 0.5);
+}
+
+[class|=webapp][class*=-bar] > button.danger:focus, form[class|=webapp] > fieldset > button.danger:focus, [class|=webapp][class*=-bar] > select.danger:focus, form[class|=webapp] > fieldset > select.danger:focus, [class|=webapp][class*=-bar] > details.danger:focus, form[class|=webapp] > fieldset > details.danger:focus {
+  box-shadow: 0 0 0 0.2em rgba(203, 36, 49, 0.4);
+}
+
+[class|=webapp][class*=-bar] > button.danger:active, form[class|=webapp] > fieldset > button.danger:active, [class|=webapp][class*=-bar] > select.danger:active, form[class|=webapp] > fieldset > select.danger:active, [class|=webapp][class*=-bar] > details.danger:active, form[class|=webapp] > fieldset > details.danger:active {
+  color: white;
+  background-image: none;
+  background-color: #b5202c;
+  border-color: rgba(27, 31, 35, 0.5);
 }
 
 [class|=webapp][class*=-bar] > select, form[class|=webapp] > fieldset > select {
@@ -240,20 +283,20 @@ html > body > div:first-child > footer:last-child {
   position: absolute;
 }
 
-[class|=webapp][class*=-bar].merge, form[class|=webapp] > fieldset.merge {
+[class|=webapp][class*=-bar].merge, form[class|=webapp] > fieldset.merge, form[class|=webapp][class*=-cond] > fieldset:not(:first-child) {
   gap: 0;
 }
 
-[class|=webapp][class*=-bar].merge > input:not(:first-child):not(:last-child), form[class|=webapp] > fieldset.merge > input:not(:first-child):not(:last-child), [class|=webapp][class*=-bar].merge > select:not(:first-child):not(:last-child), form[class|=webapp] > fieldset.merge > select:not(:first-child):not(:last-child), [class|=webapp][class*=-bar].merge > textarea:not(:first-child):not(:last-child), form[class|=webapp] > fieldset.merge > textarea:not(:first-child):not(:last-child), [class|=webapp][class*=-bar].merge > button:not(:first-child):not(:last-child), form[class|=webapp] > fieldset.merge > button:not(:first-child):not(:last-child), [class|=webapp][class*=-bar].merge > details:not(:first-child):not(:last-child), form[class|=webapp] > fieldset.merge > details:not(:first-child):not(:last-child) {
+[class|=webapp][class*=-bar].merge > input:not(:first-child):not(:last-child), form[class|=webapp] > fieldset.merge > input:not(:first-child):not(:last-child), form[class|=webapp][class*=-cond] > fieldset:not(:first-child) > input:not(:first-child):not(:last-child), [class|=webapp][class*=-bar].merge > select:not(:first-child):not(:last-child), form[class|=webapp] > fieldset.merge > select:not(:first-child):not(:last-child), form[class|=webapp][class*=-cond] > fieldset:not(:first-child) > select:not(:first-child):not(:last-child), [class|=webapp][class*=-bar].merge > textarea:not(:first-child):not(:last-child), form[class|=webapp] > fieldset.merge > textarea:not(:first-child):not(:last-child), form[class|=webapp][class*=-cond] > fieldset:not(:first-child) > textarea:not(:first-child):not(:last-child), [class|=webapp][class*=-bar].merge > button:not(:first-child):not(:last-child), form[class|=webapp] > fieldset.merge > button:not(:first-child):not(:last-child), form[class|=webapp][class*=-cond] > fieldset:not(:first-child) > button:not(:first-child):not(:last-child), [class|=webapp][class*=-bar].merge > details:not(:first-child):not(:last-child), form[class|=webapp] > fieldset.merge > details:not(:first-child):not(:last-child), form[class|=webapp][class*=-cond] > fieldset:not(:first-child) > details:not(:first-child):not(:last-child) {
   border-radius: 0;
 }
 
-[class|=webapp][class*=-bar].merge > input:first-child, form[class|=webapp] > fieldset.merge > input:first-child, [class|=webapp][class*=-bar].merge > select:first-child, form[class|=webapp] > fieldset.merge > select:first-child, [class|=webapp][class*=-bar].merge > textarea:first-child, form[class|=webapp] > fieldset.merge > textarea:first-child, [class|=webapp][class*=-bar].merge > button:first-child, form[class|=webapp] > fieldset.merge > button:first-child, [class|=webapp][class*=-bar].merge > details:first-child, form[class|=webapp] > fieldset.merge > details:first-child {
+[class|=webapp][class*=-bar].merge > input:first-child, form[class|=webapp] > fieldset.merge > input:first-child, form[class|=webapp][class*=-cond] > fieldset:not(:first-child) > input:first-child, [class|=webapp][class*=-bar].merge > select:first-child, form[class|=webapp] > fieldset.merge > select:first-child, form[class|=webapp][class*=-cond] > fieldset:not(:first-child) > select:first-child, [class|=webapp][class*=-bar].merge > textarea:first-child, form[class|=webapp] > fieldset.merge > textarea:first-child, form[class|=webapp][class*=-cond] > fieldset:not(:first-child) > textarea:first-child, [class|=webapp][class*=-bar].merge > button:first-child, form[class|=webapp] > fieldset.merge > button:first-child, form[class|=webapp][class*=-cond] > fieldset:not(:first-child) > button:first-child, [class|=webapp][class*=-bar].merge > details:first-child, form[class|=webapp] > fieldset.merge > details:first-child, form[class|=webapp][class*=-cond] > fieldset:not(:first-child) > details:first-child {
   border-top-right-radius: 0;
   border-bottom-right-radius: 0;
 }
 
-[class|=webapp][class*=-bar].merge > input:last-child, form[class|=webapp] > fieldset.merge > input:last-child, [class|=webapp][class*=-bar].merge > select:last-child, form[class|=webapp] > fieldset.merge > select:last-child, [class|=webapp][class*=-bar].merge > textarea:last-child, form[class|=webapp] > fieldset.merge > textarea:last-child, [class|=webapp][class*=-bar].merge > button:last-child, form[class|=webapp] > fieldset.merge > button:last-child, [class|=webapp][class*=-bar].merge > details:last-child, form[class|=webapp] > fieldset.merge > details:last-child {
+[class|=webapp][class*=-bar].merge > input:last-child, form[class|=webapp] > fieldset.merge > input:last-child, form[class|=webapp][class*=-cond] > fieldset:not(:first-child) > input:last-child, [class|=webapp][class*=-bar].merge > select:last-child, form[class|=webapp] > fieldset.merge > select:last-child, form[class|=webapp][class*=-cond] > fieldset:not(:first-child) > select:last-child, [class|=webapp][class*=-bar].merge > textarea:last-child, form[class|=webapp] > fieldset.merge > textarea:last-child, form[class|=webapp][class*=-cond] > fieldset:not(:first-child) > textarea:last-child, [class|=webapp][class*=-bar].merge > button:last-child, form[class|=webapp] > fieldset.merge > button:last-child, form[class|=webapp][class*=-cond] > fieldset:not(:first-child) > button:last-child, [class|=webapp][class*=-bar].merge > details:last-child, form[class|=webapp] > fieldset.merge > details:last-child, form[class|=webapp][class*=-cond] > fieldset:not(:first-child) > details:last-child {
   border-top-left-radius: 0;
   border-bottom-left-radius: 0;
 }
@@ -314,7 +357,6 @@ form[class|=webapp] {
   display: flex;
   gap: 1rem;
   flex-direction: column;
-  width: max-content;
 }
 
 form[class|=webapp] > fieldset {
@@ -325,6 +367,14 @@ form[class|=webapp] > fieldset {
 
 form[class|=webapp] > fieldset > legend {
   padding: 0.3rem;
+}
+
+form[class|=webapp][class*=-cond] {
+  padding: 0.6rem;
+}
+
+form[class|=webapp][class*=-cond] > fieldset:first-child {
+  display: none;
 }
 
 table[class|=webapp] {
