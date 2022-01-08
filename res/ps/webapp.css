@@ -158,12 +158,12 @@ html > body > div:first-child > footer:last-child {
   gap: 1rem;
 }
 
-[class|=webapp][class*=-bar] > input, form[class|=webapp] > fieldset > input, [class|=webapp][class*=-bar] > select, form[class|=webapp] > fieldset > select, [class|=webapp][class*=-bar] > textarea, form[class|=webapp] > fieldset > textarea, [class|=webapp][class*=-bar] > button, form[class|=webapp] > fieldset > button, [class|=webapp][class*=-bar] > details, form[class|=webapp] > fieldset > details {
-  flex: 1 0 8rem;
+[class|=webapp][class*=-bar] > input, form[class|=webapp] > fieldset > input, [class|=webapp][class*=-bar] > textarea, form[class|=webapp] > fieldset > textarea, [class|=webapp][class*=-bar] > button, form[class|=webapp] > fieldset > button, [class|=webapp][class*=-bar] > select, form[class|=webapp] > fieldset > select, [class|=webapp][class*=-bar] > details, form[class|=webapp] > fieldset > details {
   line-height: 1.6rem;
 }
 
 [class|=webapp][class*=-bar] > input:not([type=checkbox]):not([type=radio]), form[class|=webapp] > fieldset > input:not([type=checkbox]):not([type=radio]), [class|=webapp][class*=-bar] > textarea, form[class|=webapp] > fieldset > textarea {
+  flex: 1 1 content;
   padding-left: .4rem;
   border-radius: 3px;
   border: 1px solid #d1d7dc;
@@ -194,27 +194,36 @@ html > body > div:first-child > footer:last-child {
   color: silver;
 }
 
-[class|=webapp][class*=-bar] > button, form[class|=webapp] > fieldset > button, [class|=webapp][class*=-bar] > details, form[class|=webapp] > fieldset > details {
+[class|=webapp][class*=-bar] > button, form[class|=webapp] > fieldset > button, [class|=webapp][class*=-bar] > select, form[class|=webapp] > fieldset > select, [class|=webapp][class*=-bar] > details, form[class|=webapp] > fieldset > details {
+  flex: 0 0 4rem;
   border-radius: 3px;
   border: 1px solid rgba(27, 31, 35, 0.2);
   background-color: #eff3f6;
   background-image: linear-gradient(-180deg, #fafbfc 0%, #eff3f6 90%);
 }
 
-[class|=webapp][class*=-bar] > button:hover, form[class|=webapp] > fieldset > button:hover, [class|=webapp][class*=-bar] > details:hover, form[class|=webapp] > fieldset > details:hover {
+[class|=webapp][class*=-bar] > button:hover, form[class|=webapp] > fieldset > button:hover, [class|=webapp][class*=-bar] > select:hover, form[class|=webapp] > fieldset > select:hover, [class|=webapp][class*=-bar] > details:hover, form[class|=webapp] > fieldset > details:hover {
   background-image: linear-gradient(-180deg, #f0f3f6 0%, #e6ecf1 90%);
   border-color: rgba(27, 31, 35, 0.35);
 }
 
-[class|=webapp][class*=-bar] > button:focus, form[class|=webapp] > fieldset > button:focus, [class|=webapp][class*=-bar] > details:focus, form[class|=webapp] > fieldset > details:focus {
+[class|=webapp][class*=-bar] > button:focus, form[class|=webapp] > fieldset > button:focus, [class|=webapp][class*=-bar] > select:focus, form[class|=webapp] > fieldset > select:focus, [class|=webapp][class*=-bar] > details:focus, form[class|=webapp] > fieldset > details:focus {
   box-shadow: 0 0 0 0.2em rgba(3, 102, 214, 0.3);
 }
 
-[class|=webapp][class*=-bar] > button:active, form[class|=webapp] > fieldset > button:active, [class|=webapp][class*=-bar] > details:active, form[class|=webapp] > fieldset > details:active {
+[class|=webapp][class*=-bar] > button:active, form[class|=webapp] > fieldset > button:active, [class|=webapp][class*=-bar] > select:active, form[class|=webapp] > fieldset > select:active, [class|=webapp][class*=-bar] > details:active, form[class|=webapp] > fieldset > details:active {
   background-image: none;
   background-color: #e8eef2;
   border-color: rgba(27, 31, 35, 0.35);
   box-shadow: inset 0 0.15em 0.3em rgba(27, 31, 35, 0.15);
+}
+
+[class|=webapp][class*=-bar] > select, form[class|=webapp] > fieldset > select {
+  outline: none;
+}
+
+[class|=webapp][class*=-bar] > select > option, form[class|=webapp] > fieldset > select > option {
+  background-color: white;
 }
 
 [class|=webapp][class*=-bar] > details, form[class|=webapp] > fieldset > details {
@@ -222,7 +231,9 @@ html > body > div:first-child > footer:last-child {
 }
 
 [class|=webapp][class*=-bar] > details > summary, form[class|=webapp] > fieldset > details > summary {
-  margin-left: 1rem;
+  cursor: default;
+  padding: 0 1rem;
+  height: 100%;
 }
 
 [class|=webapp][class*=-bar] > details > :not(:first-child), form[class|=webapp] > fieldset > details > :not(:first-child) {
@@ -303,6 +314,7 @@ form[class|=webapp] {
   display: flex;
   gap: 1rem;
   flex-direction: column;
+  width: max-content;
 }
 
 form[class|=webapp] > fieldset {

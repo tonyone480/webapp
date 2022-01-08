@@ -331,22 +331,22 @@ class webapp_html extends webapp_xml
 		$node->text($comment);
 		return $node;
 	}
-	function options(iterable $contents, string ...$default):static
+	function options(iterable $values, string ...$selected):static
 	{
-		foreach ($contents as $value => $content)
+		foreach ($values as $value => $content)
 		{
 			if (is_iterable($content))
 			{
-				$this[0]->append('optgroup', ['label' => $value])->options($content, ...$default);
+				$this[0]->append('optgroup', ['label' => $value])->options($content, ...$selected);
 				continue;
 			}
-			$this[0]->append('option', in_array($value, $default, TRUE) ? [$content, 'value' => $value, 'selected' => NULL] : [$content, 'value' => $value]);
+			$this[0]->append('option', in_array($value, $selected, TRUE) ? [$content, 'value' => $value, 'selected' => NULL] : [$content, 'value' => $value]);
 		}
 		return $this[0];
 	}
-	function select(iterable $values, string ...$default):static
+	function select(iterable $options, string ...$value):static
 	{
-		return $this[0]->append('select')->options($values, ...$default);
+		return $this[0]->append('select')->options($options, ...$value);
 	}
 	function section(string $title, int $level = 1):static
 	{
@@ -453,7 +453,7 @@ class webapp_form
 	public readonly bool $echo;
 	public readonly ?webapp $webapp;
 	public readonly webapp_html $xml, $captcha;
-	private webapp_html $fieldset;
+	public webapp_html $fieldset;
 	private $files = [], $fields = [], $index = 0;
 	function __construct(private readonly array|webapp|webapp_html $context, ?string $action = NULL)
 	{
@@ -624,29 +624,17 @@ class webapp_form
 		}
 		return $this->captcha ?? NULL;
 	}
-	function field(string $name, string $type = 'hidden', array $info = []):webapp_html
+	function field(string $name, string $type = 'hidden', array $attr = []):webapp_html
 	{
-		// if (is_string($fieldname) && is_array($fieldinfo))
-		// {
-		// 	$alias = $name = preg_match('/^\w+/', $fieldname, $pattern) ? $pattern[0] : $this->index++;
-
-
-		// 	$attributes = [
-		// 		'type' => array_key_exists('type', $fieldinfo) ? strtolower($fieldinfo['type']) : 'hidden',
-		// 		'name' => &$alias] + $fieldinfo;
-		// 	switch ($attributes['type'])
-		// 	{
-		// 		case 'textarea':
-		// 			//$this->fields[$name] = $this->fieldset->append('textarea', ['name' => $alias] + $attributes);
-		// 			break;
-		// 		case 'file':
-		// 			$this->xml['enctype'] = 'multipart/form-data';
-		// 		default:
-		// 			$this->{$attributes['type'] === 'file' ? 'files' : 'fields'}[$name] = $this->fieldset->append('input', $attributes);
-		// 	}
-		// 	//print_r($attributes);
-		// }
-		$alias = $name = preg_match('/^\w+/', $name, $pattern) ? $pattern[0] : $this->index++;
+		$alias = preg_match('/^\w+/', $name, $pattern) ? $pattern[0] : $this->index++;
+		return $this->fields[$alias] = match ($type)
+		{
+			'textarea' => $this->fieldset->append('textarea', ['name' => $alias] + $attr),
+			'select' => $this->fieldset->select($attr['option'] ?? [], ...$attr['value'] ?? [])->setattr([
+				'name' => array_key_exists('multiple', $attr) ? "{$alias}[]" : $alias
+			] + $attr),
+			default => $this->fieldset->append('input', ['type' => $type, 'name' => $alias] + $attr)
+		};
 		switch ($type = strtolower($type))
 		{
 			case 'radio':
@@ -667,32 +655,22 @@ class webapp_form
 			// case 'setinput':
 			// case 'enuminput':
 			case 'textarea':
-				return $this->fields[$name] = $this->fieldset->append('textarea', ['name' => $alias] + $info);
+				return $this->fields[$alias] = $this->fieldset->append('textarea', ['name' => $rename] + $attr);
 			// case 'file':
 			// 	$this->xml['enctype'] = 'multipart/form-data';
-			// case 'select':
-			// 	if (array_key_exists('multiple', $info))
-			// 	{
-			// 		$alias .= '[]';
-			// 		$attributes['multiple'] = NULL;
-			// 	}
-			// 	if ($typename === 'select')
-			// 	{
-			// 		$node = $this->fieldset->append('select', ['name' => $alias]);
-			// 		if (array_key_exists('value', $attributes) && is_array($attributes['value']))
-			// 		{
-			// 			$node->options($attributes['value']);
-			// 			unset($attributes['value']);
-			// 		}
-			// 		if (array_key_exists('optgroup', $attributes) && is_array($attributes['optgroup']))
-			// 		{
-			// 			$node->optgroup($attributes['optgroup']);
-			// 			unset($attributes['optgroup']);
-			// 		}
-			// 		return $this->fields[$rename] = $node->setattr($attributes);
-			// 	}
+			case 'select':
+				if (array_key_exists('multiple', $attr))
+				{
+					$rename .= '[]';
+				}
+				if ($type === 'select')
+				{
+					return $this->fields[$alias] = $this->fieldset->select($attr['option'] ?? [])->setattr([
+						'name' => $rename
+					] + $attr);
+				}
 			default:
-				return $this->fields[$name] = $this->fieldset->append('input', ['type' => $type, 'name' => $alias] + $info);
+				return $this->fields[$alias] = $this->fieldset->append('input', ['type' => $type, 'name' => $rename] + $attr);
 		}
 	}
 	private function setdefault(array $values):static
@@ -808,9 +786,42 @@ class webapp_cond extends webapp_form
 	function __construct(webapp_html $node)
 	{
 		parent::__construct($node);
+		$this->xml['class'] .= '-bar-p2';
+		$this->fieldset['class'] = 'merge';
 		$this->button('Append');
 		$this->button('Submit');
+
+		$this->fieldset()['class'] = 'merge';
+		$this->button('Remove');
+		$this->field('F', 'select', ['option' => [
+			'qweqwe' => 'aaaaa',
+			'1eqwe' => 'bbbbbbaaaaaaaaaaaaaaaaaaaaaa',
+			'1eqwea' => 'cccccc'
+		]]);
+		$this->field('d', 'select', ['option' => [
+			'eq' => '=',
+			'ne' => '!=',
+			'gt' => '>',
+			'ge' => '>=',
+			'lt' => '<',
+			'le' => '<=',
+			'lk' => '%',
+			'nl' => '!%',
+			'in' => '()',
+			'ni' => '!()'
+		]]);
+		$this->field('cond', 'search');
+
 	}
+
+	// $b->xml['class'] .= '-p2';
+	// $b->xml['style'] = 'width: 100%';
+	// $b->fieldset()['class'] = 'merge';
+	// $b->button('Append');
+	// $b->button('Submit');
+	// $b->fieldset()['class'] = 'merge';
+	// $b->button('Removie');
+	// $b->field('aaa', 'text');
 }
 class webapp_table
 {

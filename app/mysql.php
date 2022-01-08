@@ -66,7 +66,7 @@ new class extends webapp
 				return $this->break($this->get_home(...));
 			}
 			$this->app->main['style'] = 'padding:10px';
-			$ul = $this->app->aside()->setattr(['class' => 'webapp-ultree'])->append('ul');
+			$ul = $this->app->aside->setattr(['class' => 'webapp-ultree'])->append('ul');
 	
 			
 			$ul->append('li')->select(array_combine($this->charset, $this->charset), $this->mysql_charset)->setattr([
@@ -278,18 +278,12 @@ new class extends webapp
 		
 		$a = $table->bar;
 		
-		$b = $a->details('asd')->form();
-		$b->xml['class'] .= '-p2';
-		$b->xml['style'] = 'width: 100%';
-		$b->fieldset()['class'] = 'merge';
-		$b->button('Append');
-		$b->button('Submit');
-		$b->fieldset()['class'] = 'merge';
-		$b->button('Removie');
-		$b->field('aaa', 'text');
+		$b = new webapp_cond($a->details('asd'));
+	
 
 		$a->append('button', ['View Data']);//button('View Data', 'submit')['formaction'] = '?viewdata';
-		
+		$a->append('input');
+		$a->append('button', ['View Data']);
 		// $table->cond();
 		// $table->bar->button('Append Field');
 		// $table->bar->field('asd', 'text');

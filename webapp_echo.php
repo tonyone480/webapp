@@ -36,7 +36,7 @@ class webapp_echo_html extends webapp_document
 {
 	use webapp_echo;
 	const xmltype = 'webapp_html';
-	public readonly webapp_html $header, $main, $footer;
+	public readonly webapp_html $header, $aside, $main, $footer;
 	function __construct(public readonly webapp $webapp)
 	{
 		//parent::__construct($webapp);
@@ -56,8 +56,8 @@ class webapp_echo_html extends webapp_document
 			// $this->xml->head->append('script', ['type' => 'javascript/module', 'src' => $webapp->resroot('js/webapp.js')]);
 			
 			$root = &$this->xml->body->div;
-			[$this->header, $this->main, $this->footer] = [
-				&$root->header, &$root->main,
+			[$this->header, $this->aside, $this->main, $this->footer] = [
+				&$root->header, &$root->aside, &$root->main,
 				$root->append('footer', $webapp['copy_webapp'])];
 		}
 		else
@@ -94,13 +94,7 @@ class webapp_echo_html extends webapp_document
 	// 	$form->button('Search', 'submit');
 	// 	return $form;
 	// }
-	function aside(bool $after = FALSE):webapp_html
-	{
-		return $this->main->insert('aside', $after ? 'after' : 'before');
-		// $this->aside = $this->section->insert('aside', 'first');
-		// $this->section = $this->aside->insert('section', $before ? 'before' : 'after');
-		// return $this->aside;
-	}
+
 
 
 
