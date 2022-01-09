@@ -62,14 +62,16 @@ html{
 		>div:first-child{
 			display: grid;
 			grid-template-columns: auto 1fr;
-			column-gap: 1rem;
 			>header:first-child{
 				grid-column: 1 / -1;
+			}
+			>aside,>main{
+				margin-left: 1rem;
 			}
 			>aside{
 				display: flex;
 				flex-direction: column;
-				margin-left: 1rem;
+				
 			}
 			>footer:last-child{
 				grid-column: 1 / -1;
@@ -223,19 +225,20 @@ html{
 	&[class*=-bar]{
 		display: flex;
 		gap: 1rem;
-		>input,>textarea,>button,>select,>details{
+		>input,>textarea,>a,>button,>select,>details{
+			font-size: 1rem;
+			line-height: 1.8rem;
 			
-			line-height: 1.6rem;
 		}
 		>input:not([type=checkbox],[type=radio]),>textarea{
+			padding: 0 0 0 .4rem;
 			flex: 1 1 12rem;
-
-			padding-left: .4rem;
+			
 			border-radius: 3px;
 			border: 1px solid lighten($border, 72%);
 			background-color: rgba($background, 0.6);
 			box-shadow: inset 0 1px 2px rgba($border, 0.075);
-			box-sizing: border-box;
+			
 			text-overflow: ellipsis;
 			&:focus{
 				outline: none;
@@ -255,16 +258,20 @@ html{
 				color: $hint;
 			}
 		}
-		>button,>select,>details{
-			min-width: 6rem;
+		>a,>button,>select,>details{
+			
+			color: $foreground;
 			white-space: nowrap;
-			border-radius: 3px;
+			padding: 0 1rem;
 			border: 1px solid rgba($border, 0.2);
+			border-radius: 3px;
+			
 			background-color: $button;
 			background-image: linear-gradient(-180deg, lighten($button, 3.4%) 0%, $button 90%);
 			&:hover{
 				background-image: linear-gradient(-180deg, lighten($button, 0.2%) 0%, darken($button, 2.8%) 90%);
 				border-color: rgba($border, 0.35);
+				text-decoration: none;
 			}
 			&:focus{
 				box-shadow: 0 0 0 0.2em rgba($link, 0.3);
@@ -320,6 +327,7 @@ html{
 		}
 		>details{
 			position: relative;
+			padding: 0;
 			>summary{
 				cursor: default;
 				padding: 0 1rem;
@@ -332,7 +340,7 @@ html{
 		}
 		&.merge{
 			gap: 0;
-			>input,>select,>textarea,>button,>details{
+			>input,>textarea,>a,>button,>select,>details{
 				&:not(:first-child, :last-child){
 					border-radius: 0;
 				}
@@ -432,7 +440,8 @@ table[class|=webapp]{
 	display: inline-block;
 	border: 1px solid $foreground;
 	border-collapse: collapse;
-	border-spacing: 0.1rem;
+	border-spacing: 4px;
+	background-color: red;
 	empty-cells: show;
 	
 	td{
@@ -445,19 +454,26 @@ table[class|=webapp]{
 		}
 	}
 	>thead{
-		>tr:first-child,>tr:last-child{
+		>tr:first-child{
 			color: $background;
 			background-color: $link;
 		}
 	}
-	>tbody>tr>td{
-		max-width: 200px;
-		overflow: hidden;
-		text-overflow: ellipsis;
+	>tbody{
+		>tr.fieldset{
+			background-color: $hint;
+		}
+		>tr>td{
+			max-width: 20rem;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			
+		}
 	}
 	>tfoot{
 		background-color: $button;
 	}
+	
 	&[class*=-grid]{
 		>tbody>tr>td{
 			border: 1px solid $foreground;

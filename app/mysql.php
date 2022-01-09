@@ -65,9 +65,10 @@ new class extends webapp
 			{
 				return $this->break($this->get_home(...));
 			}
+		
 
 			$this->app->aside->select(array_combine($this->charset, $this->charset), $this->mysql_charset)->setattr([
-				'onchange' => 'location.href=`?home/${this.value}`'
+				'onchange' => 'location.replace(`?console/${this.value}`)'
 			]);
 
 			$ul = $this->app->aside->append('ul');
@@ -210,29 +211,29 @@ new class extends webapp
 
 		
 
-		$td = &$table->fieldset->td[];
+		$td = &$table->field->td[];
 		$td->span[] = 'Name';
 		$td->span[] = 'Comment';
 		$td['style'] = 'width:200px';
 
-		$td = &$table->fieldset->td[];
+		$td = &$table->field->td[];
 		//$td->span[] = 'Collation';
 		$td->span[] = 'Engine:Version';
 		$td->span[] = 'Row format:Rows';
 
-		$td = &$table->fieldset->td[];
+		$td = &$table->field->td[];
 		$td->span[] = 'Data length/Data free';
 		$td->span[] = 'Index length/Avg row length';
 
-		$td = &$table->fieldset->td[];
+		$td = &$table->field->td[];
 		$td->span[] = 'Create time';
 		$td->span[] = 'Update time';
 
-		$td = &$table->fieldset->td[];
+		$td = &$table->field->td[];
 		$td->span[] = 'Check time';
 		$td->span[] = 'Checksum';
 
-		$td = &$table->fieldset->td[];
+		$td = &$table->field->td[];
 		$td->span[] = 'Create options';
 		$td->span[] = 'Auto increment';
 		
@@ -276,18 +277,21 @@ new class extends webapp
 		
 		
 		$a = $table->bar;
-		$table->cond([
-			'qweqwe' => 'aaaaa',
-			'1eqwe' => 'bbbbbb',
-			'1eqwea' => 'cccccc'
-		]);
+		$a->append('a', ['View data', 'href' => '?data/' . $name, 'class'=> 'primary']);
+		$a->append('a', ['Insert data', 'href' => '#']);
+		$a->append('a', ['Append field', 'href' => '#']);
+		$a->append('input');
+		$a->append('a', ['Rename table', 'href' => '#', 'class'=> 'danger']);
+		$a->append('a', ['Truncate table', 'href' => '#', 'class'=> 'danger']);
+		$a->append('a', ['Drop table', 'href' => '#', 'class'=> 'danger']);
+		
 		
 		
 	
 
-		$a->append('button', ['View Data']);//button('View Data', 'submit')['formaction'] = '?viewdata';
-		$a->append('input');
-		$a->append('button', ['View Data']);
+		
+		
+		//$a->append('button', ['View Data']);
 		// $table->cond();
 		// $table->bar->button('Append Field');
 		// $table->bar->field('asd', 'text');
@@ -307,7 +311,7 @@ new class extends webapp
 		]);
 		$table->xml['class'] = 'webapp-grid';
 	}
-	function get_viewdata(string $name, int $page = 1, int $rows = 40)
+	function get_data(string $name, int $page = 1, int $rows = 40)
 	{
 		$tabname = $this->url64_decode($name);
 		$datatab = $this->mysql->{$tabname};
@@ -315,9 +319,19 @@ new class extends webapp
 		
 		
 		$table = $this->app->main->table($datatab->paging($page, $rows)->result($fields));
+		$table->xml['class'] = 'webapp-grid';
 		$table->title($tabname);
 		
-		$table->bar->xml->fieldset->append('a', ['Insert', 'href' => '?editor/' . $name]);
+		$table->cond([
+			'qweqwe' => 'aaaaa',
+			'1eqwe' => 'bbbbbb',
+			'1eqwea' => 'cccccc'
+		]);
+		
+		$table->bar->append('input');
+		$table->bar->append('a', ['Insert data', 'href' => '#']);
+		$table->bar->append('a', ['Backto table', 'href' => '#']);
+		$table->bar->append('a', ['Delete all', 'href' => '#', 'class' => 'danger']);
 
 		$table->fieldset(...$fields);
 

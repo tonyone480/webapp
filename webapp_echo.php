@@ -86,14 +86,14 @@ class webapp_echo_html extends webapp_document
 		$node->atree($link, TRUE);
 		return $node;
 	}
-	// function search(?string $action = NULL):webapp_form
-	// {
-	// 	$form = $this->header->form($action);
-	// 	$form->xml['method'] = 'get';
-	// 	$form->field('search', 'search');
-	// 	$form->button('Search', 'submit');
-	// 	return $form;
-	// }
+	function search(?string $action = NULL):webapp_form
+	{
+		$form = $this->header->form($action);
+		$form->xml['method'] = 'get';
+		$form->field('search', 'search');
+		$form->button('Search', 'submit');
+		return $form;
+	}
 
 
 

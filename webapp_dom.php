@@ -380,6 +380,36 @@ class webapp_html extends webapp_xml
 			}
 		}, $fold);
 	}
+	function cond(array $fields, ?string $action = NULL):static
+	{
+		$form = $this[0]->form($action);
+
+
+		$form->xml['class'] .= '-cond';
+
+		$form->button('Remove')['onclick'] = 'this.parentElement.remove()';
+		$form->field('F', 'select', ['option' => $fields]);
+		$form->field('d', 'select', ['option' => [
+			'eq' => '=',
+			'ne' => '!=',
+			'gt' => '>',
+			'ge' => '>=',
+			'lt' => '<',
+			'le' => '<=',
+			'lk' => '%',
+			'nl' => '!%',
+			'in' => '()',
+			'ni' => '!()'
+		]]);
+		$form->field('cond', 'search');
+
+
+		$form->fieldset()['class'] = 'merge';
+		$form->button('Append')['onclick'] = 'this.parentElement.parentElement.appendChild(this.parentElement.previousElementSibling.cloneNode(true))';
+		$form->button('Clear')['class'] = 'danger';
+		$form->button('Submit', 'submit')['class'] = 'primary';
+		return $form->xml;
+	}
 
 	function form(?string $action = NULL):webapp_form
 	{
@@ -781,50 +811,6 @@ class webapp_form
 	// 	return $form();
 	// }
 }
-class webapp_cond extends webapp_form
-{
-	function __construct(array $fields, webapp_html $node)
-	{
-		parent::__construct($node);
-		$this->xml['class'] .= '-cond';
-
-		$this->button('Remove')['onclick'] = 'this.parentElement.remove()';
-		$this->field('F', 'select', ['option' => $fields]);
-		$this->field('d', 'select', ['option' => [
-			'eq' => '=',
-			'ne' => '!=',
-			'gt' => '>',
-			'ge' => '>=',
-			'lt' => '<',
-			'le' => '<=',
-			'lk' => '%',
-			'nl' => '!%',
-			'in' => '()',
-			'ni' => '!()'
-		]]);
-		$this->field('cond', 'search');
-
-
-		$this->fieldset()['class'] = 'merge';
-		$this->button('Append')['onclick'] = 'this.parentElement.parentElement.appendChild(this.parentElement.previousElementSibling.cloneNode(true))';
-		$this->button('Clear')['class'] = 'danger';
-		$this->button('Submit', 'submit')['class'] = 'primary';
-
-
-
-
-
-	}
-
-	// $b->xml['class'] .= '-p2';
-	// $b->xml['style'] = 'width: 100%';
-	// $b->fieldset()['class'] = 'merge';
-	// $b->button('Append');
-	// $b->button('Submit');
-	// $b->fieldset()['class'] = 'merge';
-	// $b->button('Removie');
-	// $b->field('aaa', 'text');
-}
 class webapp_table
 {
 	public readonly array $paging;
@@ -866,22 +852,30 @@ class webapp_table
 		{
 			'caption'	=> $this->caption = $this->xml->insert('caption', 'first'),
 			'colgroup'	=> $this->colgroup = $this->caption->insert('colgroup', 'after'),
+			'fieldset'	=> $this->fieldset = $this->tbody->insert('tr', 'first'),
 			'thead'		=> $this->thead = $this->tbody->insert('thead', 'before'),
 			'title'		=> $this->title = $this->thead->insert('tr', 'first'),
 			'field'		=> $this->field = &$this->thead->tr[],
 
 
-			'bar'		=> $this->bar = $this->formbar(),
+			'bar'		=> $this->bar = (match (TRUE)
+			{
+				isset($this->title) => $this->title->insert('tr', 'after'),
+				isset($this->field) => $this->title->insert('tr', 'before'),
+				default => $this->thead->append('tr')
+			})->append('td', ['colspan' => $this->recountcolumn()])->append('div')->setattr(['class' => 'webapp-bar merge']),
 
-			'fieldset'	=> $this->fieldset = &$this->thead->tr[],
 			
-			'column'	=> isset($this->tbody->tr->td) ? count($this->tbody->tr->td) : 0,
-			'tfoot'		=> $this->tfoot = $this->tbody->insert('tfoot', 'after'),
+			
+			// 'column'	=> isset($this->tbody->tr->td) ? count($this->tbody->tr->td) : 0,
+			'tfoot'		=> $this->tfoot = $this->xml->tfoot ?? $this->tbody->insert('tfoot', 'after'),
 			default		=> NULL
 		};
 	}
 	function &recountcolumn()
 	{
+		// isset($this->title->tr->td) ? count($this->tbody->tr->td) : 1;
+		// print_r( $this->tbody );
 		// var_dump(max(8));
 		// $this->column = max(
 		// 	isset($this->tbody->tr->td) ? count($this->tbody->tr->td) : 1
@@ -889,58 +883,37 @@ class webapp_table
 		$this->column = isset($this->tbody->tr->td) ? count($this->tbody->tr->td) : 1;
 		return $this->column;
 	}
-	function formbar()
+	function fieldset(string ...$fields):webapp_html
 	{
-		// $form = (match (TRUE)
-		// {
-		// 	isset($this->title) => $this->title->insert('tr', 'after'),
-		// 	isset($this->field) => $this->title->insert('tr', 'before'),
-		// 	default => $this->thead->append('tr')
-		// })->append('td', ['colspan' => $this->recountcolumn()])->form();
-		$form = (match (TRUE)
+		$this->fieldset['class'] = 'fieldset';
+		foreach ($fields as $field)
 		{
-			isset($this->title) => $this->title->insert('tr', 'after'),
-			isset($this->field) => $this->title->insert('tr', 'before'),
-			default => $this->thead->append('tr')
-		})->append('td', ['colspan' => $this->recountcolumn()])->append('div')->setattr(['class' => 'webapp-bar merge']);
-		//$form->xml['class'] .= '-bar';
-		
-		return $form;
+			$this->fieldset->td[] = $field;
+		}
+		return $this->fieldset;
 	}
 	function title(?string $caption = NULL):webapp_html
 	{
 		return $this->title->append('td', [$caption, 'colspan' => $this->recountcolumn()]);
 	}
-	function cond(array $fields):webapp_cond
+	function cond(array $fields):webapp_html
 	{
-		$cond = $this->bar->details('Conditionals');
-		
-
-		//$this->bar->insert($cond->dom(), 'first');
-
-		return new webapp_cond($fields, $cond);
-
-
+		return $this->bar->details('Conditionals')->cond($fields);
 	}
-	function fieldset(string ...$names):webapp_html
-	{
-		$node = &$this->thead->tr[];
-		foreach ($names as $name)
-		{
-			$node->td[] = $name;
-		}
-		return $node;
-	}
+	
+	// function header(?string $content = NULL)
+	// {
 
+	// }
 	function footer(?string $content = NULL):webapp_html
 	{
-		return $this->tfoot->append('tr')->append('td', [$content, 'colspan' => $this->column]);
+		return $this->tfoot->append('tr')->append('td', [$content, 'colspan' => $this->recountcolumn()]);
 	}
 	function paging(string $url, int $max = 9):static
 	{
 		if ($this->paging && $this->paging['max'] > 1)
 		{
-			$node = $this->tfoot->append('tr')->append('td', ['colspan' => $this->column]);
+			$node = $this->footer();
 			if ($this->paging['max'] > $max)
 			{
 				$halved = intval($max * 0.5);
