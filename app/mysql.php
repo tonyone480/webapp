@@ -184,6 +184,14 @@ new class extends webapp
 		}
 		$table = $this->app->main->table($this->query('SHOW TABLE STATUS')->result($fields), function(array $row, webapp $webapp)
 		{
+			$this->row();
+			$this->cell([
+				['a', $row['Name'], 'href' => '?tab/' . $webapp->url64_encode($row['Name'])],
+				['span', $row['Comment']]
+			], 'iter');
+			$this->cell(['span',[
+				
+			]], );
 			$tr = &$this->tbody->tr[];
 			$td = &$tr->td[];
 
@@ -214,38 +222,17 @@ new class extends webapp
 		}, $this);
 
 		
+		$fieldset = $table->fieldset();
 
-		$td = &$table->field->td[];
-		$td->span[] = 'Name';
-		$td->span[] = 'Comment';
-		$td['style'] = 'width:200px';
-
-		$td = &$table->field->td[];
-		//$td->span[] = 'Collation';
-		$td->span[] = 'Engine:Version';
-		$td->span[] = 'Row format:Rows';
-
-		$td = &$table->field->td[];
-		$td->span[] = 'Data length/Data free';
-		$td->span[] = 'Index length/Avg row length';
-
-		$td = &$table->field->td[];
-		$td->span[] = 'Create time';
-		$td->span[] = 'Update time';
-
-		$td = &$table->field->td[];
-		$td->span[] = 'Check time';
-		$td->span[] = 'Checksum';
-
-		$td = &$table->field->td[];
-		$td->span[] = 'Create options';
-		$td->span[] = 'Auto increment';
-		
+		$fieldset->append('td')->appends('span', ['Name', 'Comment']);
+		$fieldset->append('td')->appends('span', ['Engine:Version', 'Row format:Rows']);
+		$fieldset->append('td')->appends('span', ['Data length/Data free', 'Index length/Avg row length']);
+		$fieldset->append('td')->appends('span', ['Create time', 'Update time']);
+		$fieldset->append('td')->appends('span', ['Check time', 'Checksum']);
+		$fieldset->append('td')->appends('span', ['Create options', 'Auto increment']);
+		$fieldset->append('td')->appends('span', ['Name', 'Comment']);
 
 
-		//$table->fieldset('Name', 'Engine/Ver');
-
-		//print_r($fields);
 		$table->footer($this->query('SHOW CREATE DATABASE ?a', $this->mysql_database)->value(1));
 		$table->xml['class'] .= '-grid';
 		
@@ -255,30 +242,28 @@ new class extends webapp
 		$tabname = $this->url64_decode($name);
 		$table = $this->app->main->table($this->query('SHOW FULL FIELDS FROM ?a', $tabname), function(array $row)
 		{
-			$tr = &$this->tbody->tr[];
-
-			$td = &$tr->td[];
-			$td->append('a', ['Editor', 'href' => 'asd']);
+			$this->row();
+	
+			$this->cell()->append('a', ['Editor', 'href' => '#']);
 
 			
-			$td = &$tr->td[];
-			$td->append('a', [$row['Field'], 'href' => '#']);
+			$cell = $this->cell();
+			$cell->append('a', [$row['Field'], 'href' => '#']);
 			if ($row['Comment'])
 			{
-				$td['style'] = 'color: gray';
-				$td->text("({$row['Comment']})");
+				$cell['style'] = 'color: gray';
+				$cell->text("({$row['Comment']})");
 			}
 
-			$tr->td[] = $row['Type'];
-			$tr->td[] = $row['Collation'];
-			$tr->td[] = $row['Null'];
-			$tr->td[] = $row['Key'];
-			$tr->td[] = $row['Default'];
-			$tr->td[] = $row['Extra'];
-			$tr->td[] = $row['Privileges'];
-
-
-			//print_r( $row );
+			$this->row->appends('td', [
+				$row['Type'],
+				$row['Collation'],
+				$row['Null'],
+				$row['Key'],
+				$row['Default'],
+				$row['Extra'],
+				$row['Privileges']
+			]);
 		});
 
 		$table->fieldset('Function', 'Field', 'Type', 'Collation', 'Null', 'Key', 'Default', 'Extra', 'Privileges');
@@ -324,6 +309,11 @@ new class extends webapp
 			'class' => 'webapp-codeblock'
 		]);
 		$table->xml['class'] = 'webapp-grid';
+
+
+		// $table = $this->app->main->table($this->query('SHOW INDEX FROM ?a', $tabname)->result($fields));
+		// $table->fieldset(...$fields);
+		// $table->xml['class'] .= '-grid';
 	}
 	function get_data(string $name, int $page = 1, int $rows = 40)
 	{
@@ -461,11 +451,13 @@ new class extends webapp
 			$this->mysql->kill(intval($id));
 			return 302;
 		}
-		$table = $this->app->main->table($this->query('SHOW PROCESSLIST')->result($fields), function(array $row)
+		$table = $this->app->main->table($this->query('SHOW PROCESSLIST')->result($fields), function(array $data)
 		{
 			$this->row();
-			$this->row->append('td')->append('a', ['Kill', 'href' => '?processlist/' . $row['Id']]);
-			$this->row->appends('td', $row);
+			//$this->cell(['a', 'Kill', 'href' => '?processlist/' . $data['Id']]);
+			//$this->row->append('td')->append('a', ['Kill', 'href' => '?processlist/' . $data['Id']]);
+			$this->cell([['a', 'Kill', 'href' => '?processlist/' . $data['Id']]], 'iter');
+			$this->cells($data);
 		});
 		$table->fieldset('Kill', ...$fields);
 		$table->header('Processlist');

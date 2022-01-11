@@ -366,7 +366,7 @@ nav[class|=webapp][class*=-highlight] details:hover {
 }
 
 form[class|=webapp] {
-  display: flex;
+  display: inline-flex;
   gap: 1rem;
   flex-direction: column;
 }
@@ -393,8 +393,6 @@ table[class|=webapp] {
   display: inline-table;
   border: 1px solid black;
   border-collapse: collapse;
-  border-spacing: 4px;
-  empty-cells: show;
 }
 
 table[class|=webapp] td {

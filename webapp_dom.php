@@ -307,6 +307,8 @@ class webapp_html extends webapp_xml
 		$node['max'] = $max;
 		return $node;
 	}
+	function anchor(string $href)
+	{}
 	function fieldset(string $legend = NULL):static
 	{
 		//An optional <legend> element, followed by flow content.
@@ -865,6 +867,17 @@ class webapp_table
 	{
 		return $this->row = $this->tbody->append('tr');
 	}
+	function cell(NULL|string|array $contents = NULL, string $method = 'setattr'):webapp_html
+	{
+		return is_iterable($contents)
+			? $this->row->append('td')->{$method}($contents)
+			: $this->row->append('td', $contents);
+	}
+	function cells(iterable $contents, ?string $keyattr = NULL):webapp_html
+	{
+		return $this->row->appends('td', $contents, $keyattr);
+	}
+	
 	function cond(array $fields):webapp_html
 	{
 		return $this->bar->details('Conditionals')->cond($fields);

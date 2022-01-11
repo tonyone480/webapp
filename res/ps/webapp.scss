@@ -413,7 +413,7 @@ nav[class|=webapp]{
 
 
 form[class|=webapp]{
-	display: flex;
+	display: inline-flex;
 	gap: 1rem;
 	flex-direction: column;
 	>fieldset{
@@ -440,10 +440,8 @@ table[class|=webapp]{
 	display: inline-table;
 	border: 1px solid $foreground;
 	border-collapse: collapse;
-	border-spacing: 4px;
-	
-	empty-cells: show;
-	
+	//border-spacing: 4px;
+	//empty-cells: show;
 	td{
 		
 		padding: 0.4rem;
