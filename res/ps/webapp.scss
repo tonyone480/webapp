@@ -437,37 +437,41 @@ form[class|=webapp]{
 }
 
 table[class|=webapp]{
-	display: inline-block;
+	display: inline-table;
 	border: 1px solid $foreground;
 	border-collapse: collapse;
 	border-spacing: 4px;
-	background-color: red;
+	
 	empty-cells: show;
 	
 	td{
+		
 		padding: 0.4rem;
-		white-space: nowrap;
-		>span{
-			display: block;
-			overflow: hidden;
-			text-overflow: ellipsis;
-		}
+		// >span{
+		// 	display: block;
+		// 	overflow: hidden;
+		// 	text-overflow: ellipsis;
+		// }
 	}
 	>thead{
 		>tr:first-child{
 			color: $background;
 			background-color: $link;
+			
 		}
 	}
 	>tbody{
 		>tr.fieldset{
 			background-color: $hint;
+			>td{
+				
+				white-space: nowrap;
+			}
 		}
-		>tr>td{
-			max-width: 20rem;
+		>tr:not(.fieldset)>td{
 			overflow: hidden;
+			white-space: pre;
 			text-overflow: ellipsis;
-			
 		}
 	}
 	>tfoot{
@@ -480,30 +484,27 @@ table[class|=webapp]{
 		}
 	}
 
-	&[class*=-highlight]{
-		>tbody>tr:hover{
-			background-color: $link;
-			>td{
-				color: $background;
-			}
-		}
-	}
+	// &[class*=-highlight]{
+	// 	>tbody>tr:hover{
+	// 		background-color: $link;
+	// 		>td{
+	// 			color: $background;
+	// 		}
+	// 	}
+	// }
 	
 	
-	&[class*=-even]{
-		>tbody>tr:nth-child(even) {
-			background-color: $hint;
-		}
-	}
+	// &[class*=-even]{
+	// 	>tbody>tr:nth-child(even) {
+	// 		background-color: $hint;
+	// 	}
+	// }
 
-	&[class*=-top]{
-		td{
-			vertical-align: top;
-		}
+	// &[class*=-top]{
+	// 	td{
+	// 		vertical-align: top;
+	// 	}
 		
-	}
+	// }
 
 }
-
-
-

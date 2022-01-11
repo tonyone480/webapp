@@ -44,6 +44,23 @@ class webapp_xml extends SimpleXMLElement
 		}
 		return $xml;
 	}
+	function insert(DOMNode|string $element, ?string $position = NULL):DOMNode|static
+	{
+		$dom = $this[0]->dom();
+		$node = is_string($element) ? $dom->ownerDocument->createElement($element) : $element;
+		match ($position)
+		{
+			//插入到当前节点之后
+			'after' => $dom->parentNode->insertBefore($node, $dom->nextSibling),
+			//插入到当前节点之前
+			'before' => $dom->parentNode->insertBefore($node, $dom),
+			//插入到当前节点下开头
+			'first' => $dom->insertBefore($node, $dom->firstChild),
+			//插入到当前节点下末尾
+			default => $dom->appendChild($node)
+		};
+		return $node->nodeType === XML_ELEMENT_NODE ? static::from($node) : $node;
+	}
 	function iter(iterable $contents, Closure $iterator = NULL, ...$params):static
 	{
 		// $doc = $this[0]->dom()->ownerDocument;
@@ -100,24 +117,24 @@ class webapp_xml extends SimpleXMLElement
 			? ($node = &$this[0]->{$name}[])->setattr($contents)
 			: $this[0]->addChild($name, $contents);
 	}
-	function insert(DOMNode|string $element, ?string $position = NULL):DOMNode|static
+	function appends(string $name, iterable $contents, string $keyattr = NULL):static
 	{
-		$dom = $this[0]->dom();
-		$node = is_string($element) ? $dom->ownerDocument->createElement($element) : $element;
-		match ($position)
+		if ($keyattr) foreach ($contents as $key => $content)
 		{
-			//插入到当前节点之后
-			'after' => $dom->parentNode->insertBefore($node, $dom->nextSibling),
-			//插入到当前节点之前
-			'before' => $dom->parentNode->insertBefore($node, $dom),
-			//插入到当前节点下开头
-			'first' => $dom->insertBefore($node, $dom->firstChild),
-			//插入到当前节点下末尾
-			default => $dom->appendChild($node)
-		};
-		return $node->nodeType === XML_ELEMENT_NODE ? static::from($node) : $node;
-		
+			$this[0]->append($name, is_array($content)
+				? [$keyattr => $key] + $content
+				: [$content, $keyattr => $key]);
+		}
+		else foreach ($contents as $content)
+		{
+			$this[0]->append($name, $content);
+		}
+		return $this[0];
 	}
+
+	
+
+
 	function parent():static
 	{
 		return $this[0]->xpath('..')[0] ?? $this[0];
@@ -348,12 +365,12 @@ class webapp_html extends webapp_xml
 	{
 		return $this[0]->append('select')->options($options, ...$value);
 	}
-	function section(string $title, int $level = 1):static
-	{
-		$node = &$this[0]->section[];
-		$node->{'h' . max(1, min(6, $level))} = $title;
-		return $node;
-	}
+	// function section(string $title, int $level = 1):static
+	// {
+	// 	$node = &$this[0]->section[];
+	// 	$node->{'h' . max(1, min(6, $level))} = $title;
+	// 	return $node;
+	// }
 
 
 	function atree(iterable $link, bool $fold = FALSE)
@@ -388,7 +405,7 @@ class webapp_html extends webapp_xml
 		$form->xml['class'] .= '-cond';
 
 		$form->button('Remove')['onclick'] = 'this.parentElement.remove()';
-		$form->field('F', 'select', ['option' => $fields]);
+		$form->field('F', 'select', ['option' => $fields]);//['onchange'] = 'this.nextElementSibling.nextElementSibling.placeholder=this.options[this.selectedIndex].dataset.comment||""';//this.nextElementSibling.nextElementSibling.placeholder="asd";
 		$form->field('d', 'select', ['option' => [
 			'eq' => '=',
 			'ne' => '!=',
@@ -815,6 +832,7 @@ class webapp_table
 {
 	public readonly array $paging;
 	public readonly webapp_html $xml, $tbody;
+	private array $column = [];
 	function __construct(webapp_html $node, iterable $data = [], Closure $output = NULL, mixed ...$params)
 	{
 		[$this->paging, $this->xml, $this->tbody] = [
@@ -822,66 +840,34 @@ class webapp_table
 			$root = &$node->table[],
 			&$root->tbody];
 		$root['class'] = 'webapp';
-		if ($output)
+		$output ??= fn(array $contents) => $this->row()->appends('td', $contents);
+		foreach ($data as $values)
 		{
-			foreach ($data as $values)
-			{
-				$output->call($this, $values, ...$params);
-			}
-		}
-		else
-		{
-			foreach ($data as $values)
-			{
-				$row = &$this->tbody->tr[];
-				if (is_iterable($values))
-				{
-					foreach ($values as $value)
-					{
-						$row->td[] = $value;
-					}
-					continue;
-				}
-				$row->td[] = $values;
-			}
+			$output->call($this, $values, ...$params);
 		}
 	}
-	function __get(string $name)
+	function __get(string $name):?webapp_html
 	{
 		return match ($name)
 		{
-			'caption'	=> $this->caption = $this->xml->insert('caption', 'first'),
-			'colgroup'	=> $this->colgroup = $this->caption->insert('colgroup', 'after'),
+			'caption'	=> $this->caption = $this->xml->caption ?? $this->xml->insert('caption', 'first'),
+			'colgroup'	=> $this->colgroup = $this->xml->colgroup ?? $this->caption->insert('colgroup', 'after'),
 			'fieldset'	=> $this->fieldset = $this->tbody->insert('tr', 'first'),
-			'thead'		=> $this->thead = $this->tbody->insert('thead', 'before'),
-			'title'		=> $this->title = $this->thead->insert('tr', 'first'),
-			'field'		=> $this->field = &$this->thead->tr[],
-
-
-			'bar'		=> $this->bar = (match (TRUE)
-			{
-				isset($this->title) => $this->title->insert('tr', 'after'),
-				isset($this->field) => $this->title->insert('tr', 'before'),
-				default => $this->thead->append('tr')
-			})->append('td', ['colspan' => $this->recountcolumn()])->append('div')->setattr(['class' => 'webapp-bar merge']),
-
-			
-			
-			// 'column'	=> isset($this->tbody->tr->td) ? count($this->tbody->tr->td) : 0,
+			'thead'		=> $this->thead = $this->xml->thead ?? $this->tbody->insert('thead', 'before'),
 			'tfoot'		=> $this->tfoot = $this->xml->tfoot ?? $this->tbody->insert('tfoot', 'after'),
+			'row'		=> $this->row(),
+			'bar'		=> $this->maxspan($this->bar = $this->thead->append('tr')->append('td'))
+								->append('div')->setattr(['class' => 'webapp-bar merge']),
 			default		=> NULL
 		};
 	}
-	function &recountcolumn()
+	function row():webapp_html
 	{
-		// isset($this->title->tr->td) ? count($this->tbody->tr->td) : 1;
-		// print_r( $this->tbody );
-		// var_dump(max(8));
-		// $this->column = max(
-		// 	isset($this->tbody->tr->td) ? count($this->tbody->tr->td) : 1
-		// );
-		$this->column = isset($this->tbody->tr->td) ? count($this->tbody->tr->td) : 1;
-		return $this->column;
+		return $this->row = $this->tbody->append('tr');
+	}
+	function cond(array $fields):webapp_html
+	{
+		return $this->bar->details('Conditionals')->cond($fields);
 	}
 	function fieldset(string ...$fields):webapp_html
 	{
@@ -892,22 +878,33 @@ class webapp_table
 		}
 		return $this->fieldset;
 	}
-	function title(?string $caption = NULL):webapp_html
+	function maxspan(webapp_html $cell):webapp_html
 	{
-		return $this->title->append('td', [$caption, 'colspan' => $this->recountcolumn()]);
+		$colspan = 0;
+		foreach ($this->tbody->tr->td ?? [] as $column)
+		{
+			$colspan += $column['colspan'] ?? 1;
+		}
+		if (in_array($cell, $this->column, TRUE) === FALSE)
+		{
+			$this->column[] = $cell;
+		}
+		if ($colspan > 1)
+		{
+			foreach ($this->column as $column)
+			{
+				$column['colspan'] = $colspan;
+			}
+		}
+		return $cell;
 	}
-	function cond(array $fields):webapp_html
+	function header(?string $caption = NULL):webapp_html
 	{
-		return $this->bar->details('Conditionals')->cond($fields);
+		return $this->maxspan($this->thead->insert('tr', 'first')->append('td', [$caption]));
 	}
-	
-	// function header(?string $content = NULL)
-	// {
-
-	// }
 	function footer(?string $content = NULL):webapp_html
 	{
-		return $this->tfoot->append('tr')->append('td', [$content, 'colspan' => $this->recountcolumn()]);
+		return $this->maxspan($this->tfoot->append('tr')->append('td', [$content]));
 	}
 	function paging(string $url, int $max = 9):static
 	{

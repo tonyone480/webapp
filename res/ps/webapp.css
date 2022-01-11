@@ -390,23 +390,15 @@ form[class|=webapp][class*=-cond] > fieldset:first-child {
 }
 
 table[class|=webapp] {
-  display: inline-block;
+  display: inline-table;
   border: 1px solid black;
   border-collapse: collapse;
   border-spacing: 4px;
-  background-color: red;
   empty-cells: show;
 }
 
 table[class|=webapp] td {
   padding: 0.4rem;
-  white-space: nowrap;
-}
-
-table[class|=webapp] td > span {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 table[class|=webapp] > thead > tr:first-child {
@@ -418,9 +410,13 @@ table[class|=webapp] > tbody > tr.fieldset {
   background-color: silver;
 }
 
-table[class|=webapp] > tbody > tr > td {
-  max-width: 20rem;
+table[class|=webapp] > tbody > tr.fieldset > td {
+  white-space: nowrap;
+}
+
+table[class|=webapp] > tbody > tr:not(.fieldset) > td {
   overflow: hidden;
+  white-space: pre;
   text-overflow: ellipsis;
 }
 
@@ -430,20 +426,4 @@ table[class|=webapp] > tfoot {
 
 table[class|=webapp][class*=-grid] > tbody > tr > td {
   border: 1px solid black;
-}
-
-table[class|=webapp][class*=-highlight] > tbody > tr:hover {
-  background-color: #0366d6;
-}
-
-table[class|=webapp][class*=-highlight] > tbody > tr:hover > td {
-  color: white;
-}
-
-table[class|=webapp][class*=-even] > tbody > tr:nth-child(even) {
-  background-color: silver;
-}
-
-table[class|=webapp][class*=-top] td {
-  vertical-align: top;
 }

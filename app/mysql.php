@@ -55,7 +55,11 @@ new class extends webapp
 						['Windows 2000', '#'],
 						['Windows Me', '#']
 					]]
-				]]
+				]],
+				['User', '?users'],
+				['Status', '?status'],
+				['Variables', '?variables'],
+				['Processlist', '?processlist'],
 			]);
 			if (in_array($this->method, ['get_home', 'post_home'], TRUE))
 			{
@@ -252,6 +256,10 @@ new class extends webapp
 		$table = $this->app->main->table($this->query('SHOW FULL FIELDS FROM ?a', $tabname), function(array $row)
 		{
 			$tr = &$this->tbody->tr[];
+
+			$td = &$tr->td[];
+			$td->append('a', ['Editor', 'href' => 'asd']);
+
 			
 			$td = &$tr->td[];
 			$td->append('a', [$row['Field'], 'href' => '#']);
@@ -272,7 +280,13 @@ new class extends webapp
 
 			//print_r( $row );
 		});
-		$table->title($tabname);
+
+		$table->fieldset('Function', 'Field', 'Type', 'Collation', 'Null', 'Key', 'Default', 'Extra', 'Privileges');
+
+
+		$table->header($tabname);
+
+		
 		
 		
 		
@@ -280,7 +294,7 @@ new class extends webapp
 		$a->append('a', ['View data', 'href' => '?data/' . $name, 'class'=> 'primary']);
 		$a->append('a', ['Insert data', 'href' => '#']);
 		$a->append('a', ['Append field', 'href' => '#']);
-		$a->append('input');
+		//$a->append('input');
 		$a->append('a', ['Rename table', 'href' => '#', 'class'=> 'danger']);
 		$a->append('a', ['Truncate table', 'href' => '#', 'class'=> 'danger']);
 		$a->append('a', ['Drop table', 'href' => '#', 'class'=> 'danger']);
@@ -301,7 +315,7 @@ new class extends webapp
 		// $table->bar->button('dwdawd');
 		// $table->bar->button('wdwdwdwd');
 
-		$table->fieldset('Field', 'Type', 'Collation', 'Null', 'Key', 'Default', 'Extra', 'Privileges');
+		
 
 		
 
@@ -320,7 +334,7 @@ new class extends webapp
 		
 		$table = $this->app->main->table($datatab->paging($page, $rows)->result($fields));
 		$table->xml['class'] = 'webapp-grid';
-		$table->title($tabname);
+		$table->header($tabname);
 		
 		$table->cond([
 			'qweqwe' => 'aaaaa',
@@ -328,7 +342,7 @@ new class extends webapp
 			'1eqwea' => 'cccccc'
 		]);
 		
-		$table->bar->append('input');
+		//$table->bar->append('input');
 		$table->bar->append('a', ['Insert data', 'href' => '#']);
 		$table->bar->append('a', ['Backto table', 'href' => '#']);
 		$table->bar->append('a', ['Delete all', 'href' => '#', 'class' => 'danger']);
@@ -439,4 +453,24 @@ new class extends webapp
 		return $form;
 	}
 
+	function get_processlist(string $id = NULL)
+	{
+		if (is_numeric($id))
+		{
+			$this->response_location('?processlist');
+			$this->mysql->kill(intval($id));
+			return 302;
+		}
+		$table = $this->app->main->table($this->query('SHOW PROCESSLIST')->result($fields), function(array $row)
+		{
+			$this->row();
+			$this->row->append('td')->append('a', ['Kill', 'href' => '?processlist/' . $row['Id']]);
+			$this->row->appends('td', $row);
+		});
+		$table->fieldset('Kill', ...$fields);
+		$table->header('Processlist');
+
+
+		$table->xml['class'] = 'webapp-grid';
+	}
 };
