@@ -98,7 +98,7 @@ new class extends webapp
 		
 
 			$this->app->aside->select(
-				array_combine($this->charset, $this->charset), FALSE, 'charset', 'Charset')->setattr(['class' => 'webapp-button'])->selected($this->mysql_charset);
+				array_combine($this->charset, $this->charset))->setattr(['class' => 'webapp-button'])->selected($this->mysql_charset);
 
 			$ul = $this->app->aside->append('ul');
 	
