@@ -107,7 +107,7 @@ html > body > div:first-child > footer:last-child {
   visibility: hidden;
 }
 
-[class|=webapp][class*=-dialog], [class|=webapp][class*=-bar] > details > :not(:first-child), form[class|=webapp] > fieldset > details > :not(:first-child) {
+[class|=webapp][class*=-dialog], [class|=webapp][class*=-bar] > details > :not(:first-child), form[class|=webapp] > fieldset > details > :not(:first-child), details[class|=webapp][class*=-button] > :not(summary), [class|=webapp][class*=-bar] > details > :not(summary), form[class|=webapp] > fieldset > details > :not(summary) {
   border: 0.09rem solid black;
   border-radius: 0.3rem;
   background-color: white;
@@ -162,6 +162,75 @@ html > body > div:first-child > footer:last-child {
   bottom: 0;
 }
 
+[class|=webapp][class*=-button], [class|=webapp][class*=-bar] > a, form[class|=webapp] > fieldset > a, [class|=webapp][class*=-bar] > button, form[class|=webapp] > fieldset > button, [class|=webapp][class*=-bar] > select, form[class|=webapp] > fieldset > select, [class|=webapp][class*=-bar] > details, form[class|=webapp] > fieldset > details {
+  color: black;
+  white-space: nowrap;
+  padding: 0 1rem;
+  border: 1px solid rgba(27, 31, 35, 0.2);
+  border-radius: 3px;
+  background-color: #eff3f6;
+  background-image: linear-gradient(-180deg, #fafbfc 0%, #eff3f6 90%);
+}
+
+[class|=webapp][class*=-button]:hover, [class|=webapp][class*=-bar] > a:hover, form[class|=webapp] > fieldset > a:hover, [class|=webapp][class*=-bar] > button:hover, form[class|=webapp] > fieldset > button:hover, [class|=webapp][class*=-bar] > select:hover, form[class|=webapp] > fieldset > select:hover, [class|=webapp][class*=-bar] > details:hover, form[class|=webapp] > fieldset > details:hover {
+  background-image: linear-gradient(-180deg, #f0f3f6 0%, #e6ecf1 90%);
+  border-color: rgba(27, 31, 35, 0.35);
+  text-decoration: none;
+}
+
+[class|=webapp][class*=-button]:focus, [class|=webapp][class*=-bar] > a:focus, form[class|=webapp] > fieldset > a:focus, [class|=webapp][class*=-bar] > button:focus, form[class|=webapp] > fieldset > button:focus, [class|=webapp][class*=-bar] > select:focus, form[class|=webapp] > fieldset > select:focus, [class|=webapp][class*=-bar] > details:focus, form[class|=webapp] > fieldset > details:focus {
+  box-shadow: 0 0 0 0.2em rgba(3, 102, 214, 0.3);
+}
+
+[class|=webapp][class*=-button]:active, [class|=webapp][class*=-bar] > a:active, form[class|=webapp] > fieldset > a:active, [class|=webapp][class*=-bar] > button:active, form[class|=webapp] > fieldset > button:active, [class|=webapp][class*=-bar] > select:active, form[class|=webapp] > fieldset > select:active, [class|=webapp][class*=-bar] > details:active, form[class|=webapp] > fieldset > details:active {
+  background-image: none;
+  background-color: #e8eef2;
+  border-color: rgba(27, 31, 35, 0.35);
+  box-shadow: inset 0 0.15em 0.3em rgba(27, 31, 35, 0.15);
+}
+
+[class|=webapp][class*=-button].primary, [class|=webapp][class*=-bar] > a.primary, form[class|=webapp] > fieldset > a.primary, [class|=webapp][class*=-bar] > button.primary, form[class|=webapp] > fieldset > button.primary, [class|=webapp][class*=-bar] > select.primary, form[class|=webapp] > fieldset > select.primary, [class|=webapp][class*=-bar] > details.primary, form[class|=webapp] > fieldset > details.primary {
+  color: white;
+  background-color: #28a745;
+  background-image: linear-gradient(-180deg, #34ce57 0%, #28a745 90%);
+}
+
+[class|=webapp][class*=-button].primary:hover, [class|=webapp][class*=-bar] > a.primary:hover, form[class|=webapp] > fieldset > a.primary:hover, [class|=webapp][class*=-bar] > button.primary:hover, form[class|=webapp] > fieldset > button.primary:hover, [class|=webapp][class*=-bar] > select.primary:hover, form[class|=webapp] > fieldset > select.primary:hover, [class|=webapp][class*=-bar] > details.primary:hover, form[class|=webapp] > fieldset > details.primary:hover {
+  background-image: linear-gradient(-180deg, #2fc652 0%, #269f42 90%);
+  border-color: rgba(27, 31, 35, 0.5);
+}
+
+[class|=webapp][class*=-button].primary:focus, [class|=webapp][class*=-bar] > a.primary:focus, form[class|=webapp] > fieldset > a.primary:focus, [class|=webapp][class*=-bar] > button.primary:focus, form[class|=webapp] > fieldset > button.primary:focus, [class|=webapp][class*=-bar] > select.primary:focus, form[class|=webapp] > fieldset > select.primary:focus, [class|=webapp][class*=-bar] > details.primary:focus, form[class|=webapp] > fieldset > details.primary:focus {
+  box-shadow: 0 0 0 0.2em rgba(52, 206, 87, 0.4);
+}
+
+[class|=webapp][class*=-button].primary:active, [class|=webapp][class*=-bar] > a.primary:active, form[class|=webapp] > fieldset > a.primary:active, [class|=webapp][class*=-bar] > button.primary:active, form[class|=webapp] > fieldset > button.primary:active, [class|=webapp][class*=-bar] > select.primary:active, form[class|=webapp] > fieldset > select.primary:active, [class|=webapp][class*=-bar] > details.primary:active, form[class|=webapp] > fieldset > details.primary:active {
+  background-image: none;
+  background-color: #27a143;
+  border-color: rgba(27, 31, 35, 0.5);
+}
+
+[class|=webapp][class*=-button].danger, [class|=webapp][class*=-bar] > a.danger, form[class|=webapp] > fieldset > a.danger, [class|=webapp][class*=-bar] > button.danger, form[class|=webapp] > fieldset > button.danger, [class|=webapp][class*=-bar] > select.danger, form[class|=webapp] > fieldset > select.danger, [class|=webapp][class*=-bar] > details.danger, form[class|=webapp] > fieldset > details.danger {
+  color: #cb2431;
+}
+
+[class|=webapp][class*=-button].danger:hover, [class|=webapp][class*=-bar] > a.danger:hover, form[class|=webapp] > fieldset > a.danger:hover, [class|=webapp][class*=-bar] > button.danger:hover, form[class|=webapp] > fieldset > button.danger:hover, [class|=webapp][class*=-bar] > select.danger:hover, form[class|=webapp] > fieldset > select.danger:hover, [class|=webapp][class*=-bar] > details.danger:hover, form[class|=webapp] > fieldset > details.danger:hover {
+  color: white;
+  background-image: linear-gradient(-180deg, #de4450 0%, #cb2431 90%);
+  border-color: rgba(27, 31, 35, 0.5);
+}
+
+[class|=webapp][class*=-button].danger:focus, [class|=webapp][class*=-bar] > a.danger:focus, form[class|=webapp] > fieldset > a.danger:focus, [class|=webapp][class*=-bar] > button.danger:focus, form[class|=webapp] > fieldset > button.danger:focus, [class|=webapp][class*=-bar] > select.danger:focus, form[class|=webapp] > fieldset > select.danger:focus, [class|=webapp][class*=-bar] > details.danger:focus, form[class|=webapp] > fieldset > details.danger:focus {
+  box-shadow: 0 0 0 0.2em rgba(203, 36, 49, 0.4);
+}
+
+[class|=webapp][class*=-button].danger:active, [class|=webapp][class*=-bar] > a.danger:active, form[class|=webapp] > fieldset > a.danger:active, [class|=webapp][class*=-bar] > button.danger:active, form[class|=webapp] > fieldset > button.danger:active, [class|=webapp][class*=-bar] > select.danger:active, form[class|=webapp] > fieldset > select.danger:active, [class|=webapp][class*=-bar] > details.danger:active, form[class|=webapp] > fieldset > details.danger:active {
+  color: white;
+  background-image: none;
+  background-color: #b5202c;
+  border-color: rgba(27, 31, 35, 0.5);
+}
+
 [class|=webapp][class*=-bar], form[class|=webapp] > fieldset {
   display: flex;
   gap: 1rem;
@@ -201,75 +270,6 @@ html > body > div:first-child > footer:last-child {
 
 [class|=webapp][class*=-bar] > input:not([type=checkbox]):not([type=radio])::placeholder, form[class|=webapp] > fieldset > input:not([type=checkbox]):not([type=radio])::placeholder, [class|=webapp][class*=-bar] > textarea::placeholder, form[class|=webapp] > fieldset > textarea::placeholder {
   color: silver;
-}
-
-[class|=webapp][class*=-bar] > a, form[class|=webapp] > fieldset > a, [class|=webapp][class*=-bar] > button, form[class|=webapp] > fieldset > button, [class|=webapp][class*=-bar] > select, form[class|=webapp] > fieldset > select, [class|=webapp][class*=-bar] > details, form[class|=webapp] > fieldset > details {
-  color: black;
-  white-space: nowrap;
-  padding: 0 1rem;
-  border: 1px solid rgba(27, 31, 35, 0.2);
-  border-radius: 3px;
-  background-color: #eff3f6;
-  background-image: linear-gradient(-180deg, #fafbfc 0%, #eff3f6 90%);
-}
-
-[class|=webapp][class*=-bar] > a:hover, form[class|=webapp] > fieldset > a:hover, [class|=webapp][class*=-bar] > button:hover, form[class|=webapp] > fieldset > button:hover, [class|=webapp][class*=-bar] > select:hover, form[class|=webapp] > fieldset > select:hover, [class|=webapp][class*=-bar] > details:hover, form[class|=webapp] > fieldset > details:hover {
-  background-image: linear-gradient(-180deg, #f0f3f6 0%, #e6ecf1 90%);
-  border-color: rgba(27, 31, 35, 0.35);
-  text-decoration: none;
-}
-
-[class|=webapp][class*=-bar] > a:focus, form[class|=webapp] > fieldset > a:focus, [class|=webapp][class*=-bar] > button:focus, form[class|=webapp] > fieldset > button:focus, [class|=webapp][class*=-bar] > select:focus, form[class|=webapp] > fieldset > select:focus, [class|=webapp][class*=-bar] > details:focus, form[class|=webapp] > fieldset > details:focus {
-  box-shadow: 0 0 0 0.2em rgba(3, 102, 214, 0.3);
-}
-
-[class|=webapp][class*=-bar] > a:active, form[class|=webapp] > fieldset > a:active, [class|=webapp][class*=-bar] > button:active, form[class|=webapp] > fieldset > button:active, [class|=webapp][class*=-bar] > select:active, form[class|=webapp] > fieldset > select:active, [class|=webapp][class*=-bar] > details:active, form[class|=webapp] > fieldset > details:active {
-  background-image: none;
-  background-color: #e8eef2;
-  border-color: rgba(27, 31, 35, 0.35);
-  box-shadow: inset 0 0.15em 0.3em rgba(27, 31, 35, 0.15);
-}
-
-[class|=webapp][class*=-bar] > a.primary, form[class|=webapp] > fieldset > a.primary, [class|=webapp][class*=-bar] > button.primary, form[class|=webapp] > fieldset > button.primary, [class|=webapp][class*=-bar] > select.primary, form[class|=webapp] > fieldset > select.primary, [class|=webapp][class*=-bar] > details.primary, form[class|=webapp] > fieldset > details.primary {
-  color: white;
-  background-color: #28a745;
-  background-image: linear-gradient(-180deg, #34ce57 0%, #28a745 90%);
-}
-
-[class|=webapp][class*=-bar] > a.primary:hover, form[class|=webapp] > fieldset > a.primary:hover, [class|=webapp][class*=-bar] > button.primary:hover, form[class|=webapp] > fieldset > button.primary:hover, [class|=webapp][class*=-bar] > select.primary:hover, form[class|=webapp] > fieldset > select.primary:hover, [class|=webapp][class*=-bar] > details.primary:hover, form[class|=webapp] > fieldset > details.primary:hover {
-  background-image: linear-gradient(-180deg, #2fc652 0%, #269f42 90%);
-  border-color: rgba(27, 31, 35, 0.5);
-}
-
-[class|=webapp][class*=-bar] > a.primary:focus, form[class|=webapp] > fieldset > a.primary:focus, [class|=webapp][class*=-bar] > button.primary:focus, form[class|=webapp] > fieldset > button.primary:focus, [class|=webapp][class*=-bar] > select.primary:focus, form[class|=webapp] > fieldset > select.primary:focus, [class|=webapp][class*=-bar] > details.primary:focus, form[class|=webapp] > fieldset > details.primary:focus {
-  box-shadow: 0 0 0 0.2em rgba(52, 206, 87, 0.4);
-}
-
-[class|=webapp][class*=-bar] > a.primary:active, form[class|=webapp] > fieldset > a.primary:active, [class|=webapp][class*=-bar] > button.primary:active, form[class|=webapp] > fieldset > button.primary:active, [class|=webapp][class*=-bar] > select.primary:active, form[class|=webapp] > fieldset > select.primary:active, [class|=webapp][class*=-bar] > details.primary:active, form[class|=webapp] > fieldset > details.primary:active {
-  background-image: none;
-  background-color: #27a143;
-  border-color: rgba(27, 31, 35, 0.5);
-}
-
-[class|=webapp][class*=-bar] > a.danger, form[class|=webapp] > fieldset > a.danger, [class|=webapp][class*=-bar] > button.danger, form[class|=webapp] > fieldset > button.danger, [class|=webapp][class*=-bar] > select.danger, form[class|=webapp] > fieldset > select.danger, [class|=webapp][class*=-bar] > details.danger, form[class|=webapp] > fieldset > details.danger {
-  color: #cb2431;
-}
-
-[class|=webapp][class*=-bar] > a.danger:hover, form[class|=webapp] > fieldset > a.danger:hover, [class|=webapp][class*=-bar] > button.danger:hover, form[class|=webapp] > fieldset > button.danger:hover, [class|=webapp][class*=-bar] > select.danger:hover, form[class|=webapp] > fieldset > select.danger:hover, [class|=webapp][class*=-bar] > details.danger:hover, form[class|=webapp] > fieldset > details.danger:hover {
-  color: white;
-  background-image: linear-gradient(-180deg, #de4450 0%, #cb2431 90%);
-  border-color: rgba(27, 31, 35, 0.5);
-}
-
-[class|=webapp][class*=-bar] > a.danger:focus, form[class|=webapp] > fieldset > a.danger:focus, [class|=webapp][class*=-bar] > button.danger:focus, form[class|=webapp] > fieldset > button.danger:focus, [class|=webapp][class*=-bar] > select.danger:focus, form[class|=webapp] > fieldset > select.danger:focus, [class|=webapp][class*=-bar] > details.danger:focus, form[class|=webapp] > fieldset > details.danger:focus {
-  box-shadow: 0 0 0 0.2em rgba(203, 36, 49, 0.4);
-}
-
-[class|=webapp][class*=-bar] > a.danger:active, form[class|=webapp] > fieldset > a.danger:active, [class|=webapp][class*=-bar] > button.danger:active, form[class|=webapp] > fieldset > button.danger:active, [class|=webapp][class*=-bar] > select.danger:active, form[class|=webapp] > fieldset > select.danger:active, [class|=webapp][class*=-bar] > details.danger:active, form[class|=webapp] > fieldset > details.danger:active {
-  color: white;
-  background-image: none;
-  background-color: #b5202c;
-  border-color: rgba(27, 31, 35, 0.5);
 }
 
 [class|=webapp][class*=-bar] > select, form[class|=webapp] > fieldset > select {
@@ -399,6 +399,11 @@ table[class|=webapp] td {
   padding: 0.4rem;
 }
 
+table[class|=webapp] td:empty::before {
+  content: 'NULL';
+  color: silver;
+}
+
 table[class|=webapp] > thead > tr:first-child {
   color: white;
   background-color: #0366d6;
@@ -424,4 +429,48 @@ table[class|=webapp] > tfoot {
 
 table[class|=webapp][class*=-grid] > tbody > tr > td {
   border: 1px solid black;
+}
+
+details[class|=webapp] {
+  display: inline-block;
+}
+
+details[class|=webapp][class*=-button], [class|=webapp][class*=-bar] > details, form[class|=webapp] > fieldset > details {
+  position: relative;
+  padding: 0;
+}
+
+details[class|=webapp][class*=-button] > summary, [class|=webapp][class*=-bar] > details > summary, form[class|=webapp] > fieldset > details > summary {
+  padding: 0 1rem;
+}
+
+details[class|=webapp][class*=-button] > summary::before, [class|=webapp][class*=-bar] > details > summary::before, form[class|=webapp] > fieldset > details > summary::before {
+  content: 'Selecting';
+}
+
+details[class|=webapp][class*=-button] > :not(summary), [class|=webapp][class*=-bar] > details > :not(summary), form[class|=webapp] > fieldset > details > :not(summary) {
+  position: absolute;
+  z-index: 9999;
+}
+
+ul[class|=webapp] {
+  list-style-type: none;
+}
+
+ul[class|=webapp][class*=-select] {
+  padding: .4rem 0;
+  line-height: 2rem;
+}
+
+ul[class|=webapp][class*=-select] > li:hover {
+  background-color: silver;
+}
+
+ul[class|=webapp][class*=-select] > li > label {
+  display: block;
+  padding-right: .8rem;
+}
+
+ul[class|=webapp][class*=-select] > li > label > input {
+  margin: 0 .6rem;
 }

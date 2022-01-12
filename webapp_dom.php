@@ -350,6 +350,8 @@ class webapp_html extends webapp_xml
 		$node->text($comment);
 		return $node;
 	}
+	
+	
 	function options(iterable $values, string ...$selected):static
 	{
 		foreach ($values as $value => $content)
@@ -363,9 +365,45 @@ class webapp_html extends webapp_xml
 		}
 		return $this[0];
 	}
-	function select(iterable $options, string ...$value):static
+	function select(iterable $options, bool $multiple = FALSE, ?string $name = NULL, ?string $placeholder = NULL):static
 	{
-		return $this[0]->append('select')->options($options, ...$value);
+		if ($name)
+		{
+			$node = $placeholder ? $this[0]->details($placeholder) : $this[0];
+			if ($multiple)
+			{
+				$name .= '[]';
+				$type = 'checkbox';
+			}
+			else
+			{
+				$type = 'radio';
+			}
+			$ul = $node->append('ul', ['class' => 'webapp-select']);
+			foreach ($options as $value => $comment)
+			{
+				$ul->append('li')->labelinput($name, $type, $value, $comment);
+			}
+
+			//$node->ulselect($name, $options, $multiple);
+			//$node['class'] = 'webapp-button';
+
+
+		}
+		else
+		{
+			$node = $this[0]->append('select');
+			$node->options($options);
+			//return $this[0]->append('select')->options($options);
+		}
+		
+		
+		
+		return $node;
+
+
+
+		
 	}
 	// function section(string $title, int $level = 1):static
 	// {
@@ -373,7 +411,51 @@ class webapp_html extends webapp_xml
 	// 	$node->{'h' . max(1, min(6, $level))} = $title;
 	// 	return $node;
 	// }
-
+	function ulselect(string $name, iterable $options, bool $multiple = FALSE):static
+	{
+		$node = $this[0]->append('ul', ['class' => 'webapp-select']);
+		if ($multiple)
+		{
+			$name .= '[]';
+			$type = 'checkbox';
+		}
+		else
+		{
+			$type = 'radio';
+		}
+		foreach ($options as $value => $comment)
+		{
+			$node->append('li')->labelinput($name, $type, $value, $comment);
+		}
+		
+		
+		return $node;
+	}
+	function selected(...$values):static
+	{
+		if ($value = join(' or ', array_map(
+			fn($value) => sprintf('@value="%s"', $value),
+			array_filter($values, is_scalar(...))))) {
+			[$selected, $selector] = match ($this->getName())
+			{
+				'ul'		=> ['checked', 'li/label/input'],
+				'details'	=> ['checked', 'ul/li/label/input'],
+				default		=> ['selected', 'option']
+			};
+			foreach ($this->xpath("{$selector}[{$value}]") as $node)
+			{
+				$node->setattr([$selected => NULL]);
+			}
+		}
+		return $this;
+	}
+	function detailed(string $name, iterable $options, bool $multiple = FALSE):static
+	{
+		$node = $this[0]->details('');
+		$node->ulselect($name, $options, $multiple);
+		$node['class'] = 'webapp-button';
+		return $node;
+	}
 
 	function atree(iterable $link, bool $fold = FALSE)
 	{
@@ -678,49 +760,20 @@ class webapp_form
 		$alias = preg_match('/^\w+/', $name, $pattern) ? $pattern[0] : $this->index++;
 		return $this->fields[$alias] = match ($type)
 		{
+			'webapp-select' => $this->fieldset->select(
+				$attr['options'] ?? [],
+				array_key_exists('data-multiple', $attr),
+				$name, $attr['data-placeholder'] ?? NULL)->setattr($attr),
+			'radio',
+			'checkbox' => $this->fieldset->select($attr['options'] ?? [], $type === 'checkbox', $name),
+			'select' => $this->fieldset->select($attr['options'] ?? [])
+				->setattr(['name' => array_key_exists('multiple', $attr) ? "{$alias}[]" : $alias] + $attr),
+
+
+
 			'textarea' => $this->fieldset->append('textarea', ['name' => $alias] + $attr),
-			'select' => $this->fieldset->select($attr['option'] ?? [], ...$attr['value'] ?? [])->setattr([
-				'name' => array_key_exists('multiple', $attr) ? "{$alias}[]" : $alias
-			] + $attr),
 			default => $this->fieldset->append('input', ['type' => $type, 'name' => $alias] + $attr)
 		};
-		switch ($type = strtolower($type))
-		{
-			case 'radio':
-			case 'checkbox':
-				// $node = &$this->fieldset->div[];
-				// $node['data-type'] = $typename;
-				// if ($typename === 'checkbox')
-				// {
-				// 	$alias .= '[]';
-				// }
-				// foreach ($attributes as $value => $comment)
-				// {
-				// 	$node->labelinput($alias, $typename, $value, $comment);
-				// }
-				// return $this->fields[$rename] = $node;
-			// case 'set':
-			// case 'enum':
-			// case 'setinput':
-			// case 'enuminput':
-			case 'textarea':
-				return $this->fields[$alias] = $this->fieldset->append('textarea', ['name' => $rename] + $attr);
-			// case 'file':
-			// 	$this->xml['enctype'] = 'multipart/form-data';
-			case 'select':
-				if (array_key_exists('multiple', $attr))
-				{
-					$rename .= '[]';
-				}
-				if ($type === 'select')
-				{
-					return $this->fields[$alias] = $this->fieldset->select($attr['option'] ?? [])->setattr([
-						'name' => $rename
-					] + $attr);
-				}
-			default:
-				return $this->fields[$alias] = $this->fieldset->append('input', ['type' => $type, 'name' => $rename] + $attr);
-		}
 	}
 	private function setdefault(array $values):static
 	{

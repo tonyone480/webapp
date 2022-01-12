@@ -222,6 +222,66 @@ html{
 		// 		}
 		// 	}
 		// }
+	&[class*=-button]{
+		color: $foreground;
+		white-space: nowrap;
+		padding: 0 1rem;
+		border: 1px solid rgba($border, 0.2);
+		border-radius: 3px;
+		
+		background-color: $button;
+		background-image: linear-gradient(-180deg, lighten($button, 3.4%) 0%, $button 90%);
+		&:hover{
+			background-image: linear-gradient(-180deg, lighten($button, 0.2%) 0%, darken($button, 2.8%) 90%);
+			border-color: rgba($border, 0.35);
+			text-decoration: none;
+		}
+		&:focus{
+			box-shadow: 0 0 0 0.2em rgba($link, 0.3);
+		}
+		&:active{
+			background-image: none;
+			background-color: darken($button, 2%);
+			border-color: rgba($border, 0.35);
+			box-shadow: inset 0 0.15em 0.3em rgba($border, 0.15);
+		}
+		//主要
+		&.primary{
+			color: $background;
+			background-color: $primary;
+			background-image: linear-gradient(-180deg, lighten($primary, 10%) 0%, $primary 90%);
+			&:hover{
+				background-image: linear-gradient(-180deg, lighten($primary, 7.6%) 0%, darken($primary, 2%) 90%);
+				border-color: rgba($border, 0.5);
+			}
+			&:focus{
+				box-shadow: 0 0 0 0.2em rgba(lighten($primary, 10%), 0.4);
+			}
+			&:active{
+				background-image: none;
+				background-color: darken($primary, 1.4%);
+				border-color: rgba($border, 0.5);
+			}
+		}
+		//危险
+		&.danger{
+			color: $danger;
+			&:hover{
+				color: $background;
+				background-image: linear-gradient(-180deg, lighten($danger, 10%) 0%, $danger 90%);
+				border-color: rgba($border, 0.5);
+			}
+			&:focus{
+				box-shadow: 0 0 0 0.2em rgba($danger, 0.4);
+			}
+			&:active{
+				color: $background;
+				background-image: none;
+				background-color: darken($danger, 5%);
+				border-color: rgba($border, 0.5);
+			}
+		}
+	}
 	&[class*=-bar]{
 		display: flex;
 		gap: 1rem;
@@ -259,65 +319,8 @@ html{
 			}
 		}
 		>a,>button,>select,>details{
-			
-			color: $foreground;
-			white-space: nowrap;
-			padding: 0 1rem;
-			border: 1px solid rgba($border, 0.2);
-			border-radius: 3px;
-			
-			background-color: $button;
-			background-image: linear-gradient(-180deg, lighten($button, 3.4%) 0%, $button 90%);
-			&:hover{
-				background-image: linear-gradient(-180deg, lighten($button, 0.2%) 0%, darken($button, 2.8%) 90%);
-				border-color: rgba($border, 0.35);
-				text-decoration: none;
-			}
-			&:focus{
-				box-shadow: 0 0 0 0.2em rgba($link, 0.3);
-			}
-			&:active{
-				background-image: none;
-				background-color: darken($button, 2%);
-				border-color: rgba($border, 0.35);
-				box-shadow: inset 0 0.15em 0.3em rgba($border, 0.15);
-			}
-			//主要
-			&.primary{
-				color: $background;
-				background-color: $primary;
-				background-image: linear-gradient(-180deg, lighten($primary, 10%) 0%, $primary 90%);
-				&:hover{
-					background-image: linear-gradient(-180deg, lighten($primary, 7.6%) 0%, darken($primary, 2%) 90%);
-					border-color: rgba($border, 0.5);
-				}
-				&:focus{
-					box-shadow: 0 0 0 0.2em rgba(lighten($primary, 10%), 0.4);
-				}
-				&:active{
-					background-image: none;
-					background-color: darken($primary, 1.4%);
-					border-color: rgba($border, 0.5);
-				}
-			}
-			//危险
-			&.danger{
-				color: $danger;
-				&:hover{
-					color: $background;
-					background-image: linear-gradient(-180deg, lighten($danger, 10%) 0%, $danger 90%);
-					border-color: rgba($border, 0.5);
-				}
-				&:focus{
-					box-shadow: 0 0 0 0.2em rgba($danger, 0.4);
-				}
-				&:active{
-					color: $background;
-					background-image: none;
-					background-color: darken($danger, 5%);
-					border-color: rgba($border, 0.5);
-				}
-			}
+			@extend [class|=webapp][class*=-button];
+
 		}
 		>select{
 			outline: none;
@@ -445,6 +448,10 @@ table[class|=webapp]{
 	td{
 		
 		padding: 0.4rem;
+		&:empty::before{
+			content: 'NULL';
+			color: $hint;
+		}
 		// >span{
 		// 	display: block;
 		// 	overflow: hidden;
@@ -505,4 +512,45 @@ table[class|=webapp]{
 		
 	// }
 
+}
+
+details[class|=webapp]{
+	display: inline-block;
+	&[class*=-button]{
+		position: relative;
+		padding: 0;
+		>summary{
+			padding: 0 1rem;
+			&::before{
+				content: 'Selecting';
+			}
+		}
+		>:not(summary){
+			position: absolute;
+			@extend [class|=webapp][class*=-dialog];
+			z-index: 9999;
+		}
+	}
+}
+
+ul[class|=webapp]{
+	list-style-type: none;
+	
+	&[class*=-select]{
+		padding: .4rem 0;
+		line-height: 2rem;
+		>li{
+			&:hover{
+				background-color: $hint;
+			}
+			>label{
+				display: block;
+				padding-right: .8rem;
+				>input{
+					margin: 0 .6rem;
+				}
+			}
+			
+		}
+	}
 }

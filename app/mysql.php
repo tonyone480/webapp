@@ -447,6 +447,48 @@ new class extends webapp
 		return $form;
 	}
 
+	function post_users(){
+		print_r($_POST);
+	}
+	function get_users()
+	{
+		$this->app->main->select([
+			'ddd' => '卡仕达和爱时代拉',
+			'aaaa' => '哈可是当我安徽省电话',
+			'wwwww' => '哦i的期望都收到阿萨的',
+			'gggg' => '静安寺点卡实打实'
+		], FALSE, 'adsdasd', '请选择')->selected('ddd', 'aaaa', 'gggg', null)['class'] = 'webapp-button';
+
+		// $this->app->main->append('option', ['value' => 'dd']);
+		
+		$this->app->main->append('hr');
+
+		$form = $this->app->main->form();
+		$form->field('asd', 'webapp-select', [
+		'data-placeholder' => 'aaa',
+		'data-multiple' => NULL,
+		'options' => [
+			'ddd' => '卡仕达和爱时代拉',
+			'aaaa' => '哈可是当我安徽省电话',
+			'wwwww' => '哦i的期望都收到阿萨的',
+			'gggg' => '静安寺点卡实打实'
+		]]);
+		$form->field('input', 'text');
+
+		$form->fieldset();
+
+		$form->field('www', 'checkbox', [
+
+			'options' => [
+				'ddd' => '卡仕达和爱时代拉',
+				'aaaa' => '哈可是当我安徽省电话',
+				'wwwww' => '哦i的期望都收到阿萨的',
+				'gggg' => '静安寺点卡实打实'
+		]]);
+		$form->fieldset();
+
+		$form->button('提交', 'submit');
+	}
 	function get_processlist(string $id = NULL)
 	{
 		if (is_numeric($id))
