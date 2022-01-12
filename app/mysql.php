@@ -234,7 +234,11 @@ new class extends webapp
 
 
 		$table->footer($this->query('SHOW CREATE DATABASE ?a', $this->mysql_database)->value(1));
+		
 		$table->xml['class'] .= '-grid';
+
+
+		$table = $this->app->main->table(['123','456']);
 		
 	}
 	function get_tab(string $name)

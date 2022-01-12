@@ -842,7 +842,7 @@ class webapp_table
 			$root = &$node->table[],
 			&$root->tbody];
 		$root['class'] = 'webapp';
-		$output ??= fn(array $contents) => $this->row()->appends('td', $contents);
+		$output ??= fn($contents) => $this->row()->{is_iterable($contents) ? 'appends' : 'append'}('td', $contents);
 		foreach ($data as $values)
 		{
 			$output->call($this, $values, ...$params);
