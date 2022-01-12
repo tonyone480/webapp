@@ -343,7 +343,7 @@ class webapp_html extends webapp_xml
 	// 	$node = &$this[0]->figure[];
 	// 	return $node;
 	// }
-	function labelinput(string $name, string $type, string $value, string $comment):static
+	function labelinput(string $name, string $type, float|string $value, string $comment):static
 	{
 		$node = &$this[0]->label[];
 		$node->append('input', ['type' => $type, 'name' => $name, 'value' => $value]);

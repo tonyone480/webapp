@@ -32,6 +32,32 @@ class webapp_router_query extends webapp_echo_json
 }
 new class extends webapp
 {
+	const fieldtype = [
+		'tinyint',
+		'smallint',
+		'int',
+		'bigint',
+		'float',
+		'double',
+		'decimal',
+		'date',
+		'datetime',
+		'time',
+		'timestamp',
+		'year',
+		'char',
+		'varchar',
+		'tinyblob',
+		'tinytext',
+		'blob',
+		'text',
+		'mediumblob',
+		'mediumtext',
+		'longblob',
+		'longtext',
+		'enum',
+		'set',
+	];
 	function __construct()
 	{
 		if ($this->init_admin_sign_in(new io)) return;
@@ -71,9 +97,8 @@ new class extends webapp
 			}
 		
 
-			$this->app->aside->select(array_combine($this->charset, $this->charset), $this->mysql_charset)->setattr([
-				'onchange' => 'location.replace(`?console/${this.value}`)'
-			]);
+			$this->app->aside->select(
+				array_combine($this->charset, $this->charset), FALSE, 'charset', 'Charset')->setattr(['class' => 'webapp-button'])->selected($this->mysql_charset);
 
 			$ul = $this->app->aside->append('ul');
 	
@@ -117,19 +142,92 @@ new class extends webapp
 	{
 		return ($this->mysql)(...$params);
 	}
+	function form_field(webapp|webapp_html $context = NULL, string $action = NULL):array|webapp_form
+	{
+		$form = new webapp_form($context, $action);
+		$form->legend('Field');
 
-	// function datatable():string
-	// {
-	// 	return $this->request_query('datatable');
-	// }
-	// function selectdb(string $fullname):string
-	// {
-	// 	return count($select = explode('--', $fullname, 2)) > 1 && $this->mysql->select_db($select[0]) ? $select[1] : $fullname;
-	// }
-	// function datatable(string $fullname = NULL):webapp_mysql_table
-	// {
-	// 	return $this->mysql->{$this->selectdb($fullname)};
-	// }
+		$form->fieldset('Field / Comment');
+		$form->field('field', 'text', ['placeholder' => 'Type name', 'required' => NULL]);
+		$form->field('comment', 'text', ['placeholder' => 'Type comment']);
+
+		$form->fieldset('Type / Length');
+		$form->field('type', 'select', [
+			'options' => static::fieldtype
+		]);
+		$form->field('length', 'number', ['min' => 0, 'max' => 0xffff, 'placeholder' => 'Type max length or enum set']);
+
+		$form->fieldset('Attribute / Collation');
+		$form->field('attr', 'select', [
+			'options' => [
+				'none', 'binary', 'unsigned', 'unsigned zerofill'
+			]
+		]);
+		$form->field('collation', 'select', [
+			'options' => $this->charset
+		]);
+
+		$form->fieldset('Null / Default');
+		$form->field('null', 'webapp-select', [
+			'data-placeholder' => 'Select allow null',
+			'options' => ['No', 'Yes']
+		]);
+		$form->field('default', 'text', ['placeholder' => 'Type default value']);
+
+		$form->fieldset('Extra / After');
+		$form->field('null', 'webapp-select', [
+			'data-placeholder' => 'Select allow null',
+			'options' => ['None', 'auto_increment']
+		]);
+		$form->field('null', 'select', [
+			'options' => ['ASDASD', 'DAWFAWFAWF']
+		]);
+
+		$form->fieldset();
+		$form->button('Submit', 'submit');
+		$form->button('Reset', 'reset');
+		return $form;
+	}
+	function form_table(string $tabname, webapp|webapp_html $context = NULL, string $action = NULL):array|webapp_form
+	{
+		$form = new webapp_form($context, $action);
+		$form->legend($tabname);
+		foreach ($this->query('SHOW FULL FIELDS FROM ?a', $tabname) as $row)
+		{
+			$form->fieldset($row['Field']);
+			preg_match('/(\w+)(?:\((\d+)\)(?:\s(\w+))?)?/', $row['Type'], $type);
+			if (isset($type[2]) && is_numeric($type[2]))
+			{
+				$attr['maxlength'] = $type[2];
+			}
+
+
+			$attr = [];
+			if ($row['Comment'])
+			{
+				$attr['placeholder'] = $row['Comment'];
+			}
+			if ($row['Null'] === 'NO')
+			{
+				$attr['required'] = NULL;
+			}
+			
+
+			$form->field($row['Field'], match ($type[1])
+			{
+				'tinyint' => 'number',
+				'text' => 'textarea',
+				default => 'text'
+			}, $attr);
+			//rint_r($row);
+		}
+		$form->fieldset();
+		
+		$form->button('Insert', 'submit');
+		$form->button('Reset', 'reset');
+		
+		return $form();
+	}
 
 	function post_home()
 	{
@@ -282,7 +380,7 @@ new class extends webapp
 		$a = $table->bar;
 		$a->append('a', ['View data', 'href' => '?data/' . $name, 'class'=> 'primary']);
 		$a->append('a', ['Insert data', 'href' => '#']);
-		$a->append('a', ['Append field', 'href' => '#']);
+		$a->append('a', ['Append field', 'href' => '?editfield']);
 		//$a->append('input');
 		$a->append('a', ['Rename table', 'href' => '#', 'class'=> 'danger']);
 		$a->append('a', ['Truncate table', 'href' => '#', 'class'=> 'danger']);
@@ -348,45 +446,9 @@ new class extends webapp
 		
 
 	}
-	function form_field(string $tabname, webapp|webapp_html $context = NULL, string $action = NULL):array|webapp_form
+	function get_editfield()
 	{
-		$form = new webapp_form($context, $action);
-		$form->legend($tabname);
-		foreach ($this->query('SHOW FULL FIELDS FROM ?a', $tabname) as $row)
-		{
-			$form->fieldset($row['Field']);
-			preg_match('/(\w+)(?:\((\d+)\)(?:\s(\w+))?)?/', $row['Type'], $type);
-			if (isset($type[2]) && is_numeric($type[2]))
-			{
-				$attr['maxlength'] = $type[2];
-			}
-
-
-			$attr = [];
-			if ($row['Comment'])
-			{
-				$attr['placeholder'] = $row['Comment'];
-			}
-			if ($row['Null'] === 'NO')
-			{
-				$attr['required'] = NULL;
-			}
-			
-
-			$form->field($row['Field'], match ($type[1])
-			{
-				'tinyint' => 'number',
-				'text' => 'textarea',
-				default => 'text'
-			}, $attr);
-			//rint_r($row);
-		}
-		$form->fieldset();
-		
-		$form->button('Insert', 'submit');
-		$form->button('Reset', 'reset');
-		
-		return $form();
+		$this->form_field($this->app->main);
 	}
 	function get_editor(string $name)
 	{

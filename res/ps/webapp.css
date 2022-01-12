@@ -445,12 +445,15 @@ details[class|=webapp][class*=-button] > summary, [class|=webapp][class*=-bar] >
 }
 
 details[class|=webapp][class*=-button] > summary::before, [class|=webapp][class*=-bar] > details > summary::before, form[class|=webapp] > fieldset > details > summary::before {
-  content: 'Selecting';
+  content: attr(data-placeholder);
 }
 
 details[class|=webapp][class*=-button] > :not(summary), [class|=webapp][class*=-bar] > details > :not(summary), form[class|=webapp] > fieldset > details > :not(summary) {
   position: absolute;
   z-index: 9999;
+  display: block;
+  max-height: 40rem;
+  overflow-y: auto;
 }
 
 ul[class|=webapp] {

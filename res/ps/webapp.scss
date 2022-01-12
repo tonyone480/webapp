@@ -522,13 +522,16 @@ details[class|=webapp]{
 		>summary{
 			padding: 0 1rem;
 			&::before{
-				content: 'Selecting';
+				content: attr(data-placeholder);
 			}
 		}
 		>:not(summary){
 			position: absolute;
 			@extend [class|=webapp][class*=-dialog];
 			z-index: 9999;
+			display: block;
+			max-height: 40rem;
+			overflow-y: auto;
 		}
 	}
 }
