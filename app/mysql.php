@@ -526,6 +526,9 @@ new class extends webapp
 		$this->app->main->append('hr');
 
 		$form = $this->app->main->form();
+		//$form->legend('0000000000000000000000000000000000000000000000000000000000000000');
+
+		$form->fieldset();
 		$form->field('asd', 'webapp-select', [
 		'data-placeholder' => 'aaa',
 		'data-multiple' => NULL,
@@ -535,7 +538,8 @@ new class extends webapp
 			'wwwww' => '哦i的期望都收到阿萨的',
 			'gggg' => '静安寺点卡实打实'
 		]]);
-		$form->field('input', 'text');
+		$form->field('dda', 'text');
+		//$form->field('add', 'text');
 
 		$form->fieldset();
 
@@ -550,6 +554,21 @@ new class extends webapp
 		$form->fieldset();
 
 		$form->button('提交', 'submit');
+		$form->button('清楚把',);
+		$form->button('静安寺安徽爱时代就垃圾啊看');
+
+		$form->fieldset();
+		$form->field('dda1', 'text');
+		$form->field('add2', 'text');
+		//$form->field('dda3', 'text');
+		//$form->field('add4', 'text');
+
+		$form->fieldset();
+		$form->button('测试');
+
+		$this->app->main->append('b', '2222');
+		$this->app->main->append('input', ['ssssssss','type'=>'text','class'=>'webapp-input', 'contenteditable'=>null]);
+		$this->app->main->append('button', ['Hjasdw Lkdasd', 'class'=>'webapp-button']);
 	}
 	function get_processlist(string $id = NULL)
 	{
