@@ -107,7 +107,7 @@ html > body > div:first-child > footer:last-child {
   visibility: hidden;
 }
 
-[class|=webapp][class*=-dialog], [class|=webapp][class*=-bar] > details > :not(:first-child), form[class|=webapp] > fieldset > details > :not(:first-child), details[class|=webapp][class*=-button] > :not(summary), [class|=webapp][class*=-bar] > details > :not(summary), form[class|=webapp] > fieldset > details > :not(summary) {
+[class|=webapp][class*=-dialog], details[class|=webapp][class*=-button] > :not(summary), [class|=webapp][class*=-bar] > details > :not(summary), form[class|=webapp] > fieldset > details > :not(summary) {
   border: 0.09rem solid black;
   border-radius: 0.3rem;
   background-color: white;
@@ -179,6 +179,7 @@ html > body > div:first-child > footer:last-child {
 }
 
 [class|=webapp][class*=-button]:focus, [class|=webapp][class*=-bar] > a:focus, form[class|=webapp] > fieldset > a:focus, [class|=webapp][class*=-bar] > button:focus, form[class|=webapp] > fieldset > button:focus, [class|=webapp][class*=-bar] > select:focus, form[class|=webapp] > fieldset > select:focus, [class|=webapp][class*=-bar] > details:focus, form[class|=webapp] > fieldset > details:focus {
+  z-index: 1;
   box-shadow: 0 0 0 0.2em rgba(3, 102, 214, 0.3);
 }
 
@@ -272,29 +273,6 @@ html > body > div:first-child > footer:last-child {
   color: silver;
 }
 
-[class|=webapp][class*=-bar] > select, form[class|=webapp] > fieldset > select {
-  outline: none;
-}
-
-[class|=webapp][class*=-bar] > select > option, form[class|=webapp] > fieldset > select > option {
-  background-color: white;
-}
-
-[class|=webapp][class*=-bar] > details, form[class|=webapp] > fieldset > details {
-  position: relative;
-  padding: 0;
-}
-
-[class|=webapp][class*=-bar] > details > summary, form[class|=webapp] > fieldset > details > summary {
-  cursor: default;
-  padding: 0 1rem;
-  height: 100%;
-}
-
-[class|=webapp][class*=-bar] > details > :not(:first-child), form[class|=webapp] > fieldset > details > :not(:first-child) {
-  position: absolute;
-}
-
 [class|=webapp][class*=-bar].merge, form[class|=webapp] > fieldset.merge, form[class|=webapp][class*=-cond] > fieldset:not(:first-child) {
   gap: 0;
 }
@@ -381,6 +359,10 @@ form[class|=webapp] > fieldset > legend {
   padding: 0.3rem;
 }
 
+form[class|=webapp] > fieldset > a, form[class|=webapp] > fieldset > button, form[class|=webapp] > fieldset > select, form[class|=webapp] > fieldset > details {
+  width: 20rem;
+}
+
 form[class|=webapp][class*=-cond] {
   padding: 0.6rem;
 }
@@ -431,31 +413,6 @@ table[class|=webapp][class*=-grid] > tbody > tr > td {
   border: 1px solid black;
 }
 
-details[class|=webapp] {
-  display: inline-block;
-}
-
-details[class|=webapp][class*=-button], [class|=webapp][class*=-bar] > details, form[class|=webapp] > fieldset > details {
-  position: relative;
-  padding: 0;
-}
-
-details[class|=webapp][class*=-button] > summary, [class|=webapp][class*=-bar] > details > summary, form[class|=webapp] > fieldset > details > summary {
-  padding: 0 1rem;
-}
-
-details[class|=webapp][class*=-button] > summary::before, [class|=webapp][class*=-bar] > details > summary::before, form[class|=webapp] > fieldset > details > summary::before {
-  content: attr(data-placeholder);
-}
-
-details[class|=webapp][class*=-button] > :not(summary), [class|=webapp][class*=-bar] > details > :not(summary), form[class|=webapp] > fieldset > details > :not(summary) {
-  position: absolute;
-  z-index: 9999;
-  display: block;
-  max-height: 40rem;
-  overflow-y: auto;
-}
-
 ul[class|=webapp] {
   list-style-type: none;
 }
@@ -476,4 +433,32 @@ ul[class|=webapp][class*=-select] > li > label {
 
 ul[class|=webapp][class*=-select] > li > label > input {
   margin: 0 .6rem;
+}
+
+select[class|=webapp], [class|=webapp][class*=-bar] > select, form[class|=webapp] > fieldset > select {
+  outline: none;
+}
+
+select[class|=webapp] > option, [class|=webapp][class*=-bar] > select > option, form[class|=webapp] > fieldset > select > option {
+  background-color: white;
+}
+
+details[class|=webapp] {
+  display: inline-block;
+}
+
+details[class|=webapp][class*=-button], [class|=webapp][class*=-bar] > details, form[class|=webapp] > fieldset > details {
+  position: relative;
+  padding: 0;
+}
+
+details[class|=webapp][class*=-button] > summary, [class|=webapp][class*=-bar] > details > summary, form[class|=webapp] > fieldset > details > summary {
+  cursor: default;
+  padding: 0 1rem;
+}
+
+details[class|=webapp][class*=-button] > :not(summary), [class|=webapp][class*=-bar] > details > :not(summary), form[class|=webapp] > fieldset > details > :not(summary) {
+  display: block;
+  position: absolute;
+  z-index: 9999;
 }

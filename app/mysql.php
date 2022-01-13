@@ -155,7 +155,7 @@ new class extends webapp
 		$form->field('type', 'select', [
 			'options' => static::fieldtype
 		]);
-		$form->field('length', 'number', ['min' => 0, 'max' => 0xffff, 'placeholder' => 'Type max length or enum set']);
+		$form->field('length', 'text', ['placeholder' => 'Type max length or enum set']);
 
 		$form->fieldset('Attribute / Collation');
 		$form->field('attr', 'select', [

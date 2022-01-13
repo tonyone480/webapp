@@ -237,6 +237,7 @@ html{
 			text-decoration: none;
 		}
 		&:focus{
+			z-index: 1;
 			box-shadow: 0 0 0 0.2em rgba($link, 0.3);
 		}
 		&:active{
@@ -320,26 +321,12 @@ html{
 		}
 		>a,>button,>select,>details{
 			@extend [class|=webapp][class*=-button];
-
 		}
 		>select{
-			outline: none;
-			>option{
-				background-color: $background;
-			}
+			@extend select[class|=webapp];
 		}
 		>details{
-			position: relative;
-			padding: 0;
-			>summary{
-				cursor: default;
-				padding: 0 1rem;
-				height: 100%;
-			}
-			>:not(:first-child){
-				position: absolute;
-				@extend [class|=webapp][class*=-dialog];
-			}
+			@extend details[class|=webapp][class*=-button];
 		}
 		&.merge{
 			gap: 0;
@@ -411,10 +398,6 @@ nav[class|=webapp]{
 	
 }
 
-
-
-
-
 form[class|=webapp]{
 	display: inline-flex;
 	gap: 1rem;
@@ -426,6 +409,9 @@ form[class|=webapp]{
 		@extend [class|=webapp][class*=-bar];
 		>legend{
 			@include padding(1);
+		}
+		>a,>button,>select,>details{
+			width: 20rem;
 		}
 	}
 	&[class*=-cond]{
@@ -514,28 +500,6 @@ table[class|=webapp]{
 
 }
 
-details[class|=webapp]{
-	display: inline-block;
-	&[class*=-button]{
-		position: relative;
-		padding: 0;
-		>summary{
-			padding: 0 1rem;
-			&::before{
-				content: attr(data-placeholder);
-			}
-		}
-		>:not(summary){
-			position: absolute;
-			@extend [class|=webapp][class*=-dialog];
-			z-index: 9999;
-			display: block;
-			max-height: 40rem;
-			overflow-y: auto;
-		}
-	}
-}
-
 ul[class|=webapp]{
 	list-style-type: none;
 	
@@ -554,6 +518,34 @@ ul[class|=webapp]{
 				}
 			}
 			
+		}
+	}
+}
+
+select[class|=webapp]{
+	outline: none;
+	>option{
+		background-color: $background;
+	}
+}
+
+details[class|=webapp]{
+	display: inline-block;
+	&[class*=-button]{
+		position: relative;
+		padding: 0;
+		>summary{
+			cursor: default;
+			padding: 0 1rem;
+			// &::before{
+			// 	content: attr(data-placeholder);
+			// }
+		}
+		>:not(summary){
+			display: block;
+			position: absolute;
+			@extend [class|=webapp][class*=-dialog];
+			z-index: 9999;
 		}
 	}
 }
