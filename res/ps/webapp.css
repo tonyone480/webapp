@@ -24,30 +24,29 @@
   color: #cb2431;
 }
 
-:root > body > div:first-child {
-  display: grid;
+:root > body > div[class*=-grid] {
   grid-template-columns: auto 1fr;
 }
 
-:root > body > div:first-child > header:first-child {
+:root > body > div[class*=-grid] > header:first-of-type {
   grid-column: 1 / -1;
 }
 
-:root > body > div:first-child > aside {
+:root > body > div[class*=-grid] > aside:first-of-type {
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
 
-:root > body > div:first-child > aside > * {
+:root > body > div[class*=-grid] > aside:first-of-type > * {
   margin: 0 1rem;
 }
 
-:root > body > div:first-child > main {
+:root > body > div[class*=-grid] > main:first-of-type {
   margin: 0 1rem;
 }
 
-:root > body > div:first-child > footer:last-child {
+:root > body > div[class*=-grid] > footer:first-of-type {
   grid-column: 1 / -1;
   padding: .6rem 1rem;
 }
@@ -77,9 +76,8 @@
 
 [class|=webapp][class*=-button], [class|=webapp][class*=-bar] > a, form[class|=webapp] > fieldset > a, [class|=webapp][class*=-bar] > button, form[class|=webapp] > fieldset > button, [class|=webapp][class*=-bar] > select, form[class|=webapp] > fieldset > select, [class|=webapp][class*=-bar] > details, form[class|=webapp] > fieldset > details {
   font: 1rem verdana, georgia, arial, sans-serif;
+  padding: .25rem 1rem;
   color: black;
-  line-height: 1.8rem;
-  padding: 0 1rem;
   border: 1px solid rgba(27, 31, 35, 0.2);
   border-radius: 3px;
   white-space: nowrap;
@@ -149,10 +147,9 @@
 
 [class|=webapp][class*=-input], [class|=webapp][class*=-bar] > input, form[class|=webapp] > fieldset > input, [class|=webapp][class*=-bar] > textarea, form[class|=webapp] > fieldset > textarea {
   font: 1rem verdana, georgia, arial, sans-serif;
-  line-height: 1.8rem;
-  padding: 0 .4rem;
-  border-radius: 3px;
+  padding: .32rem .4rem;
   border: 1px solid #d1d7dc;
+  border-radius: 3px;
   background-color: rgba(255, 255, 255, 0.6);
   box-shadow: inset 0 1px 2px rgba(27, 31, 35, 0.075);
   text-overflow: ellipsis;
@@ -182,10 +179,6 @@
 [class|=webapp][class*=-bar], form[class|=webapp] > fieldset {
   display: flex;
   gap: 1rem;
-}
-
-[class|=webapp][class*=-bar] > a, form[class|=webapp] > fieldset > a, [class|=webapp][class*=-bar] > button, form[class|=webapp] > fieldset > button, [class|=webapp][class*=-bar] > select, form[class|=webapp] > fieldset > select, [class|=webapp][class*=-bar] > details, form[class|=webapp] > fieldset > details, [class|=webapp][class*=-bar] > input, form[class|=webapp] > fieldset > input, [class|=webapp][class*=-bar] > textarea, form[class|=webapp] > fieldset > textarea {
-  line-height: 1.8rem;
 }
 
 [class|=webapp][class*=-bar].merge, form[class|=webapp] > fieldset.merge, form[class|=webapp][class*=-cond] > fieldset:not(:first-child) {
@@ -256,6 +249,7 @@ form[class|=webapp] {
   display: inline-flex;
   gap: 1rem;
   flex-direction: column;
+  min-width: 21rem;
 }
 
 form[class|=webapp] > fieldset {
@@ -396,8 +390,7 @@ select[class|=webapp], [class|=webapp][class*=-bar] > select, form[class|=webapp
   outline: none;
 }
 
-select[class|=webapp] > option, [class|=webapp][class*=-bar] > select > option, form[class|=webapp] > fieldset > select > option {
-  width: fit-content;
+select[class|=webapp] > optgroup, [class|=webapp][class*=-bar] > select > optgroup, form[class|=webapp] > fieldset > select > optgroup, select[class|=webapp] > option, [class|=webapp][class*=-bar] > select > option, form[class|=webapp] > fieldset > select > option {
   background-color: white;
 }
 
@@ -410,8 +403,9 @@ details[class|=webapp][class*=-button], [class|=webapp][class*=-bar] > details, 
   padding: 0;
 }
 
-details[class|=webapp][class*=-button] > summary, [class|=webapp][class*=-bar] > details > summary, form[class|=webapp] > fieldset > details > summary {
+details[class|=webapp][class*=-button] > summary:first-of-type, [class|=webapp][class*=-bar] > details > summary:first-of-type, form[class|=webapp] > fieldset > details > summary:first-of-type {
   cursor: default;
+  line-height: 1.81rem;
   padding: 0 1rem;
 }
 

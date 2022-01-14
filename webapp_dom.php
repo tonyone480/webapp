@@ -775,6 +775,11 @@ class webapp_form
 			default => $this->fieldset->append('input', ['type' => $type, 'name' => $alias] + $attr)
 		};
 	}
+	function novalidate():static
+	{
+		$this->xml->setattr('novalidate');
+		return $this;
+	}
 	private function setdefault(array $values):static
 	{
 		foreach ($this->fields as $name => $node)

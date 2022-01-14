@@ -138,6 +138,10 @@ new class extends webapp
 		}
 		return $mysql;
 	}
+	function collation()
+	{
+		//SHOW COLLATION
+	}
 	function query(...$params):webapp_mysql
 	{
 		return ($this->mysql)(...$params);
@@ -163,29 +167,46 @@ new class extends webapp
 				'none', 'binary', 'unsigned', 'unsigned zerofill'
 			]
 		]);
-		$form->field('collation', 'select', [
-			'options' => $this->charset
-		]);
+		$select = $form->field('collation', 'select', ['options' => ['none']]);
+		foreach ($this->query('SHOW COLLATION') as $row)
+		{
+			$optgroup = ($p = $select->xpath("optgroup[@label='{$row['Charset']}']"))
+				? $p[0] : $select->append('optgroup', ['label' => $row['Charset']]);
+			$optgroup->append('option', [$row['Collation'], 'value' => $row['Collation']]);
+
+		}
+
+		// $collation = [];
+		// foreach ($this->query('SHOW COLLATION') as $row)
+		// {
+		// 	$collation[$row['Charset']][] = $row['Collation'];
+		// }
+
+
 
 		$form->fieldset('Null / Default');
 		$form->field('null', 'webapp-select', [
-			'data-placeholder' => 'Select allow null',
+			'data-placeholder' => 'null',
 			'options' => ['No', 'Yes']
 		]);
 		$form->field('default', 'text', ['placeholder' => 'Type default value']);
 
 		$form->fieldset('Extra / After');
 		$form->field('null', 'webapp-select', [
-			'data-placeholder' => 'Select allow null',
-			'options' => ['None', 'auto_increment']
+			'data-placeholder' => 'null',
+			'options' => ['none', 'auto_increment']
 		]);
-		$form->field('null', 'select', [
-			'options' => ['ASDASD', 'DAWFAWFAWF']
-		]);
+		$after = $form->field('after', 'select', ['options' => []]);
+		// if ($form->echo)
+		// {
+		// 	$this->query('SHOW FIELDS FROM ?a', $tabname)
+		// }
 
 		$form->fieldset();
 		$form->button('Submit', 'submit');
 		$form->button('Reset', 'reset');
+
+		$form->novalidate();
 		return $form;
 	}
 	function form_table(string $tabname, webapp|webapp_html $context = NULL, string $action = NULL):array|webapp_form
@@ -567,7 +588,7 @@ new class extends webapp
 		$form->button('测试');
 
 		$this->app->main->append('b', '2222');
-		$this->app->main->append('input', ['ssssssss','type'=>'text','class'=>'webapp-input', 'contenteditable'=>null]);
+		$this->app->main->append('input', ['type'=>'text', 'value' => 'ssss', 'class'=>'webapp-input']);
 		$this->app->main->append('button', ['Hjasdw Lkdasd', 'class'=>'webapp-button']);
 	}
 	function get_processlist(string $id = NULL)

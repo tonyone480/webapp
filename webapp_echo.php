@@ -53,9 +53,9 @@ class webapp_echo_html extends webapp_document
 			
 			// $this->xml->head->append('link', ['rel' => 'stylesheet', 'type' => 'text/css', 'href' => $webapp->resroot('ps/font-awesome.css')]);
 			// $this->xml->head->append('link', ['rel' => 'stylesheet', 'type' => 'text/css', 'href' => $webapp->resroot('ps/font-awesome.css')]);
-			// $this->xml->head->append('script', ['type' => 'javascript/module', 'src' => $webapp->resroot('js/webapp.js')]);
+			// $this->xml->head->append('script', ['type' => 'text/javascript', 'src' => '/webapp/res/js/webapp.js']);
 			
-			$root = &$this->xml->body->div;
+			$root = $this->xml->body->append('div', ['class' => 'webapp-grid']);
 			[$this->header, $this->aside, $this->main, $this->footer] = [
 				&$root->header, &$root->aside, &$root->main,
 				$root->append('footer', $webapp['copy_webapp'])];
