@@ -167,14 +167,8 @@ new class extends webapp
 				'none', 'binary', 'unsigned', 'unsigned zerofill'
 			]
 		]);
-		$select = $form->field('collation', 'select', ['options' => ['none']]);
-		foreach ($this->query('SHOW COLLATION') as $row)
-		{
-			$optgroup = ($p = $select->xpath("optgroup[@label='{$row['Charset']}']"))
-				? $p[0] : $select->append('optgroup', ['label' => $row['Charset']]);
-			$optgroup->append('option', [$row['Collation'], 'value' => $row['Collation']]);
-
-		}
+		$collation = $form->field('collation', 'select', ['options' => ['' => 'none']]);
+		
 
 		// $collation = [];
 		// foreach ($this->query('SHOW COLLATION') as $row)
@@ -185,28 +179,37 @@ new class extends webapp
 
 
 		$form->fieldset('Null / Default');
-		$form->field('null', 'webapp-select', [
-			'data-placeholder' => 'null',
-			'options' => ['No', 'Yes']
+		$form->field('null', 'checkbox', [
+			'options' => ['Yes' => 'Allow null value']
 		]);
 		$form->field('default', 'text', ['placeholder' => 'Type default value']);
 
 		$form->fieldset('Extra / After');
-		$form->field('null', 'webapp-select', [
-			'data-placeholder' => 'null',
-			'options' => ['none', 'auto_increment']
+		$form->field('extra', 'checkbox', [
+			'options' => ['auto_increment' => 'Auto increment']
 		]);
-		$after = $form->field('after', 'select', ['options' => []]);
-		// if ($form->echo)
-		// {
-		// 	$this->query('SHOW FIELDS FROM ?a', $tabname)
-		// }
+		$after = $form->field('after', 'select', ['options' => ['' => 'none']]);
+		
 
 		$form->fieldset();
 		$form->button('Submit', 'submit');
 		$form->button('Reset', 'reset');
+		if ($form->echo)
+		{
+			foreach ($this->query('SHOW COLLATION') as $row)
+			{
+				$optgroup = ($p = $collation->xpath("optgroup[@label='{$row['Charset']}']"))
+					? $p[0] : $collation->append('optgroup', ['label' => $row['Charset']]);
+				$optgroup->append('option', [$row['Collation'], 'value' => $row['Collation']]);
 
-		$form->novalidate();
+			}
+			//$this->query('SHOW FIELDS FROM ?a', $tabname);
+		}
+		else
+		{
+			$form->novalidate();
+		}
+		
 		return $form;
 	}
 	function form_table(string $tabname, webapp|webapp_html $context = NULL, string $action = NULL):array|webapp_form
