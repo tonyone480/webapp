@@ -1,19 +1,8 @@
 @charset "utf-8";
-//基础颜色
-$foreground: black;
-$background: white;
-$link: rgb(3, 102, 214);
-$hint: rgb(192, 192, 192);
-$hover: lighten($hint, 20%);
-$button: rgb(239, 243, 246);
-$border: rgb(27, 31, 35);
-$primary: rgb(40, 167, 69);
-$danger: rgb(203, 36, 49);
+
 //定义方法
 //"Open Sans"
-@mixin font($size:100%){
-	font: $size verdana, georgia, arial, sans-serif;
-}
+
 @mixin appearance($type:none){
 	appearance: $type;
 	-moz-appearance: $type;
@@ -34,16 +23,41 @@ $danger: rgb(203, 36, 49);
 @mixin textalign($position){
 	text-align: $position;
 }
+//基础颜色
+$foreground: black;
+$background: white;
+$anchor: rgb(3, 102, 214);
+$hint: rgb(192, 192, 192);
+$hover: lighten($hint, 20%);
+$button: rgb(239, 243, 246);
+$edge: rgb(27, 31, 35);
+$primary: rgb(40, 167, 69);
+$danger: rgb(203, 36, 49);
 :root{
-	@include font;
-	color: $foreground;
-	background: $background;
+	--webapp-background: white;
+	--webapp-foreground: black;
+	//--webapp-colorempty: transparent;
+
+	--webapp-anchor: $anchor;
+	--webapp-button: $button;
+
+	--webapp-edge: $edge;
+
+	--webapp-primary: $primary;
+	--webapp-danger: $danger;
+
+	--webapp-font-monospace: consolas, monospace;
+	--webapp-font-sans-serif: verdana, georgia, arial, sans-serif;
+	
+	background: var(--webapp-background);
+	color: var(--webapp-foreground);
+	font: 100% var(--webapp-font-sans-serif);
 	>body{
 		margin: 0;
 		padding: 0;
 		font-size: 1rem;
 		a{
-			color: $link;
+			color: $anchor;
 			outline: none;
 			text-decoration: none;
 			&:hover{
@@ -83,6 +97,7 @@ $danger: rgb(203, 36, 49);
 // 	}
 // }
 
+
 [class|=webapp]{
 	margin: 0;
 	padding: 0;
@@ -90,21 +105,18 @@ $danger: rgb(203, 36, 49);
 		display: grid;
 	}
 	&[class*=-dialog]{
-		
-		@include borderliner;
-		@include borderradius;
-		background-color: $background;
-		
-		border: 1px solid rgba($border, 0.23);
-		border-radius: 0.5em;
-		box-shadow: 0 0.5em 2em rgba($border, 0.175);
+		background: var(--webapp-background);
+		padding: .4rem 0;
+		border: 1px solid rgba($edge, .23);
+		border-radius: .4rem;
+		box-shadow: 0 .5rem 2rem rgba($edge, .175);
 	}
 	&[class*=-codeblock]{
-		font-family: consolas, monospace;
+		font-family: var(--webapp-font-monospace);
 		white-space: pre;
 	}
 	// &[class*=-highlight] a:hover{
-	// 	background-color: $link;
+	// 	background-color: $anchor;
 	// 	color: $background;
 	// }
 	
@@ -112,30 +124,29 @@ $danger: rgb(203, 36, 49);
 
 	
 	&[class*=-button]{
-		@include font(1rem);
+		font: 1rem var(--webapp-font-sans-serif);
+		color: var(--webapp-foreground);
 		padding: .25rem 1rem;
 
-		color: $foreground;
-		
-		border: 1px solid rgba($border, 0.2);
+		border: 1px solid rgba($edge, .2);
 		border-radius: 3px;
 		white-space: nowrap;
 		background-color: $button;
 		background-image: linear-gradient(-180deg, lighten($button, 3.4%) 0%, $button 90%);
 		&:hover{
 			background-image: linear-gradient(-180deg, lighten($button, 0.2%) 0%, darken($button, 2.8%) 90%);
-			border-color: rgba($border, 0.35);
+			border-color: rgba($edge, 0.35);
 			text-decoration: none;
 		}
 		&:focus{
+			box-shadow: 0 0 0 0.2em rgba($anchor, 0.3);
 			z-index: 1;
-			box-shadow: 0 0 0 0.2em rgba($link, 0.3);
 		}
 		&:active{
 			background-image: none;
 			background-color: darken($button, 2%);
-			border-color: rgba($border, 0.35);
-			box-shadow: inset 0 0.15em 0.3em rgba($border, 0.15);
+			border-color: rgba($edge, 0.35);
+			box-shadow: inset 0 0.15em 0.3em rgba($edge, 0.15);
 		}
 		//主要
 		&.primary{
@@ -144,7 +155,7 @@ $danger: rgb(203, 36, 49);
 			background-image: linear-gradient(-180deg, lighten($primary, 10%) 0%, $primary 90%);
 			&:hover{
 				background-image: linear-gradient(-180deg, lighten($primary, 7.6%) 0%, darken($primary, 2%) 90%);
-				border-color: rgba($border, 0.5);
+				border-color: rgba($edge, 0.5);
 			}
 			&:focus{
 				box-shadow: 0 0 0 0.2em rgba(lighten($primary, 10%), 0.4);
@@ -152,7 +163,7 @@ $danger: rgb(203, 36, 49);
 			&:active{
 				background-image: none;
 				background-color: darken($primary, 1.4%);
-				border-color: rgba($border, 0.5);
+				border-color: rgba($edge, 0.5);
 			}
 		}
 		//危险
@@ -161,7 +172,7 @@ $danger: rgb(203, 36, 49);
 			&:hover{
 				color: $background;
 				background-image: linear-gradient(-180deg, lighten($danger, 10%) 0%, $danger 90%);
-				border-color: rgba($border, 0.5);
+				border-color: rgba($edge, 0.5);
 			}
 			&:focus{
 				box-shadow: 0 0 0 0.2em rgba($danger, 0.4);
@@ -170,26 +181,27 @@ $danger: rgb(203, 36, 49);
 				color: $background;
 				background-image: none;
 				background-color: darken($danger, 5%);
-				border-color: rgba($border, 0.5);
+				border-color: rgba($edge, 0.5);
 			}
 		}
 	
 	}
 	&[class*=-input]{
-		@include font(1rem);
+		font: 1rem var(--webapp-font-sans-serif);
 		padding: .32rem .4rem;
 			
 		
-		border: 1px solid lighten($border, 72%);
+		border: 1px solid lighten($edge, 72%);
 		border-radius: 3px;
 		background-color: rgba($background, 0.6);
-		box-shadow: inset 0 1px 2px rgba($border, 0.075);
+		box-shadow: inset 0 1px 2px rgba($edge, 0.075);
 		
 		text-overflow: ellipsis;
 		&:focus{
 			outline: none;
-			box-shadow: inset 0 1px 2px rgba($border, 0.075), 0 0 0 0.2em rgba($link, 0.3);
-			border-color: lighten($link, 13.3%);
+			box-shadow: inset 0 1px 2px rgba($edge, 0.075), 0 0 0 0.2em rgba($anchor, 0.3);
+			border-color: lighten($anchor, 13.3%);
+			z-index: 1;
 		}
 		&:invalid{
 			box-shadow: 0 0 0 0.2em rgba($danger, 0.4);
@@ -258,7 +270,7 @@ nav[class|=webapp]{
 				white-space: nowrap;
 			}
 			>details{
-				color: $link;
+				color: $anchor;
 				position: relative;
 				>summary{
 					cursor: pointer;
@@ -290,7 +302,7 @@ nav[class|=webapp]{
 	&[class*=-highlight]{
 		details:hover{
 			color: $background;
-			background-color: $link;
+			background-color: $anchor;
 		}
 	}
 	
@@ -350,7 +362,7 @@ table[class|=webapp]{
 	>thead{
 		>tr:first-child{
 			color: $background;
-			background-color: $link;
+			background-color: $anchor;
 			
 		}
 	}
@@ -381,7 +393,7 @@ table[class|=webapp]{
 
 	// &[class*=-highlight]{
 	// 	>tbody>tr:hover{
-	// 		background-color: $link;
+	// 		background-color: $anchor;
 	// 		>td{
 	// 			color: $background;
 	// 		}
@@ -414,7 +426,7 @@ ul[class|=webapp]{
 	}
 
 	&[class*=-select]{
-		//padding: .4rem 0;
+		
 		line-height: 1.8rem;
 		>li{
 			&:hover{
@@ -483,6 +495,7 @@ details[class|=webapp]{
 			cursor: default;
 			line-height: 1.81rem;
 			padding: 0 1rem;
+
 			//vertical-align: baseline;
 			// &::before{
 			// 	content: attr(data-placeholder);
@@ -491,8 +504,10 @@ details[class|=webapp]{
 		>:not(summary){
 			display: block;
 			position: absolute;
+			
 			@extend [class|=webapp][class*=-dialog];
 			z-index: 9999;
+			
 		}
 	}
 }
