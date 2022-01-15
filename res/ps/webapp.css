@@ -41,14 +41,11 @@
   grid-column: 1 / -1;
 }
 
-:root > body > div[class*=-grid] > aside:first-of-type {
-  display: flex;
-  flex-direction: column;
+:root > body > div[class*=-grid] > aside:first-of-type:not(:empty) {
+  display: inline-flex;
   gap: 1rem;
-}
-
-:root > body > div[class*=-grid] > aside:first-of-type > * {
-  margin: 0 1rem;
+  flex-direction: column;
+  margin-left: 1rem;
 }
 
 :root > body > div[class*=-grid] > main:first-of-type {

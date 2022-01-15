@@ -72,14 +72,12 @@ $danger: rgb(203, 36, 49);
 			>header:first-of-type{
 				grid-column: 1 / -1;
 			}
-			>aside:first-of-type{
-				display: flex;
-				flex-direction: column;
+			>aside:first-of-type:not(:empty){
+				display: inline-flex;
 				gap: 1rem;
-				>*{
-					margin: 0 1rem;
-				}
-				
+				flex-direction: column;
+				margin-left: 1rem;
+		
 			}
 			>main:first-of-type{
 				margin: 0 1rem;
@@ -91,7 +89,7 @@ $danger: rgb(203, 36, 49);
 		}
 	}
 }
-// @media (min-width: 280px) {
+// @media (max-width: 26rem) {
 // 	body{
 // 		background-color: red;
 // 	}

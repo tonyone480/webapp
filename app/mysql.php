@@ -100,7 +100,7 @@ new class extends webapp
 			$this->app->aside->select(
 				array_combine($this->charset, $this->charset))->setattr(['class' => 'webapp-button'])->selected($this->mysql_charset);
 
-			$ul = $this->app->aside->append('ul', ['class' => 'webapp']);
+			$ul = $this->app->aside->append('ul', ['class' => 'webapp-select']);
 	
 			
 		
@@ -111,7 +111,7 @@ new class extends webapp
 				$node->append('a', [$db['Database'], 'href' => '?db/' . $this->url64_encode($db['Database'])]);
 				if ($db['Database'] === $this->mysql_database)
 				{
-					$node = $node->append('ul');
+					$node = $node->append('ul', ['class' => 'webapp-select']);
 					foreach ($this->query('SHOW TABLE STATUS') as $tab)
 					{
 						$node->append('li')->append('a', ["{$tab['Name']}[" . ($tab['Rows'] ?? 0) . ']', 'href' => '?tab/' . $this->url64_encode($tab['Name'])]);
