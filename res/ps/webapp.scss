@@ -312,11 +312,15 @@ form[class|=webapp]{
 	flex-direction: column;
 	min-width: 21rem;
 	>fieldset{
+		&:first-of-type:empty{
+			display: none;
+		}
 		border: none;
 		margin: 0;
 		padding: 0;
 		@extend [class|=webapp][class*=-bar];
 		>legend{
+			white-space: nowrap;
 			@include padding(1);
 		}
 		>input:not([type=checkbox],[type=radio]),>textarea{
@@ -329,11 +333,20 @@ form[class|=webapp]{
 	}
 	&[class*=-cond]{
 		@include padding(2);
-		>fieldset:first-child{
+		>fieldset:first-of-type{
 			display: none;
 		}
-		>fieldset:not(:first-child){
+		>fieldset{
 			@extend [class|=webapp][class*=-bar].merge;
+		}
+	}
+	&[class*=-inline]
+	{
+		>fieldset>legend{
+			float: left;
+			flex: 1 0;
+			text-align: right;
+			//background-color: red;
 		}
 	}
 }

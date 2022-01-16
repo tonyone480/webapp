@@ -187,20 +187,20 @@
   gap: 1rem;
 }
 
-[class|=webapp][class*=-bar].merge, form[class|=webapp] > fieldset.merge, form[class|=webapp][class*=-cond] > fieldset:not(:first-child) {
+[class|=webapp][class*=-bar].merge, form[class|=webapp] > fieldset.merge, form[class|=webapp][class*=-cond] > fieldset {
   gap: 0;
 }
 
-[class|=webapp][class*=-bar].merge > input:not(:first-child):not(:last-child), form[class|=webapp] > fieldset.merge > input:not(:first-child):not(:last-child), form[class|=webapp][class*=-cond] > fieldset:not(:first-child) > input:not(:first-child):not(:last-child), [class|=webapp][class*=-bar].merge > textarea:not(:first-child):not(:last-child), form[class|=webapp] > fieldset.merge > textarea:not(:first-child):not(:last-child), form[class|=webapp][class*=-cond] > fieldset:not(:first-child) > textarea:not(:first-child):not(:last-child), [class|=webapp][class*=-bar].merge > a:not(:first-child):not(:last-child), form[class|=webapp] > fieldset.merge > a:not(:first-child):not(:last-child), form[class|=webapp][class*=-cond] > fieldset:not(:first-child) > a:not(:first-child):not(:last-child), [class|=webapp][class*=-bar].merge > button:not(:first-child):not(:last-child), form[class|=webapp] > fieldset.merge > button:not(:first-child):not(:last-child), form[class|=webapp][class*=-cond] > fieldset:not(:first-child) > button:not(:first-child):not(:last-child), [class|=webapp][class*=-bar].merge > select:not(:first-child):not(:last-child), form[class|=webapp] > fieldset.merge > select:not(:first-child):not(:last-child), form[class|=webapp][class*=-cond] > fieldset:not(:first-child) > select:not(:first-child):not(:last-child), [class|=webapp][class*=-bar].merge > details:not(:first-child):not(:last-child), form[class|=webapp] > fieldset.merge > details:not(:first-child):not(:last-child), form[class|=webapp][class*=-cond] > fieldset:not(:first-child) > details:not(:first-child):not(:last-child) {
+[class|=webapp][class*=-bar].merge > input:not(:first-child):not(:last-child), form[class|=webapp] > fieldset.merge > input:not(:first-child):not(:last-child), form[class|=webapp][class*=-cond] > fieldset > input:not(:first-child):not(:last-child), [class|=webapp][class*=-bar].merge > textarea:not(:first-child):not(:last-child), form[class|=webapp] > fieldset.merge > textarea:not(:first-child):not(:last-child), form[class|=webapp][class*=-cond] > fieldset > textarea:not(:first-child):not(:last-child), [class|=webapp][class*=-bar].merge > a:not(:first-child):not(:last-child), form[class|=webapp] > fieldset.merge > a:not(:first-child):not(:last-child), form[class|=webapp][class*=-cond] > fieldset > a:not(:first-child):not(:last-child), [class|=webapp][class*=-bar].merge > button:not(:first-child):not(:last-child), form[class|=webapp] > fieldset.merge > button:not(:first-child):not(:last-child), form[class|=webapp][class*=-cond] > fieldset > button:not(:first-child):not(:last-child), [class|=webapp][class*=-bar].merge > select:not(:first-child):not(:last-child), form[class|=webapp] > fieldset.merge > select:not(:first-child):not(:last-child), form[class|=webapp][class*=-cond] > fieldset > select:not(:first-child):not(:last-child), [class|=webapp][class*=-bar].merge > details:not(:first-child):not(:last-child), form[class|=webapp] > fieldset.merge > details:not(:first-child):not(:last-child), form[class|=webapp][class*=-cond] > fieldset > details:not(:first-child):not(:last-child) {
   border-radius: 0;
 }
 
-[class|=webapp][class*=-bar].merge > input:first-child, form[class|=webapp] > fieldset.merge > input:first-child, form[class|=webapp][class*=-cond] > fieldset:not(:first-child) > input:first-child, [class|=webapp][class*=-bar].merge > textarea:first-child, form[class|=webapp] > fieldset.merge > textarea:first-child, form[class|=webapp][class*=-cond] > fieldset:not(:first-child) > textarea:first-child, [class|=webapp][class*=-bar].merge > a:first-child, form[class|=webapp] > fieldset.merge > a:first-child, form[class|=webapp][class*=-cond] > fieldset:not(:first-child) > a:first-child, [class|=webapp][class*=-bar].merge > button:first-child, form[class|=webapp] > fieldset.merge > button:first-child, form[class|=webapp][class*=-cond] > fieldset:not(:first-child) > button:first-child, [class|=webapp][class*=-bar].merge > select:first-child, form[class|=webapp] > fieldset.merge > select:first-child, form[class|=webapp][class*=-cond] > fieldset:not(:first-child) > select:first-child, [class|=webapp][class*=-bar].merge > details:first-child, form[class|=webapp] > fieldset.merge > details:first-child, form[class|=webapp][class*=-cond] > fieldset:not(:first-child) > details:first-child {
+[class|=webapp][class*=-bar].merge > input:first-child, form[class|=webapp] > fieldset.merge > input:first-child, form[class|=webapp][class*=-cond] > fieldset > input:first-child, [class|=webapp][class*=-bar].merge > textarea:first-child, form[class|=webapp] > fieldset.merge > textarea:first-child, form[class|=webapp][class*=-cond] > fieldset > textarea:first-child, [class|=webapp][class*=-bar].merge > a:first-child, form[class|=webapp] > fieldset.merge > a:first-child, form[class|=webapp][class*=-cond] > fieldset > a:first-child, [class|=webapp][class*=-bar].merge > button:first-child, form[class|=webapp] > fieldset.merge > button:first-child, form[class|=webapp][class*=-cond] > fieldset > button:first-child, [class|=webapp][class*=-bar].merge > select:first-child, form[class|=webapp] > fieldset.merge > select:first-child, form[class|=webapp][class*=-cond] > fieldset > select:first-child, [class|=webapp][class*=-bar].merge > details:first-child, form[class|=webapp] > fieldset.merge > details:first-child, form[class|=webapp][class*=-cond] > fieldset > details:first-child {
   border-top-right-radius: 0;
   border-bottom-right-radius: 0;
 }
 
-[class|=webapp][class*=-bar].merge > input:last-child, form[class|=webapp] > fieldset.merge > input:last-child, form[class|=webapp][class*=-cond] > fieldset:not(:first-child) > input:last-child, [class|=webapp][class*=-bar].merge > textarea:last-child, form[class|=webapp] > fieldset.merge > textarea:last-child, form[class|=webapp][class*=-cond] > fieldset:not(:first-child) > textarea:last-child, [class|=webapp][class*=-bar].merge > a:last-child, form[class|=webapp] > fieldset.merge > a:last-child, form[class|=webapp][class*=-cond] > fieldset:not(:first-child) > a:last-child, [class|=webapp][class*=-bar].merge > button:last-child, form[class|=webapp] > fieldset.merge > button:last-child, form[class|=webapp][class*=-cond] > fieldset:not(:first-child) > button:last-child, [class|=webapp][class*=-bar].merge > select:last-child, form[class|=webapp] > fieldset.merge > select:last-child, form[class|=webapp][class*=-cond] > fieldset:not(:first-child) > select:last-child, [class|=webapp][class*=-bar].merge > details:last-child, form[class|=webapp] > fieldset.merge > details:last-child, form[class|=webapp][class*=-cond] > fieldset:not(:first-child) > details:last-child {
+[class|=webapp][class*=-bar].merge > input:last-child, form[class|=webapp] > fieldset.merge > input:last-child, form[class|=webapp][class*=-cond] > fieldset > input:last-child, [class|=webapp][class*=-bar].merge > textarea:last-child, form[class|=webapp] > fieldset.merge > textarea:last-child, form[class|=webapp][class*=-cond] > fieldset > textarea:last-child, [class|=webapp][class*=-bar].merge > a:last-child, form[class|=webapp] > fieldset.merge > a:last-child, form[class|=webapp][class*=-cond] > fieldset > a:last-child, [class|=webapp][class*=-bar].merge > button:last-child, form[class|=webapp] > fieldset.merge > button:last-child, form[class|=webapp][class*=-cond] > fieldset > button:last-child, [class|=webapp][class*=-bar].merge > select:last-child, form[class|=webapp] > fieldset.merge > select:last-child, form[class|=webapp][class*=-cond] > fieldset > select:last-child, [class|=webapp][class*=-bar].merge > details:last-child, form[class|=webapp] > fieldset.merge > details:last-child, form[class|=webapp][class*=-cond] > fieldset > details:last-child {
   border-top-left-radius: 0;
   border-bottom-left-radius: 0;
 }
@@ -264,7 +264,12 @@ form[class|=webapp] > fieldset {
   padding: 0;
 }
 
+form[class|=webapp] > fieldset:first-of-type:empty {
+  display: none;
+}
+
 form[class|=webapp] > fieldset > legend {
+  white-space: nowrap;
   padding: 0.3rem;
 }
 
@@ -280,8 +285,14 @@ form[class|=webapp][class*=-cond] {
   padding: 0.6rem;
 }
 
-form[class|=webapp][class*=-cond] > fieldset:first-child {
+form[class|=webapp][class*=-cond] > fieldset:first-of-type {
   display: none;
+}
+
+form[class|=webapp][class*=-inline] > fieldset > legend {
+  float: left;
+  flex: 1 0;
+  text-align: right;
 }
 
 table[class|=webapp] {

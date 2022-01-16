@@ -146,7 +146,7 @@ new class extends webapp
 	{
 		return ($this->mysql)(...$params);
 	}
-	function form_field(webapp|webapp_html $context = NULL, string $action = NULL):array|webapp_form
+	function form_field(string $tabname, webapp|webapp_html $context = NULL, string $action = NULL):array|webapp_form
 	{
 		$form = new webapp_form($context, $action);
 		$form->legend('Field');
@@ -203,7 +203,12 @@ new class extends webapp
 				$optgroup->append('option', [$row['Collation'], 'value' => $row['Collation']]);
 
 			}
-			//$this->query('SHOW FIELDS FROM ?a', $tabname);
+			foreach ($this->query('SHOW FIELDS FROM ?a', $tabname) as $row)
+			{
+				$after->append('option', ["{$row['Field']}:{$row['Type']}", 'value' => $row['Field']]);
+			}
+
+			
 		}
 		else
 		{
@@ -271,6 +276,7 @@ new class extends webapp
 		$form->field('password', 'text', ['value' => $this->mysql_password]);
 		$form->fieldset();
 		$form->button('Connect to MySQL', 'submit');
+		$form->xml['class'] = 'webapp-inline';
 	}
 	function get_console(string $charset = NULL)
 	{
@@ -404,7 +410,7 @@ new class extends webapp
 		$a = $table->bar;
 		$a->append('a', ['View data', 'href' => '?data/' . $name, 'class'=> 'primary']);
 		$a->append('a', ['Insert data', 'href' => '#']);
-		$a->append('a', ['Append field', 'href' => '?editfield']);
+		$a->append('a', ['Append field', 'href' => '?editfield/' . $name]);
 		//$a->append('input');
 		$a->append('a', ['Rename table', 'href' => '#', 'class'=> 'danger']);
 		$a->append('a', ['Truncate table', 'href' => '#', 'class'=> 'danger']);
@@ -470,9 +476,9 @@ new class extends webapp
 		
 
 	}
-	function get_editfield()
+	function get_editfield(string $name)
 	{
-		$this->form_field($this->app->main);
+		$this->form_field($this->url64_decode($name), $this->app->main);
 	}
 	function get_editor(string $name)
 	{
