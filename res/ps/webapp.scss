@@ -38,7 +38,8 @@ $danger: rgb(203, 36, 49);
 	--webapp-foreground: black;
 	//--webapp-colorempty: transparent;
 	--webapp-gap: 1rem;
-	--webapp-radius: .4rem;
+	--webapp-gapitem: .4rem;
+	--webapp-gapradius: .4rem;
 
 	--webapp-anchor: $anchor;
 	--webapp-button: $button;
@@ -68,17 +69,17 @@ $danger: rgb(203, 36, 49);
 			}
 			>aside:first-of-type:not(:empty){
 				display: inline-flex;
-				gap: 1rem;
+				gap: var(--webapp-gap);
 				flex-direction: column;
-				margin-left: 1rem;
+				margin-left: var(--webapp-gap);
 		
 			}
 			>main:first-of-type{
-				margin: 0 1rem;
+				margin: 0 var(--webapp-gap);
 			}
 			>footer:first-of-type{
 				grid-column: 1 / -1;
-				padding: .6rem 1rem;
+				padding: var(--webapp-gap);
 			}
 		}
 	}
@@ -104,8 +105,8 @@ $danger: rgb(203, 36, 49);
 		box-shadow: 0 .5rem 2rem rgba($edge, .175);
 	}
 	&[class*=-radius]{
-		padding: var(--webapp-radius) 0;
-		border-radius: var(--webapp-radius);
+		padding: var(--webapp-gapradius) 0;
+		border-radius: var(--webapp-gapradius);
 	}
 	&[class*=-codeblock]{
 		font-family: var(--webapp-font-monospace);
@@ -261,58 +262,158 @@ $danger: rgb(203, 36, 49);
 			}
 		}
 	}
-	&[class*=-gaplitem]{
-		padding: .4rem var(--webapp-gap);
+	&[class*=-gapitem]{
+		white-space: nowrap;
+		>a{
+			display: block;
+		}
+		>:not(details),>details>summary{
+			padding: var(--webapp-gapitem) var(--webapp-gap);
+			//@extend [class|=webapp][class*=-gapitem];
+		}
+		
 	}
 }
 
+%list-gap{
+	white-space: nowrap;
+	>a{
+		display: block;
+	}
+	>:not(details),>details>summary{
+		padding: var(--webapp-gapitem) var(--webapp-gap);
+		//@extend [class|=webapp][class*=-gapitem];
+	}
+}
+%list-menu{
+	>details{
+		position: relative;
+		>summary:first-child{
+			@extend [class|=webapp][class*=-anchor];
+		}
+		>:not(summary):first-of-type{
+			position: absolute;
+			// top: calc(-1px - var(--webapp-gapradius));
+			// left: 100%;
+			@extend [class|=webapp][class*=-dialog];
+		}
+	}
+}
+
+dl[class|=webapp]{
+	&[class*=-gap]>dd{@extend %list-gap;}
+	&[class*=-menu]>dd{@extend %list-menu;}
+}
+
 ul[class|=webapp]{
+	list-style-type: none;
 	&[class*=-hover]{
 		>li:hover{
 			background: $hover;
 		}
 	}
+	&[class*=-inline]{
+		>li{
+			display: inline-block;
+		}
+	}
+
+	&[class*=-select]{
+		
+		line-height: 1.8rem;
+		>li{
+			&:hover{
+				background-color: $hover;
+			}
+			>label{
+				display: block;
+				padding-right: .8rem;
+				>input{
+					margin: 0 .6rem;
+				}
+			}
+			
+		}
+	}
+
+	&[class*=-tree]{
+		ul{
+			padding: 0;
+			position: relative;
+			margin-left: 1rem;
+			list-style-type: none;
+			&:before{
+				content: "";
+				width: 0;
+				border-left: 1px solid;
+				position: absolute;
+				top: 0;
+				bottom: 0;
+			}
+			>li{
+				padding-left: 24px;
+				line-height: 24px;
+				position: relative;
+				&:before{
+					content: "";
+					width: 1rem;
+					border-top: 1px solid;
+					position: absolute;
+					top: 12px;
+					left: 0;
+				}
+				&:last-child:before{
+					background-color: $background;
+					bottom: 0;
+				}
+			}
+		}
+	}
+	&[class*=-gap]>li{@extend %list-gap;}
+	&[class*=-menu]>li{@extend %list-menu;}
 }
 
+
 nav[class|=webapp]{
-	padding: .4rem 0;
+	padding: var(--webapp-gapitem) 0;
 	ul{
 		margin: 0;
 		padding: 0;
 		list-style-type: none;
-		>li{
-			white-space: nowrap;
-			>a{
-				display: block;
-			}
-			>a,>details>summary{
-				@extend [class|=webapp][class*=-gaplitem];
-			}
-			>details{
-				position: relative;
-			}
-			>details>summary{
-				@extend [class|=webapp][class*=-anchor];
-			}
-		}
+		@extend ul[class|=webapp][class*=-gap],
+				ul[class|=webapp][class*=-menu];
+		// >li{
+		// 	white-space: nowrap;
+		// 	>a{
+		// 		display: block;
+		// 	}
+		// 	>a,>details>summary{
+		// 		@extend [class|=webapp][class*=-gapitem];
+		// 	}
+		// 	>details{
+		// 		position: relative;
+		// 	}
+		// 	>details>summary{
+		// 		@extend [class|=webapp][class*=-anchor];
+		// 	}
+		// }
 	}
-	ul:not(:first-child){
-		position: absolute;
-		top: -.5rem;
-		left: 100%;
-		z-index: 9999;
-		@extend [class|=webapp][class*=-dialog],
-				ul[class|=webapp][class*=-hover];
+	// ul:not(:first-child){
+	// 	position: absolute;
+	// 	top: calc(-1px - var(--webapp-gapradius));
+	// 	left: 100%;
+	// 	z-index: 9999;
+	// 	@extend [class|=webapp][class*=-dialog],
+	// 			[class|=webapp][class*=-radius],
+	// 			ul[class|=webapp][class*=-hover];
 
 		
-	}
-	>ul:first-child{
-		>li{
-			display: inline-block;
-			>details>ul{
-				top: auto;
-				left: 0;
-			}
+	// }
+	>ul:first-child>li{
+		display: inline-block;
+		>details>ul:first-of-type{
+			top: auto;
+			left: 0;
 		}
 	}
 }
@@ -438,66 +539,7 @@ table[class|=webapp]{
 }
 
 
-ul[class|=webapp]{
-	list-style-type: none;
-	&[class*=-inline]{
-		>li{
-			display: inline-block;
-		}
-	}
 
-	&[class*=-select]{
-		
-		line-height: 1.8rem;
-		>li{
-			&:hover{
-				background-color: $hover;
-			}
-			>label{
-				display: block;
-				padding-right: .8rem;
-				>input{
-					margin: 0 .6rem;
-				}
-			}
-			
-		}
-	}
-
-	&[class*=-tree]{
-		ul{
-			padding: 0;
-			position: relative;
-			margin-left: 1rem;
-			list-style-type: none;
-			&:before{
-				content: "";
-				width: 0;
-				border-left: 1px solid;
-				position: absolute;
-				top: 0;
-				bottom: 0;
-			}
-			>li{
-				padding-left: 24px;
-				line-height: 24px;
-				position: relative;
-				&:before{
-					content: "";
-					width: 1rem;
-					border-top: 1px solid;
-					position: absolute;
-					top: 12px;
-					left: 0;
-				}
-				&:last-child:before{
-					background-color: $background;
-					bottom: 0;
-				}
-			}
-		}
-	}
-}
 
 select[class|=webapp]{
 	outline: none;
