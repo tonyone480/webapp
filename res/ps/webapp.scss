@@ -37,6 +37,8 @@ $danger: rgb(203, 36, 49);
 	--webapp-background: white;
 	--webapp-foreground: black;
 	//--webapp-colorempty: transparent;
+	--webapp-gap: 1rem;
+	--webapp-radius: .4rem;
 
 	--webapp-anchor: $anchor;
 	--webapp-button: $button;
@@ -57,15 +59,7 @@ $danger: rgb(203, 36, 49);
 		padding: 0;
 		font-size: 1rem;
 		a{
-			color: $anchor;
-			outline: none;
-			text-decoration: none;
-			&:hover{
-				text-decoration: underline;
-			}
-			&.danger{
-				color: $danger;
-			}
+			@extend [class|=webapp][class*=-anchor];
 		}
 		>div[class*=-grid]{
 			grid-template-columns: auto 1fr;
@@ -104,10 +98,14 @@ $danger: rgb(203, 36, 49);
 	}
 	&[class*=-dialog]{
 		background: var(--webapp-background);
-		padding: .4rem 0;
+		//padding: var(--webapp-radius) 0;
 		border: 1px solid rgba($edge, .23);
-		border-radius: .4rem;
+		//border-radius: var(--webapp-radius);
 		box-shadow: 0 .5rem 2rem rgba($edge, .175);
+	}
+	&[class*=-radius]{
+		padding: var(--webapp-radius) 0;
+		border-radius: var(--webapp-radius);
 	}
 	&[class*=-codeblock]{
 		font-family: var(--webapp-font-monospace);
@@ -119,8 +117,18 @@ $danger: rgb(203, 36, 49);
 	// }
 	
 
-
-	
+	&[class*=-anchor]{
+		color: $anchor;
+		cursor: pointer;
+		outline: none;
+		text-decoration: none;
+		&:hover{
+			text-decoration: underline;
+		}
+		&.danger{
+			color: $danger;
+		}
+	}
 	&[class*=-button]{
 		font: 1rem var(--webapp-font-sans-serif);
 		color: var(--webapp-foreground);
@@ -253,57 +261,60 @@ $danger: rgb(203, 36, 49);
 			}
 		}
 	}
+	&[class*=-gaplitem]{
+		padding: .4rem var(--webapp-gap);
+	}
 }
 
+ul[class|=webapp]{
+	&[class*=-hover]{
+		>li:hover{
+			background: $hover;
+		}
+	}
+}
 
 nav[class|=webapp]{
+	padding: .4rem 0;
 	ul{
 		margin: 0;
-		padding: .4rem;
+		padding: 0;
 		list-style-type: none;
 		>li{
-			>a,>details{
+			white-space: nowrap;
+			>a{
 				display: block;
-				padding: .4rem 1rem;
-				white-space: nowrap;
+			}
+			>a,>details>summary{
+				@extend [class|=webapp][class*=-gaplitem];
 			}
 			>details{
-				color: $anchor;
 				position: relative;
-				>summary{
-					cursor: pointer;
-					&:hover{
-						text-decoration: underline;
-					}
-				}
+			}
+			>details>summary{
+				@extend [class|=webapp][class*=-anchor];
 			}
 		}
 	}
-	ul:first-child{
-		>li{
-			display: inline-block;
-			>details{
-				>ul{
-					top: auto;
-					left: 0;
-				}
-			}
-		}
-	}
-	ul:not(ul:first-child){
-		@extend [class|=webapp][class*=-dialog];
+	ul:not(:first-child){
 		position: absolute;
-		top: -.4rem;
+		top: -.5rem;
 		left: 100%;
 		z-index: 9999;
+		@extend [class|=webapp][class*=-dialog],
+				ul[class|=webapp][class*=-hover];
+
+		
 	}
-	&[class*=-highlight]{
-		details:hover{
-			color: $background;
-			background-color: $anchor;
+	>ul:first-child{
+		>li{
+			display: inline-block;
+			>details>ul{
+				top: auto;
+				left: 0;
+			}
 		}
 	}
-	
 }
 
 form[class|=webapp]{
@@ -340,13 +351,12 @@ form[class|=webapp]{
 			@extend [class|=webapp][class*=-bar].merge;
 		}
 	}
-	&[class*=-inline]
+	&[class*=-legend]
 	{
 		>fieldset>legend{
 			float: left;
 			flex: 1 0;
 			text-align: right;
-			//background-color: red;
 		}
 	}
 }
@@ -498,6 +508,9 @@ select[class|=webapp]{
 
 details[class|=webapp]{
 	display: inline-block;
+
+
+
 	&[class*=-button]{
 		position: relative;
 		padding: 0;

@@ -83,8 +83,8 @@ new class extends webapp
 					]]
 				]],
 				['User', '?users'],
-				['Status', '?status'],
-				['Variables', '?variables'],
+				['Status 不要点', '?status'],
+				['Variables 没完成', '?variables'],
 				['Processlist', '?processlist'],
 			]);
 			if (in_array($this->method, ['get_home', 'post_home'], TRUE))

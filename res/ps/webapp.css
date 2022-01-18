@@ -1,6 +1,8 @@
 :root {
   --webapp-background: white;
   --webapp-foreground: black;
+  --webapp-gap: 1rem;
+  --webapp-radius: .4rem;
   --webapp-anchor: #0366d6;
   --webapp-button: #eff3f6;
   --webapp-edge: #1b1f23;
@@ -17,20 +19,6 @@
   margin: 0;
   padding: 0;
   font-size: 1rem;
-}
-
-:root > body a {
-  color: #0366d6;
-  outline: none;
-  text-decoration: none;
-}
-
-:root > body a:hover {
-  text-decoration: underline;
-}
-
-:root > body a.danger {
-  color: #cb2431;
 }
 
 :root > body > div[class*=-grid] {
@@ -66,17 +54,35 @@
   display: grid;
 }
 
-[class|=webapp][class*=-dialog], nav[class|=webapp] ul:not(ul:first-child), details[class|=webapp][class*=-button] > :not(summary), [class|=webapp][class*=-bar] > details > :not(summary), form[class|=webapp] > fieldset > details > :not(summary) {
+[class|=webapp][class*=-dialog], nav[class|=webapp] ul:not(:first-child), details[class|=webapp][class*=-button] > :not(summary), [class|=webapp][class*=-bar] > details > :not(summary), form[class|=webapp] > fieldset > details > :not(summary) {
   background: var(--webapp-background);
-  padding: .4rem 0;
   border: 1px solid rgba(27, 31, 35, 0.23);
-  border-radius: .4rem;
   box-shadow: 0 0.5rem 2rem rgba(27, 31, 35, 0.175);
+}
+
+[class|=webapp][class*=-radius] {
+  padding: var(--webapp-radius) 0;
+  border-radius: var(--webapp-radius);
 }
 
 [class|=webapp][class*=-codeblock] {
   font-family: var(--webapp-font-monospace);
   white-space: pre;
+}
+
+[class|=webapp][class*=-anchor], :root > body a, nav[class|=webapp] ul > li > details > summary {
+  color: #0366d6;
+  cursor: pointer;
+  outline: none;
+  text-decoration: none;
+}
+
+[class|=webapp][class*=-anchor]:hover, :root > body a:hover, nav[class|=webapp] ul > li > details > summary:hover {
+  text-decoration: underline;
+}
+
+[class|=webapp][class*=-anchor].danger, :root > body a.danger, nav[class|=webapp] ul > li > details > summary.danger {
+  color: #cb2431;
 }
 
 [class|=webapp][class*=-button], [class|=webapp][class*=-bar] > a, form[class|=webapp] > fieldset > a, [class|=webapp][class*=-bar] > button, form[class|=webapp] > fieldset > button, [class|=webapp][class*=-bar] > select, form[class|=webapp] > fieldset > select, [class|=webapp][class*=-bar] > details, form[class|=webapp] > fieldset > details {
@@ -205,50 +211,50 @@
   border-bottom-left-radius: 0;
 }
 
+[class|=webapp][class*=-gaplitem], nav[class|=webapp] ul > li > a, nav[class|=webapp] ul > li > details > summary {
+  padding: 0.4rem var(--webapp-gap);
+}
+
+ul[class|=webapp][class*=-hover] > li:hover, nav[class|=webapp] ul:not(:first-child) > li:hover {
+  background: #f3f3f3;
+}
+
+nav[class|=webapp] {
+  padding: .4rem 0;
+}
+
 nav[class|=webapp] ul {
   margin: 0;
-  padding: .4rem;
+  padding: 0;
   list-style-type: none;
 }
 
-nav[class|=webapp] ul > li > a, nav[class|=webapp] ul > li > details {
-  display: block;
-  padding: .4rem 1rem;
+nav[class|=webapp] ul > li {
   white-space: nowrap;
 }
 
+nav[class|=webapp] ul > li > a {
+  display: block;
+}
+
 nav[class|=webapp] ul > li > details {
-  color: #0366d6;
   position: relative;
 }
 
-nav[class|=webapp] ul > li > details > summary {
-  cursor: pointer;
-}
-
-nav[class|=webapp] ul > li > details > summary:hover {
-  text-decoration: underline;
-}
-
-nav[class|=webapp] ul:first-child > li {
-  display: inline-block;
-}
-
-nav[class|=webapp] ul:first-child > li > details > ul {
-  top: auto;
-  left: 0;
-}
-
-nav[class|=webapp] ul:not(ul:first-child) {
+nav[class|=webapp] ul:not(:first-child) {
   position: absolute;
-  top: -.4rem;
+  top: -.5rem;
   left: 100%;
   z-index: 9999;
 }
 
-nav[class|=webapp][class*=-highlight] details:hover {
-  color: white;
-  background-color: #0366d6;
+nav[class|=webapp] > ul:first-child > li {
+  display: inline-block;
+}
+
+nav[class|=webapp] > ul:first-child > li > details > ul {
+  top: auto;
+  left: 0;
 }
 
 form[class|=webapp] {
@@ -289,7 +295,7 @@ form[class|=webapp][class*=-cond] > fieldset:first-of-type {
   display: none;
 }
 
-form[class|=webapp][class*=-inline] > fieldset > legend {
+form[class|=webapp][class*=-legend] > fieldset > legend {
   float: left;
   flex: 1 0;
   text-align: right;
