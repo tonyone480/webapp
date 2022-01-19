@@ -549,7 +549,7 @@ new class extends webapp
 			'aaaa' => '哈可是当我安徽省电话',
 			'wwwww' => '哦i的期望都收到阿萨的',
 			'gggg' => '静安寺点卡实打实'
-		], FALSE, 'adsdasd', '请选择')->selected('ddd', 'aaaa', 'gggg', null)['class'] = 'webapp-button';
+		], FALSE, 'adsdasd', '请选择')->selected('ddd', 'aaaa', 'gggg', null)['class'] = 'webapp-button-menu';
 
 		// $this->app->main->append('option', ['value' => 'dd']);
 		

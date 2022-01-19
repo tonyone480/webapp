@@ -379,7 +379,7 @@ class webapp_html extends webapp_xml
 			{
 				$type = 'radio';
 			}
-			$ul = $node->append('ul', ['class' => 'webapp-select']);
+			$ul = $node->append('ul', ['class' => 'webapp-gap-menu-hover']);
 			foreach ($options as $value => $comment)
 			{
 				$ul->append('li')->labelinput($name, $type, $value, $comment);

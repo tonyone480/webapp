@@ -1,28 +1,4 @@
 @charset "utf-8";
-
-//定义方法
-//"Open Sans"
-
-@mixin appearance($type:none){
-	appearance: $type;
-	-moz-appearance: $type;
-	-webkit-appearance: $type;
-}
-@mixin margin($size:1){
-	margin: 0.3rem * $size;
-}
-@mixin padding($size:1){
-	padding: 0.3rem * $size;
-}
-@mixin borderliner($color:$foreground){
-	border: 0.09rem solid $color;
-}
-@mixin borderradius($size:1){
-	border-radius: 0.3rem * $size;
-}
-@mixin textalign($position){
-	text-align: $position;
-}
 //基础颜色
 $foreground: black;
 $background: white;
@@ -59,8 +35,14 @@ $danger: rgb(203, 36, 49);
 		margin: 0;
 		padding: 0;
 		font-size: 1rem;
-		a{
-			@extend [class|=webapp][class*=-anchor];
+		a,%webapp-anchor{
+			color: $anchor;
+			cursor: pointer;
+			outline: none;
+			text-decoration: none;
+			&:hover{
+				text-decoration: underline;
+			}
 		}
 		>div[class*=-grid]{
 			grid-template-columns: auto 1fr;
@@ -84,339 +66,80 @@ $danger: rgb(203, 36, 49);
 		}
 	}
 }
-// @media (max-width: 26rem) {
-// 	body{
-// 		background-color: red;
-// 	}
-// }
-
 
 [class|=webapp]{
 	margin: 0;
 	padding: 0;
-	&[class*=-grid]{
-		display: grid;
-	}
-	&[class*=-dialog]{
-		background: var(--webapp-background);
-		//padding: var(--webapp-radius) 0;
-		border: 1px solid rgba($edge, .23);
-		//border-radius: var(--webapp-radius);
-		box-shadow: 0 .5rem 2rem rgba($edge, .175);
-	}
 	&[class*=-radius]{
 		padding: var(--webapp-gapradius) 0;
 		border-radius: var(--webapp-gapradius);
 	}
-	&[class*=-codeblock]{
-		font-family: var(--webapp-font-monospace);
-		white-space: pre;
-	}
-	// &[class*=-highlight] a:hover{
-	// 	background-color: $anchor;
-	// 	color: $background;
-	// }
-	
+}
+[class|=webapp-dialog]{
+	background: var(--webapp-background);
+	border: 1px solid rgba($edge, .23);
+	box-shadow: 0 .5rem 2rem rgba($edge, .175);
+}
+
+details[class|=webapp]{
+	display: inline-block;
 
 	&[class*=-anchor]{
-		color: $anchor;
-		cursor: pointer;
-		outline: none;
-		text-decoration: none;
-		&:hover{
-			text-decoration: underline;
-		}
-		&.danger{
-			color: $danger;
+		>summary:first-child{
+			@extend %webapp-anchor;
 		}
 	}
 	&[class*=-button]{
-		font: 1rem var(--webapp-font-sans-serif);
-		color: var(--webapp-foreground);
-		padding: .25rem 1rem;
+		padding: 0;
+		>summary:first-child{
+			cursor: default;
+			line-height: 1.81rem;
+			padding: 0 1rem;
+		}
+	}
+	&[class*=-menu]{
+		position: relative;
+		>:not(summary):first-of-type{
+			position: absolute;
+			// top: calc(-1px - var(--webapp-gapradius));
+			// left: 100%;
+			@extend [class|=webapp-dialog];
+		}
+	}
+}
 
-		border: 1px solid rgba($edge, .2);
-		border-radius: 3px;
+dl[class|=webapp]{
+	&[class*=-gap]>dd,%dl-gap{
 		white-space: nowrap;
-		background-color: $button;
-		background-image: linear-gradient(-180deg, lighten($button, 3.4%) 0%, $button 90%);
-		&:hover{
-			background-image: linear-gradient(-180deg, lighten($button, 0.2%) 0%, darken($button, 2.8%) 90%);
-			border-color: rgba($edge, 0.35);
-			text-decoration: none;
-		}
-		&:focus{
-			box-shadow: 0 0 0 0.2em rgba($anchor, 0.3);
-			z-index: 1;
-		}
-		&:active{
-			background-image: none;
-			background-color: darken($button, 2%);
-			border-color: rgba($edge, 0.35);
-			box-shadow: inset 0 0.15em 0.3em rgba($edge, 0.15);
-		}
-		//主要
-		&.primary{
-			color: $background;
-			background-color: $primary;
-			background-image: linear-gradient(-180deg, lighten($primary, 10%) 0%, $primary 90%);
-			&:hover{
-				background-image: linear-gradient(-180deg, lighten($primary, 7.6%) 0%, darken($primary, 2%) 90%);
-				border-color: rgba($edge, 0.5);
-			}
-			&:focus{
-				box-shadow: 0 0 0 0.2em rgba(lighten($primary, 10%), 0.4);
-			}
-			&:active{
-				background-image: none;
-				background-color: darken($primary, 1.4%);
-				border-color: rgba($edge, 0.5);
-			}
-		}
-		//危险
-		&.danger{
-			color: $danger;
-			&:hover{
-				color: $background;
-				background-image: linear-gradient(-180deg, lighten($danger, 10%) 0%, $danger 90%);
-				border-color: rgba($edge, 0.5);
-			}
-			&:focus{
-				box-shadow: 0 0 0 0.2em rgba($danger, 0.4);
-			}
-			&:active{
-				color: $background;
-				background-image: none;
-				background-color: darken($danger, 5%);
-				border-color: rgba($edge, 0.5);
-			}
-		}
-	
-	}
-	&[class*=-input]{
-		font: 1rem var(--webapp-font-sans-serif);
-		padding: .32rem .4rem;
-			
-		
-		border: 1px solid lighten($edge, 72%);
-		border-radius: 3px;
-		background-color: rgba($background, 0.6);
-		box-shadow: inset 0 1px 2px rgba($edge, 0.075);
-		
-		text-overflow: ellipsis;
-		&:focus{
-			outline: none;
-			box-shadow: inset 0 1px 2px rgba($edge, 0.075), 0 0 0 0.2em rgba($anchor, 0.3);
-			border-color: lighten($anchor, 13.3%);
-			z-index: 1;
-		}
-		&:invalid{
-			box-shadow: 0 0 0 0.2em rgba($danger, 0.4);
-			border-color: $danger;
-		}
-		&:disabled{
-			pointer-events: none;
-			box-shadow: none;
-			background-color: lighten($hint, 20%);
-		}
-		&::placeholder{
-			color: $hint;
-		}
-
-	}
-	&[class*=-bar]{
-		display: flex;
-		gap: 1rem;
-		// >a,>button,>select,>details,>input,>textarea{
-			
-		// 	line-height: 1.8rem;
-			
-		// }
-		
-		>a,>button,>select,>details{
-			@extend [class|=webapp][class*=-button];
-		}
-		>select{
-			@extend select[class|=webapp];
-		}
-		>details{
-			@extend details[class|=webapp][class*=-button];
-		}
-		>input,>textarea{
-			@extend [class|=webapp][class*=-input];
-		}
-		&.merge{
-			gap: 0;
-			>input,>textarea,>a,>button,>select,>details{
-				&:not(:first-child, :last-child){
-					border-radius: 0;
-				}
-				&:first-child{
-					border-top-right-radius: 0;
-					border-bottom-right-radius: 0;
-				}
-				&:last-child{
-					border-top-left-radius: 0;
-					border-bottom-left-radius: 0;
-				}
-			}
-		}
-	}
-	&[class*=-gapitem]{
-		white-space: nowrap;
-		>a{
+		>:not(details){
 			display: block;
 		}
 		>:not(details),>details>summary{
 			padding: var(--webapp-gapitem) var(--webapp-gap);
 			//@extend [class|=webapp][class*=-gapitem];
 		}
-		
 	}
-}
-
-%list-gap{
-	white-space: nowrap;
-	>a{
-		display: block;
-	}
-	>:not(details),>details>summary{
-		padding: var(--webapp-gapitem) var(--webapp-gap);
-		//@extend [class|=webapp][class*=-gapitem];
-	}
-}
-%list-menu{
-	>details{
-		position: relative;
-		>summary:first-child{
-			@extend [class|=webapp][class*=-anchor];
-		}
-		>:not(summary):first-of-type{
-			position: absolute;
-			// top: calc(-1px - var(--webapp-gapradius));
-			// left: 100%;
-			@extend [class|=webapp][class*=-dialog];
-		}
-	}
-}
-
-dl[class|=webapp]{
-	&[class*=-gap]>dd{@extend %list-gap;}
-	&[class*=-menu]>dd{@extend %list-menu;}
-}
-
-ul[class|=webapp]{
-	list-style-type: none;
-	&[class*=-hover]{
-		>li:hover{
+	&[class*=-hover]>dd,%dl-hover{
+		&:hover{
 			background: $hover;
 		}
 	}
-	&[class*=-inline]{
-		>li{
-			display: inline-block;
+	&[class*=-menu]>dd,%dl-menu{
+		>details{
+			@extend details[class|=webapp][class*=-menu],
+					details[class|=webapp][class*=-anchor];
 		}
 	}
 
-	&[class*=-select]{
-		
-		line-height: 1.8rem;
-		>li{
-			&:hover{
-				background-color: $hover;
-			}
-			>label{
-				display: block;
-				padding-right: .8rem;
-				>input{
-					margin: 0 .6rem;
-				}
-			}
-			
-		}
-	}
-
-	&[class*=-tree]{
-		ul{
-			padding: 0;
-			position: relative;
-			margin-left: 1rem;
-			list-style-type: none;
-			&:before{
-				content: "";
-				width: 0;
-				border-left: 1px solid;
-				position: absolute;
-				top: 0;
-				bottom: 0;
-			}
-			>li{
-				padding-left: 24px;
-				line-height: 24px;
-				position: relative;
-				&:before{
-					content: "";
-					width: 1rem;
-					border-top: 1px solid;
-					position: absolute;
-					top: 12px;
-					left: 0;
-				}
-				&:last-child:before{
-					background-color: $background;
-					bottom: 0;
-				}
-			}
-		}
-	}
-	&[class*=-gap]>li{@extend %list-gap;}
-	&[class*=-menu]>li{@extend %list-menu;}
+}
+ul[class|=webapp],
+ol[class|=webapp]{
+	list-style-type: none;
+	&[class*=-gap]>li{@extend %dl-gap;}
+	&[class*=-hover]>li{@extend %dl-hover;}
+	&[class*=-menu]>li{@extend %dl-menu;}
 }
 
-
-nav[class|=webapp]{
-	padding: var(--webapp-gapitem) 0;
-	ul{
-		margin: 0;
-		padding: 0;
-		list-style-type: none;
-		@extend ul[class|=webapp][class*=-gap],
-				ul[class|=webapp][class*=-menu];
-		// >li{
-		// 	white-space: nowrap;
-		// 	>a{
-		// 		display: block;
-		// 	}
-		// 	>a,>details>summary{
-		// 		@extend [class|=webapp][class*=-gapitem];
-		// 	}
-		// 	>details{
-		// 		position: relative;
-		// 	}
-		// 	>details>summary{
-		// 		@extend [class|=webapp][class*=-anchor];
-		// 	}
-		// }
-	}
-	// ul:not(:first-child){
-	// 	position: absolute;
-	// 	top: calc(-1px - var(--webapp-gapradius));
-	// 	left: 100%;
-	// 	z-index: 9999;
-	// 	@extend [class|=webapp][class*=-dialog],
-	// 			[class|=webapp][class*=-radius],
-	// 			ul[class|=webapp][class*=-hover];
-
-		
-	// }
-	>ul:first-child>li{
-		display: inline-block;
-		>details>ul:first-of-type{
-			top: auto;
-			left: 0;
-		}
-	}
-}
 
 form[class|=webapp]{
 	display: inline-flex;
@@ -424,156 +147,18 @@ form[class|=webapp]{
 	flex-direction: column;
 	min-width: 21rem;
 	>fieldset{
-		&:first-of-type:empty{
-			display: none;
-		}
 		border: none;
 		margin: 0;
 		padding: 0;
-		@extend [class|=webapp][class*=-bar];
-		>legend{
-			white-space: nowrap;
-			@include padding(1);
-		}
-		>input:not([type=checkbox],[type=radio]),>textarea{
-			//width: 14rem;
-			flex: 1 1;
-		}
-		>ul,>a,>button,>select,>details{
-			flex: 1 0;
-		}
-	}
-	&[class*=-cond]{
-		@include padding(2);
-		>fieldset:first-of-type{
+		&:first-child{
 			display: none;
 		}
-		>fieldset{
-			@extend [class|=webapp][class*=-bar].merge;
-		}
-	}
-	&[class*=-legend]
-	{
-		>fieldset>legend{
-			float: left;
-			flex: 1 0;
-			text-align: right;
-		}
 	}
 }
 
-table[class|=webapp]{
-	display: inline-table;
-	border: 1px solid $foreground;
-	border-collapse: collapse;
-	//border-spacing: 4px;
-	//empty-cells: show;
-	td{
-		
-		padding: 0.4rem;
-		&:empty::before{
-			content: 'NULL';
-			color: $hint;
-		}
-		// >span{
-		// 	display: block;
-		// 	overflow: hidden;
-		// 	text-overflow: ellipsis;
-		// }
-	}
-	>thead{
-		>tr:first-child{
-			color: $background;
-			background-color: $anchor;
-			
-		}
-	}
-	>tbody{
-		>tr.fieldset{
-			background-color: $hint;
-			>td{
-				
-				white-space: nowrap;
-			}
-		}
-		>tr:not(.fieldset)>td{
-			overflow: hidden;
-			white-space: pre;
-			text-overflow: ellipsis;
-		}
-	}
-	>tfoot{
-		background-color: $button;
-	}
-	
-	&[class*=-grid]{
-		display: inline-table;
-		>tbody>tr>td{
-			border: 1px solid $foreground;
-		}
-	}
 
-	// &[class*=-highlight]{
-	// 	>tbody>tr:hover{
-	// 		background-color: $anchor;
-	// 		>td{
-	// 			color: $background;
-	// 		}
-	// 	}
-	// }
-	
-	
-	// &[class*=-even]{
-	// 	>tbody>tr:nth-child(even) {
-	// 		background-color: $hint;
-	// 	}
-	// }
+nav[class|=webapp]{
+	ul{
 
-	// &[class*=-top]{
-	// 	td{
-	// 		vertical-align: top;
-	// 	}
-		
-	// }
-
-}
-
-
-
-
-select[class|=webapp]{
-	outline: none;
-	>optgroup,>option{
-		background-color: $background;
-	}
-}
-
-details[class|=webapp]{
-	display: inline-block;
-
-
-
-	&[class*=-button]{
-		position: relative;
-		padding: 0;
-		>summary:first-of-type{
-			
-			cursor: default;
-			line-height: 1.81rem;
-			padding: 0 1rem;
-
-			//vertical-align: baseline;
-			// &::before{
-			// 	content: attr(data-placeholder);
-			// }
-		}
-		>:not(summary){
-			display: block;
-			position: absolute;
-			
-			@extend [class|=webapp][class*=-dialog];
-			z-index: 9999;
-			
-		}
 	}
 }
