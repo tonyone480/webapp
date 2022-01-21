@@ -48,6 +48,9 @@ $danger: rgb(203, 36, 49);
 			grid-template-columns: auto 1fr;
 			>header:first-of-type{
 				grid-column: 1 / -1;
+				&:empty{
+					margin-top: var(--webapp-gap);
+				}
 			}
 			>aside:first-of-type:not(:empty){
 				display: inline-flex;
@@ -79,6 +82,53 @@ $danger: rgb(203, 36, 49);
 	background: var(--webapp-background);
 	border: 1px solid rgba($edge, .23);
 	box-shadow: 0 .5rem 2rem rgba($edge, .175);
+}
+[class|=webapp-button]{
+	font: 1rem var(--webapp-font-sans-serif);
+	color: var(--webapp-foreground);
+	padding: .25rem 1rem;
+
+	border: 1px solid rgba($edge, .2);
+	border-radius: 3px;
+	white-space: nowrap;
+	background-color: $button;
+	background-image: linear-gradient(-180deg, lighten($button, 3.4%) 0%, $button 90%);
+}
+[class|=webapp-input]{
+	&:not([type=checkbox],[type=radio]){
+		font: 1rem var(--webapp-font-sans-serif);
+		padding: .32rem .4rem;
+			
+		
+		border: 1px solid lighten($edge, 72%);
+		border-radius: 3px;
+		background-color: rgba($background, 0.6);
+		box-shadow: inset 0 1px 2px rgba($edge, 0.075);
+		
+		text-overflow: ellipsis;
+	}
+	&[type=checkbox],&[type=radio]{
+		appearance: none;
+		
+		@extend [class|=webapp-button];
+		&::before{
+			
+			border: 1px solid red;
+		}
+		&::after{
+			content: attr(value);
+		}
+		
+	}
+}
+[class|=webapp-bar]{
+	display: flex;
+	>a,>button,>select,>details{
+		@extend [class|=webapp-button];
+	}
+	>input,>textarea{
+		@extend [class|=webapp-input];
+	}
 }
 
 details[class|=webapp]{
@@ -150,9 +200,10 @@ form[class|=webapp]{
 		border: none;
 		margin: 0;
 		padding: 0;
-		&:first-child{
+		&:first-child:empty{
 			display: none;
 		}
+		@extend [class|=webapp-bar];
 	}
 }
 

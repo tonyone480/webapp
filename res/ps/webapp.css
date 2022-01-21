@@ -45,6 +45,10 @@ ol[class|=webapp][class*=-menu] > li > details > summary:hover:first-child {
   grid-column: 1 / -1;
 }
 
+:root > body > div[class*=-grid] > header:first-of-type:empty {
+  margin-top: var(--webapp-gap);
+}
+
 :root > body > div[class*=-grid] > aside:first-of-type:not(:empty) {
   display: inline-flex;
   gap: var(--webapp-gap);
@@ -76,6 +80,43 @@ ol[class|=webapp][class*=-menu] > li > details > :not(summary):first-of-type {
   background: var(--webapp-background);
   border: 1px solid rgba(27, 31, 35, 0.23);
   box-shadow: 0 0.5rem 2rem rgba(27, 31, 35, 0.175);
+}
+
+[class|=webapp-button], [class|=webapp-input][type=checkbox], [class|=webapp-bar] > input[type=checkbox], form[class|=webapp] > fieldset > input[type=checkbox], [class|=webapp-bar] > textarea[type=checkbox], form[class|=webapp] > fieldset > textarea[type=checkbox], [class|=webapp-input][type=radio], [class|=webapp-bar] > input[type=radio], form[class|=webapp] > fieldset > input[type=radio], [class|=webapp-bar] > textarea[type=radio], form[class|=webapp] > fieldset > textarea[type=radio], [class|=webapp-bar] > a, form[class|=webapp] > fieldset > a, [class|=webapp-bar] > button, form[class|=webapp] > fieldset > button, [class|=webapp-bar] > select, form[class|=webapp] > fieldset > select, [class|=webapp-bar] > details, form[class|=webapp] > fieldset > details {
+  font: 1rem var(--webapp-font-sans-serif);
+  color: var(--webapp-foreground);
+  padding: .25rem 1rem;
+  border: 1px solid rgba(27, 31, 35, 0.2);
+  border-radius: 3px;
+  white-space: nowrap;
+  background-color: #eff3f6;
+  background-image: linear-gradient(-180deg, #fafbfc 0%, #eff3f6 90%);
+}
+
+[class|=webapp-input]:not([type=checkbox]):not([type=radio]), [class|=webapp-bar] > input:not([type=checkbox]):not([type=radio]), form[class|=webapp] > fieldset > input:not([type=checkbox]):not([type=radio]), [class|=webapp-bar] > textarea:not([type=checkbox]):not([type=radio]), form[class|=webapp] > fieldset > textarea:not([type=checkbox]):not([type=radio]) {
+  font: 1rem var(--webapp-font-sans-serif);
+  padding: .32rem .4rem;
+  border: 1px solid #d1d7dc;
+  border-radius: 3px;
+  background-color: rgba(255, 255, 255, 0.6);
+  box-shadow: inset 0 1px 2px rgba(27, 31, 35, 0.075);
+  text-overflow: ellipsis;
+}
+
+[class|=webapp-input][type=checkbox], [class|=webapp-bar] > input[type=checkbox], form[class|=webapp] > fieldset > input[type=checkbox], [class|=webapp-bar] > textarea[type=checkbox], form[class|=webapp] > fieldset > textarea[type=checkbox], [class|=webapp-input][type=radio], [class|=webapp-bar] > input[type=radio], form[class|=webapp] > fieldset > input[type=radio], [class|=webapp-bar] > textarea[type=radio], form[class|=webapp] > fieldset > textarea[type=radio] {
+  appearance: none;
+}
+
+[class|=webapp-input][type=checkbox]::before, [class|=webapp-bar] > input[type=checkbox]::before, form[class|=webapp] > fieldset > input[type=checkbox]::before, [class|=webapp-bar] > textarea[type=checkbox]::before, form[class|=webapp] > fieldset > textarea[type=checkbox]::before, [class|=webapp-input][type=radio]::before, [class|=webapp-bar] > input[type=radio]::before, form[class|=webapp] > fieldset > input[type=radio]::before, [class|=webapp-bar] > textarea[type=radio]::before, form[class|=webapp] > fieldset > textarea[type=radio]::before {
+  border: 1px solid red;
+}
+
+[class|=webapp-input][type=checkbox]::after, [class|=webapp-bar] > input[type=checkbox]::after, form[class|=webapp] > fieldset > input[type=checkbox]::after, [class|=webapp-bar] > textarea[type=checkbox]::after, form[class|=webapp] > fieldset > textarea[type=checkbox]::after, [class|=webapp-input][type=radio]::after, [class|=webapp-bar] > input[type=radio]::after, form[class|=webapp] > fieldset > input[type=radio]::after, [class|=webapp-bar] > textarea[type=radio]::after, form[class|=webapp] > fieldset > textarea[type=radio]::after {
+  content: attr(value);
+}
+
+[class|=webapp-bar], form[class|=webapp] > fieldset {
+  display: flex;
 }
 
 details[class|=webapp] {
@@ -141,6 +182,6 @@ form[class|=webapp] > fieldset {
   padding: 0;
 }
 
-form[class|=webapp] > fieldset:first-child {
+form[class|=webapp] > fieldset:first-child:empty {
   display: none;
 }
