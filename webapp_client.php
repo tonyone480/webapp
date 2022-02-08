@@ -254,7 +254,7 @@ class webapp_client_http extends webapp_client implements ArrayAccess
 {
 	public string $path;
 	public int $autoretry = 0, $autojump = 0;
-	private array $headers = [
+	protected array $headers = [
 		'Host' => '*',
 		'Connection' => 'keep-alive',
 		'User-Agent' => 'WebApp/Client',
@@ -540,11 +540,6 @@ class webapp_client_http extends webapp_client implements ArrayAccess
 		$client->autoretry = $options['autoretry'] ?? 0;
 		$client->autojump = $options['autojump'] ?? 0;
 		return $client->goto($client->path, $options);
-		// if (str_starts_with($url, 'ws'))
-		// {
-		// 	$client->websocket();
-		// }
-		// return $client;
 	}
 	static function parseurl(string $url):array
 	{
@@ -583,204 +578,137 @@ class webapp_client_http extends webapp_client implements ArrayAccess
 		return ["tcp://127.0.0.1:{$port}", '127.0.0.1', '/'];
 	}
 }
-// class webapp_client_websocket extends webapp_client_http
-// {
-// 	/*
-// 	WebSocket
-// 	Frame format:
-// 	0                   1                   2                   3
-// 	0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-// 	+-+-+-+-+-------+-+-------------+-------------------------------+
-// 	|F|R|R|R| opcode|M| Payload len |    Extended payload length    |
-// 	|I|S|S|S|  (4)  |A|     (7)     |             (16/64)           |
-// 	|N|V|V|V|       |S|             |   (if payload len==126/127)   |
-// 	| |1|2|3|       |K|             |                               |
-// 	+-+-+-+-+-------+-+-------------+ - - - - - - - - - - - - - - - +
-// 	|     Extended payload length continued, if payload len == 127  |
-// 	+ - - - - - - - - - - - - - - - +-------------------------------+
-// 	|                               |Masking-key, if MASK set to 1  |
-// 	+-------------------------------+-------------------------------+
-// 	| Masking-key (continued)       |          Payload Data         |
-// 	+-------------------------------- - - - - - - - - - - - - - - - +
-// 	:                     Payload Data continued ...                :
-// 	+ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - +
-// 	|                     Payload Data continued ...                |
-// 	+---------------------------------------------------------------+
-// 	*/
-// 	function __construct(string $url)
-// 	{
-// 		parent::__construct($url);
-// 		($responses = $this->headers([
-// 			//测试地址 ws://82.157.123.54:9010/ajaxchattest, ws://121.40.165.18:8800
-// 			'Origin' => 'http://coolaf.com',
-// 			'Upgrade' => 'websocket',
-// 			'Connection' => 'Upgrade',
-// 			'Sec-WebSocket-Version' => 13,
-// 			'Sec-WebSocket-Key' => base64_encode(random_bytes(16))
-// 		])->request('GET', $this->path))
-// 		&& $responses[0] === 'HTTP/1.1 101 Switching Protocols'
-// 		&& array_key_exists('Sec-WebSocket-Accept', $responses)
-// 		&& base64_encode(sha1("{$this->headers['Sec-WebSocket-Key']}258EAFA5-E914-47DA-95CA-C5AB0DC85B11", TRUE)) === $responses['Sec-WebSocket-Accept'];
-// 		print_r($responses);
-// 	}
-// 	function readfhi():array
-// 	{
-// 		if (strlen($data = $this->readfull(2)) === 2)
-// 		{
-// 			extract(unpack('Cb0/Cb1', $data));
-// 			$hi = [
-// 				'fin' => $b0 >> 7,
-// 				'rsv' => $b0 >> 4 & 0x07,
-// 				'opcode' => $b0 & 0x0f,
-// 				'mask' => [],
-// 				'length' => $b1 & 0x7f
-// 			];
-// 			if ($hi['length'] > 125)
-// 			{
-// 				$hi['length'] = hexdec(bin2hex($this->readfull($hi['length'] === 126 ? 2 : 8)));
-// 			}
-// 			if ($b1 >> 7)
-// 			{
-// 				$hi['mask'] = array_values(unpack('Cb0/Cb1/Cb2/Cb3', $this->readfull(4)));
-// 			}
-// 			return $hi;
-// 		}
-// 		return [];
-// 	}
-// 	function packfhi(int $length, int $opcode = 1, bool $fin = TRUE, int $rsv = 0, string $mask = NULL):string
-// 	{
-// 		$format = 'CC';
-// 		$values = [$fin << 7 | ($rsv & 0x07 << 4) | ($opcode & 0x0f)];
-// 		if ($length < 126)
-// 		{
-// 			$values[] = $length;
-// 		}
-// 		else
-// 		{
-// 			if ($length < 65536)
-// 			{
-// 				$format .= 'n';
-// 				$values[] = 126;
-// 			}
-// 			else
-// 			{
-// 				$format .= 'J';
-// 				$values[] = 127;
-// 			}
-// 			$values[] = $length;
-// 		}
-// 		if (strlen($mask) > 3)
-// 		{
-// 			$format .= 'a4';
-// 			$values[] = $mask;
-// 		}
-// 		return pack($format, ...$values);
-// 	}
-// 	function readframe(?array &$hi = NULL):?string
-// 	{
-// 		if (count($hi = $this->readfhi()) && strlen($contents = $this->readfull($hi['length'])) === $hi['length'])
-// 		{
-// 			if ($mask = $hi['mask'])
-// 			{
-// 				$length = strlen($contents);
-// 				for ($i = 0; $i < $length; ++$i)
-// 				{
-// 					$contents[$i] = chr(ord($contents[$i]) ^ $mask[$i % 4]);
-// 				}
-// 			}
-// 			return $contents;
-// 		}
-// 		return NULL;
-// 	}
-// 	function sendframe(string $content, int $opcode = 1, bool $fin = TRUE, int $rsv = 0, string $mask = NULL):bool
-// 	{
-// 		return $this->send($this->packfhi(strlen($content), $opcode, $fin, $rsv, $mask)) && $this->send($content);
-// 	}
-// }
-			/*
-			if ($this->send(join($request[] = "\r\n", $request)) === FALSE
-				|| (count($this) === 0 || $this->push()) === FALSE
-				|| $this->readline($status) === FALSE) {
-				break;
+class webapp_client_websocket extends webapp_client_http
+{
+	/*
+	WebSocket
+	Frame format:
+	0                   1                   2                   3
+	0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+	+-+-+-+-+-------+-+-------------+-------------------------------+
+	|F|R|R|R| opcode|M| Payload len |    Extended payload length    |
+	|I|S|S|S|  (4)  |A|     (7)     |             (16/64)           |
+	|N|V|V|V|       |S|             |   (if payload len==126/127)   |
+	| |1|2|3|       |K|             |                               |
+	+-+-+-+-+-------+-+-------------+ - - - - - - - - - - - - - - - +
+	|     Extended payload length continued, if payload len == 127  |
+	+ - - - - - - - - - - - - - - - +-------------------------------+
+	|                               |Masking-key, if MASK set to 1  |
+	+-------------------------------+-------------------------------+
+	| Masking-key (continued)       |          Payload Data         |
+	+-------------------------------- - - - - - - - - - - - - - - - +
+	:                     Payload Data continued ...                :
+	+ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - +
+	|                     Payload Data continued ...                |
+	+---------------------------------------------------------------+
+	*/
+	function __construct(string $url)
+	{
+		parent::__construct($url);
+		$this->headers([
+			'Upgrade' => 'websocket',
+			'Connection' => 'Upgrade',
+			'Sec-WebSocket-Version' => 13,
+			'Sec-WebSocket-Key' => base64_encode(random_bytes(16))
+		]);
+		
+		// ($responses = $this->headers([
+		// 	//测试地址 ws://82.157.123.54:9010/ajaxchattest, ws://121.40.165.18:8800
+		// 	'Origin' => 'http://coolaf.com',
+		// 	'Upgrade' => 'websocket',
+		// 	'Connection' => 'Upgrade',
+		// 	'Sec-WebSocket-Version' => 13,
+		// 	'Sec-WebSocket-Key' => base64_encode(random_bytes(16))
+		// ])->request('GET', $this->path))
+		// && $responses[0] === 'HTTP/1.1 101 Switching Protocols'
+		// && array_key_exists('Sec-WebSocket-Accept', $responses)
+		// && base64_encode(sha1("{$this->headers['Sec-WebSocket-Key']}258EAFA5-E914-47DA-95CA-C5AB0DC85B11", TRUE)) === $responses['Sec-WebSocket-Accept'];
+		// print_r($responses);
+	}
+	function then(Closure $success, Closure $failure = NULL):static
+	{
+		$closure = $this->response[0] === 'HTTP/1.1 101 Switching Protocols'
+			&& array_key_exists('Sec-WebSocket-Accept', $this->response)
+			&& base64_encode(sha1("{$this->headers['Sec-WebSocket-Key']}258EAFA5-E914-47DA-95CA-C5AB0DC85B11", TRUE)) === $this->response['Sec-WebSocket-Accept']
+			? $success->call($this) : ($failure ? $failure->call($this) : NULL);
+		return $closure instanceof static ? $closure : $this;
+	}
+	function readfhi():array
+	{
+		if ($this->read($data, 2) === 2)
+		{
+			extract(unpack('Cb0/Cb1', $data));
+			$hi = [
+				'fin' => $b0 >> 7,
+				'rsv' => $b0 >> 4 & 0x07,
+				'opcode' => $b0 & 0x0f,
+				'mask' => [],
+				'length' => $b1 & 0x7f
+			];
+			if ($hi['length'] > 125)
+			{
+				$length = $hi['length'] === 126 ? 2 : 8;
+
+				$this->read($data, $length);
+
+				$hi['length'] = hexdec(bin2hex($data));
 			}
-			$responses = [$status];
-			do
+			if ($b1 >> 7)
 			{
-				if ($this->readline($header) === FALSE)
-				{
-					break 2;
-				}
-				if ($offset = strpos($header, ': '))
-				{
-					$key = ucwords(substr($header, 0, $offset), '-');
-					$value = substr($header, $offset + 2);
-					if ($key !== 'Set-Cookie')
-					{
-						$responses[$key] = $value;
-						continue;
-					}
-					if (preg_match('/^([^=]+)=([^;]+)(?:; expires=([^;]+))?/', $value, $cookies))
-					{
-						if (array_key_exists(3, $cookies) && strtotime($cookies[3]) < time())
-						{
-							unset($this->cookies[$cookies[1]]);
-							continue;
-						}
-						$this->cookies[$cookies[1]] = $cookies[2];
-					}
-				}
-			} while ($header);
-			if ($this->clear() === FALSE)
-			{
-				break;
+				$this->read($mask, 4);
+				$hi['mask'] = array_values(unpack('Cb0/Cb1/Cb2/Cb3', $mask));
 			}
-			if (array_key_exists('Content-Encoding', $responses))
+			return $hi;
+		}
+		return [];
+	}
+	function packfhi(int $length, int $opcode = 1, bool $fin = TRUE, int $rsv = 0, string $mask = ''):string
+	{
+		$format = 'CC';
+		$values = [$fin << 7 | ($rsv & 0x07 << 4) | ($opcode & 0x0f)];
+		if ($length < 126)
+		{
+			$values[] = $length;
+		}
+		else
+		{
+			if ($length < 65536)
 			{
-				if (match ($responses['Content-Encoding']) {
-					'gzip' => $this->filter('zlib.inflate', STREAM_FILTER_WRITE, ['window' => 31]),
-					'deflate' => $this->filter('zlib.inflate', STREAM_FILTER_WRITE),
-					default => FALSE} === FALSE) {
-					break;
-				};
-			}
-			if (array_key_exists('Content-Length', $responses))
-			{
-				if ($this->pull(intval($responses['Content-Length'])) === FALSE)
-				{
-					break;
-				}
+				$format .= 'n';
+				$values[] = 126;
 			}
 			else
 			{
-				if (array_key_exists('Transfer-Encoding', $responses) && $responses['Transfer-Encoding'] === 'chunked')
+				$format .= 'J';
+				$values[] = 127;
+			}
+			$values[] = $length;
+		}
+		if (strlen($mask) > 3)
+		{
+			$format .= 'a4';
+			$values[] = $mask;
+		}
+		return pack($format, ...$values);
+	}
+	function readframe(?array &$hi = NULL):?string
+	{
+		if (count($hi = $this->readfhi()) && $this->read($contents, $hi['length']) === $hi['length'])
+		{
+			if ($mask = $hi['mask'])
+			{
+				$length = strlen($contents);
+				for ($i = 0; $i < $length; ++$i)
 				{
-					
-					do
-					{
-						if ($this->readline($size, 8) === FALSE)
-						{
-							break 2;
-						}
-						if ($length = hexdec($size))
-						{
-							if ($this->pull($length) === FALSE)
-							{
-								break 2;
-							}
-						}
-						if ($this->readline($line, 2) === FALSE)
-						{
-							break 2;
-						}
-					} while ($length);
+					$contents[$i] = chr(ord($contents[$i]) ^ $mask[$i % 4]);
 				}
 			}
-			if ($this->remove() === FALSE)
-			{
-				break;
-			}
-			
-
-			$this->responses = $responses;
-			return TRUE;
-			*/
+			return $contents;
+		}
+		return NULL;
+	}
+	function sendframe(string $content, int $opcode = 1, bool $fin = TRUE, int $rsv = 0, string $mask = ''):bool
+	{
+		return $this->send($this->packfhi(strlen($content), $opcode, $fin, $rsv, $mask)) && $this->send($content);
+	}
+}
