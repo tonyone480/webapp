@@ -611,23 +611,11 @@ class webapp_client_websocket extends webapp_client_http
 			'Sec-WebSocket-Version' => 13,
 			'Sec-WebSocket-Key' => base64_encode(random_bytes(16))
 		]);
-		
-		// ($responses = $this->headers([
-		// 	//测试地址 ws://82.157.123.54:9010/ajaxchattest, ws://121.40.165.18:8800
-		// 	'Origin' => 'http://coolaf.com',
-		// 	'Upgrade' => 'websocket',
-		// 	'Connection' => 'Upgrade',
-		// 	'Sec-WebSocket-Version' => 13,
-		// 	'Sec-WebSocket-Key' => base64_encode(random_bytes(16))
-		// ])->request('GET', $this->path))
-		// && $responses[0] === 'HTTP/1.1 101 Switching Protocols'
-		// && array_key_exists('Sec-WebSocket-Accept', $responses)
-		// && base64_encode(sha1("{$this->headers['Sec-WebSocket-Key']}258EAFA5-E914-47DA-95CA-C5AB0DC85B11", TRUE)) === $responses['Sec-WebSocket-Accept'];
-		// print_r($responses);
 	}
 	function then(Closure $success, Closure $failure = NULL):static
 	{
-		$closure = $this->response[0] === 'HTTP/1.1 101 Switching Protocols'
+		$closure = $this->response
+			&& $this->response[0] === 'HTTP/1.1 101 Switching Protocols'
 			&& array_key_exists('Sec-WebSocket-Accept', $this->response)
 			&& base64_encode(sha1("{$this->headers['Sec-WebSocket-Key']}258EAFA5-E914-47DA-95CA-C5AB0DC85B11", TRUE)) === $this->response['Sec-WebSocket-Accept']
 			? $success->call($this) : ($failure ? $failure->call($this) : NULL);
@@ -635,37 +623,44 @@ class webapp_client_websocket extends webapp_client_http
 	}
 	function readfhi():array
 	{
-		if ($this->read($data, 2) === 2)
-		{
-			extract(unpack('Cb0/Cb1', $data));
-			$hi = [
-				'fin' => $b0 >> 7,
-				'rsv' => $b0 >> 4 & 0x07,
-				'opcode' => $b0 & 0x0f,
-				'mask' => [],
-				'length' => $b1 & 0x7f
-			];
-			if ($hi['length'] > 125)
+		if ($this->read($data, 2) === 2
+			&& extract(unpack('C2byte', $data)) === 2) {
+			do
 			{
-				$length = $hi['length'] === 126 ? 2 : 8;
-
-				$this->read($data, $length);
-
-				$hi['length'] = hexdec(bin2hex($data));
-			}
-			if ($b1 >> 7)
-			{
-				$this->read($mask, 4);
-				$hi['mask'] = array_values(unpack('Cb0/Cb1/Cb2/Cb3', $mask));
-			}
-			return $hi;
+				$hi = [
+					'fin' => $byte1 >> 7,
+					'rsv' => $byte1 >> 4 & 0x07,
+					'opcode' => $byte1 & 0x0f,
+					'length' => $byte2 & 0x7f,
+					'mask' => []
+				];
+				if ($hi['length'] > 125)
+				{
+					$length = $hi['length'] === 126 ? 2 : 8;
+					if ($this->read($data, $length) !== $length)
+					{
+						break;
+					}
+					$hi['length'] = hexdec(bin2hex($data));
+				}
+				if ($byte2 >> 7)
+				{
+					if ($this->read($mask, 4) !== 4)
+					{
+						break;
+					}
+					$hi['mask'] = array_values(unpack('C4', $mask));
+				}
+				return $hi;
+			} while (0);
 		}
+		$this->shutdown();
 		return [];
 	}
 	function packfhi(int $length, int $opcode = 1, bool $fin = TRUE, int $rsv = 0, string $mask = ''):string
 	{
 		$format = 'CC';
-		$values = [$fin << 7 | ($rsv & 0x07 << 4) | ($opcode & 0x0f)];
+		$values = [$fin << 7 | ($rsv & 0x07) << 4 | ($opcode & 0x0f)];
 		if ($length < 126)
 		{
 			$values[] = $length;
@@ -688,27 +683,57 @@ class webapp_client_websocket extends webapp_client_http
 		{
 			$format .= 'a4';
 			$values[] = $mask;
+			$values[1] |= 1 << 7;
 		}
+		$a = pack($format, ...$values);
+
+		var_dump(unpack('C2byte', $a)['byte2'] & 0x7f);
+
+		return $a;
 		return pack($format, ...$values);
 	}
-	function readframe(?array &$hi = NULL):?string
+	function readframe(&$hi = NULL):?string
 	{
-		if (count($hi = $this->readfhi()) && $this->read($contents, $hi['length']) === $hi['length'])
+		
+		if (count($hi = $this->readfhi()) && $this->read($data, $hi['length']) === $hi['length'])
 		{
+			var_dump($hi['length']);
+
 			if ($mask = $hi['mask'])
 			{
-				$length = strlen($contents);
+				$length = strlen($data);
 				for ($i = 0; $i < $length; ++$i)
 				{
-					$contents[$i] = chr(ord($contents[$i]) ^ $mask[$i % 4]);
+					$data[$i] = chr(ord($data[$i]) ^ $mask[$i % 4]);
 				}
 			}
-			return $contents;
+			return $data;
 		}
 		return NULL;
 	}
-	function sendframe(string $content, int $opcode = 1, bool $fin = TRUE, int $rsv = 0, string $mask = ''):bool
+	function sendframe(string $data, int $opcode = 1, bool $fin = TRUE, int $rsv = 0, string $mask = ''):bool
 	{
-		return $this->send($this->packfhi(strlen($content), $opcode, $fin, $rsv, $mask)) && $this->send($content);
+		return $this->send($this->packfhi(strlen($data), $opcode, $fin, $rsv, $mask)) && $this->send($data);
 	}
+	/*
+	Reference
+	The specification requesting the opcode.
+	WebSocket Opcode numbers are subject to the "Standards Action" IANA
+	registration policy [RFC5226].
+	IANA has added initial values to the registry as follows.
+	|Opcode  | Meaning                             | Reference |
+	+--------+-------------------------------------+-----------|
+	| 0      | Continuation Frame                  | RFC 6455  |
+	+--------+-------------------------------------+-----------|
+	| 1      | Text Frame                          | RFC 6455  |
+	+--------+-------------------------------------+-----------|
+	| 2      | Binary Frame                        | RFC 6455  |
+	+--------+-------------------------------------+-----------|
+	| 8      | Connection Close Frame              | RFC 6455  |
+	+--------+-------------------------------------+-----------|
+	| 9      | Ping Frame                          | RFC 6455  |
+	+--------+-------------------------------------+-----------|
+	| 10     | Pong Frame                          | RFC 6455  |
+	+--------+-------------------------------------+-----------|
+	*/
 }
