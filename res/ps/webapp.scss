@@ -32,18 +32,9 @@ $danger: rgb(203, 36, 49);
 	color: var(--webapp-foreground);
 	font: 100% var(--webapp-font-sans-serif);
 	>body{
-		margin: 0;
-		padding: 0;
+		@extend %webapp;
 		font-size: 1rem;
-		a,%webapp-anchor{
-			color: $anchor;
-			cursor: pointer;
-			outline: none;
-			text-decoration: none;
-			&:hover{
-				text-decoration: underline;
-			}
-		}
+		a{@extend %webapp-anchor;}
 		>div[class*=-grid]{
 			grid-template-columns: auto 1fr;
 			>header:first-of-type{
@@ -69,10 +60,24 @@ $danger: rgb(203, 36, 49);
 		}
 	}
 }
-
-[class|=webapp]{
+%webapp{
 	margin: 0;
 	padding: 0;
+}
+%webapp-anchor{
+	color: var(--webapp-anchor);
+	cursor: pointer;
+	outline: none;
+	text-decoration: none;
+	&:hover{
+		text-decoration: underline;
+	}
+}
+[class|=webapp]{
+	@extend %webapp;
+	&[class*=-grid]{
+		display: grid;
+	}
 	&[class*=-radius]{
 		padding: var(--webapp-gapradius) 0;
 		border-radius: var(--webapp-gapradius);
@@ -89,10 +94,25 @@ $danger: rgb(203, 36, 49);
 	padding: .25rem 1rem;
 
 	border: 1px solid rgba($edge, .2);
-	border-radius: 3px;
+	//border-radius: 3px;
 	white-space: nowrap;
 	background-color: $button;
 	background-image: linear-gradient(-180deg, lighten($button, 3.4%) 0%, $button 90%);
+	&:hover{
+		background-image: linear-gradient(-180deg, lighten($button, .2%) 0%, darken($button, 2.8%) 90%);
+		border-color: rgba($edge, .35);
+		text-decoration: none;
+	}
+	&:focus{
+		box-shadow: 0 0 0 .2rem rgba($anchor, .3);
+		z-index: 1;
+	}
+	&:active{
+		background-image: none;
+		background-color: darken($button, 2%);
+		border-color: rgba($edge, .35);
+		box-shadow: inset 0 .15rem .3rem rgba($edge, .15);
+	}
 }
 [class|=webapp-input]{
 	&:not([type=checkbox],[type=radio]){
@@ -101,11 +121,29 @@ $danger: rgb(203, 36, 49);
 			
 		
 		border: 1px solid lighten($edge, 72%);
-		border-radius: 3px;
+		// border-radius: 3px;
 		background-color: rgba($background, 0.6);
 		box-shadow: inset 0 1px 2px rgba($edge, 0.075);
 		
 		text-overflow: ellipsis;
+		&:focus{
+			outline: none;
+			box-shadow: inset 0 1px 2px rgba($edge, 0.075), 0 0 0 .2rem rgba($anchor, .3);
+			border-color: lighten($anchor, 13.3%);
+			z-index: 1;
+		}
+		&:invalid{
+			box-shadow: 0 0 0 .2rem rgba($danger, 0.4);
+			border-color: $danger;
+		}
+		&:disabled{
+			pointer-events: none;
+			box-shadow: none;
+			background-color: lighten($hint, 20%);
+		}
+		&::placeholder{
+			color: $hint;
+		}
 	}
 	&[type=checkbox],&[type=radio]{
 		appearance: none;
@@ -130,6 +168,40 @@ $danger: rgb(203, 36, 49);
 		@extend [class|=webapp-input];
 	}
 }
+%webapp-list-gap{
+	white-space: nowrap;
+	>:not(details){
+		display: block;
+	}
+	>:not(details),>details>summary{
+		padding: var(--webapp-gapitem) var(--webapp-gap);
+		//@extend [class|=webapp][class*=-gapitem];
+	}
+}
+%webapp-list-hover{
+	&:hover{
+		background: $hover;
+	}
+}
+%webapp-list-menu{
+	>details{
+		@extend details[class|=webapp][class*=-menu],
+				details[class|=webapp][class*=-anchor];
+	}
+}
+dl[class|=webapp]{
+	&[class*=-gap]>dd{@extend %webapp-list-gap;}
+	&[class*=-hover]>dd{@extend %webapp-list-hover;}
+	//&[class*=-menu]>dd{@extend [class|=webapp][class*=-menu];}
+}
+ol[class|=webapp],
+ul[class|=webapp]{
+	list-style-type: none;
+	&[class*=-gap]>li{@extend %webapp-list-gap;}
+	&[class*=-hover]>li{@extend %webapp-list-hover;}
+	&[class*=-menu]>li{@extend %webapp-list-menu;}
+}
+
 
 details[class|=webapp]{
 	display: inline-block;
@@ -139,6 +211,9 @@ details[class|=webapp]{
 			@extend %webapp-anchor;
 		}
 	}
+
+
+
 	&[class*=-button]{
 		padding: 0;
 		>summary:first-child{
@@ -153,41 +228,24 @@ details[class|=webapp]{
 			position: absolute;
 			// top: calc(-1px - var(--webapp-gapradius));
 			// left: 100%;
+			z-index: 9999;
 			@extend [class|=webapp-dialog];
 		}
-	}
-}
-
-dl[class|=webapp]{
-	&[class*=-gap]>dd,%dl-gap{
-		white-space: nowrap;
-		>:not(details){
-			display: block;
+		>dl:first-of-type{
+			>dd{
+				@extend %webapp-list-gap,
+						%webapp-list-hover;
+			}
 		}
-		>:not(details),>details>summary{
-			padding: var(--webapp-gapitem) var(--webapp-gap);
-			//@extend [class|=webapp][class*=-gapitem];
-		}
-	}
-	&[class*=-hover]>dd,%dl-hover{
-		&:hover{
-			background: $hover;
+		>ol:first-of-type,>ul:first-of-type{
+			@extend %webapp;
+			list-style-type: none;
+			>li{
+				@extend %webapp-list-gap,
+						%webapp-list-hover;
+			}
 		}
 	}
-	&[class*=-menu]>dd,%dl-menu{
-		>details{
-			@extend details[class|=webapp][class*=-menu],
-					details[class|=webapp][class*=-anchor];
-		}
-	}
-
-}
-ul[class|=webapp],
-ol[class|=webapp]{
-	list-style-type: none;
-	&[class*=-gap]>li{@extend %dl-gap;}
-	&[class*=-hover]>li{@extend %dl-hover;}
-	&[class*=-menu]>li{@extend %dl-menu;}
 }
 
 
@@ -209,7 +267,20 @@ form[class|=webapp]{
 
 
 nav[class|=webapp]{
+	padding: var(--webapp-gapitem) 0;
 	ul{
-
+		@extend %webapp,
+				ul[class|=webapp][class*=-gap],
+				ul[class|=webapp][class*=-menu];
+		
+	}
+	// ul:not(:first-child){
+	// 	top: calc(-1px - var(--webapp-gapradius));
+	// 	left: 100%;
+	// }
+	>ul:first-child{
+		>li{
+			display: inline-block;
+		}
 	}
 }
