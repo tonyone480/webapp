@@ -685,20 +685,13 @@ class webapp_client_websocket extends webapp_client_http
 			$values[] = $mask;
 			$values[1] |= 1 << 7;
 		}
-		$a = pack($format, ...$values);
-
-		var_dump(unpack('C2byte', $a)['byte2'] & 0x7f);
-
-		return $a;
 		return pack($format, ...$values);
 	}
-	function readframe(&$hi = NULL):?string
+	function readframe(&$data = NULL):array
 	{
-		
-		if (count($hi = $this->readfhi()) && $this->read($data, $hi['length']) === $hi['length'])
+		if ($hi = $this->readfhi())
 		{
-			var_dump($hi['length']);
-
+			$this->read($data, $hi['length']);
 			if ($mask = $hi['mask'])
 			{
 				$length = strlen($data);
@@ -707,13 +700,21 @@ class webapp_client_websocket extends webapp_client_http
 					$data[$i] = chr(ord($data[$i]) ^ $mask[$i % 4]);
 				}
 			}
-			return $data;
 		}
-		return NULL;
+		return $hi;
 	}
-	function sendframe(string $data, int $opcode = 1, bool $fin = TRUE, int $rsv = 0, string $mask = ''):bool
+	function sendframe(string $data, int $opcode = 1, bool $fin = TRUE, int $rsv = 0, string $masker = '', bool $masked = FALSE):bool
 	{
-		return $this->send($this->packfhi(strlen($data), $opcode, $fin, $rsv, $mask)) && $this->send($data);
+		$length = strlen($data);
+		if (strlen($masker) > 3 && $masked === FALSE)
+		{
+			$mask = array_map(ord(...), str_split($masker));
+			for ($i = 0; $i < $length; ++$i)
+			{
+				$data[$i] = chr(ord($data[$i]) ^ $mask[$i % 4]);
+			}
+		}
+		return $this->send($this->packfhi($length, $opcode, $fin, $rsv, $masker)) && $this->send($data);
 	}
 	/*
 	Reference
