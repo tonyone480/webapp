@@ -687,21 +687,21 @@ class webapp_client_websocket extends webapp_client_http
 		}
 		return pack($format, ...$values);
 	}
-	function readframe(&$data = NULL):array
+	function readframe(&$data = NULL, &$hi = NULL):bool
 	{
 		if ($hi = $this->readfhi())
 		{
-			$this->read($data, $hi['length']);
+			$length = $this->read($data, $hi['length']);
 			if ($mask = $hi['mask'])
 			{
-				$length = strlen($data);
 				for ($i = 0; $i < $length; ++$i)
 				{
 					$data[$i] = chr(ord($data[$i]) ^ $mask[$i % 4]);
 				}
 			}
+			return $hi['length'] === $length;
 		}
-		return $hi;
+		return FALSE;
 	}
 	function sendframe(string $data, int $opcode = 1, bool $fin = TRUE, int $rsv = 0, string $masker = '', bool $masked = FALSE):bool
 	{
