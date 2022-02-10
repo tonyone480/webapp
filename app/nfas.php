@@ -27,9 +27,13 @@ new class extends webapp_nfas
 	{
 		parent::__construct(new io);
 
-		var_dump( $this->rename('asdawd', 'ddawdawdawd') );
+
+
+		$a = $this->hash(random_bytes(32));
+		
+		var_dump( $this->file($a) );
 		return;
-		var_dump($this->hash('asdwfawfawf'));
+		
 		if ($this->mysql->connect_errno || 1)
 		{
 
