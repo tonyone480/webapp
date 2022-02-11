@@ -31,7 +31,7 @@ new class extends webapp_nfas
 
 		$a = $this->hash(random_bytes(32));
 		
-		var_dump( $this->file($a) );
+		var_dump( dirname($this->file($a)) );
 		return;
 		
 		if ($this->mysql->connect_errno || 1)

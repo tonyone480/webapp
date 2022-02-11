@@ -18,8 +18,14 @@ class webapp_nfas extends webapp
 		return static::rootdir . chunk_split(substr($hash, 0, 6), 2, '/') . substr($hash, -6);
 		//return strlen($hash) === 12 && !is_file($file = ) ? $file : NULL;
 	}
-	function access()
-	{}
+	function access(string $hash)
+	{
+		return is_dir($dirname = dirname($this->file($hash))) || mkdir($dirname, recursive: TRUE);
+	}
+	function exists(string $hash):bool
+	{
+		return preg_match('/^[0-9A-V]{12}$/', $hash) && is_file($this->file($hash));
+	}
 	function storage(array $fileinfo)
 	{
 
