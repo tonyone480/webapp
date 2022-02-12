@@ -28,10 +28,7 @@ new class extends webapp_nfas
 		parent::__construct(new io);
 
 
-
-		$a = $this->hash(random_bytes(32));
-		
-		var_dump( dirname($this->file($a)) );
+		print_r( $this->delete('NNIIIILNLLNH') );
 		return;
 		
 		if ($this->mysql->connect_errno || 1)
