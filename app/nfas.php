@@ -28,7 +28,7 @@ new class extends webapp_nfas
 		parent::__construct(new io);
 
 
-		print_r( $this->delete('NNIIIILNLLNH') );
+		var_dump( $this->tableinit() );
 		return;
 		
 		if ($this->mysql->connect_errno || 1)
