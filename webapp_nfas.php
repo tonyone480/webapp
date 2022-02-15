@@ -133,7 +133,7 @@ SELECT ?a.* FROM nfas,a WHERE ?a.node=a.hash)SELECT * FROM a',
 			}
 		}
 	}
-	function tableinit()
+	function tableinit():void
 	{
 		($this->mysql)(join(',', ['CREATE TABLE IF NOT EXISTS ?a(`hash` char(12) NOT NULL',
 			'`hits` bigint unsigned NOT NULL',
