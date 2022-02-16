@@ -17,14 +17,9 @@ class webapp_nfas extends webapp
 	{
 		return static::rootdir . chunk_split(substr($hash, 0, 6), 2, '/') . substr($hash, -6);
 	}
-	function assign(string $file):bool
-	{
-		return is_dir($dirname = dirname($file)) || mkdir($dirname, recursive: TRUE);
-	}
-	function savefile(string $hash, int $size, string $type, string $name, string $node = NULL)
+	function assign(string $hash, int $size, string $type, string $name, string $node = NULL):?string
 	{
 		return preg_match('/^[0-9A-V]{12}$/', $hash)
-			&& $this->node($node)
 			&& $this->nfas->insert([
 				'hash' => $hash,
 				'hits' => 0,
@@ -33,17 +28,55 @@ class webapp_nfas extends webapp
 				'flag' => 0,
 				'node' => $node,
 				'type' => $type,
-				'name' => $name]);
+				'name' => $name])
+			&& ((is_dir($dirname = dirname($file = $this->file($hash))) || mkdir($dirname, recursive: TRUE))
+				|| $this->nfas->delete('WHERE hash=?s LIMIT 1', $hash) > 1) ? $file : NULL;
+	}
+	function savefile(string $hash, int $size, string $type, string $name, string $node = NULL)
+	{
+
 	}
 	function node(string $hash = NULL):bool
 	{
 		return $hash === NULL || (preg_match('/^W[0-9A-V]{11}$/', $hash)
 			&& $this->nfas('WHERE type IS NULL and hash=?s', $hash)->array());
 	}
-	function storage_address(string $hash)
+	function storage_localfile(string $filename, string $node = NULL)
 	{
-		return $this->assign($file = $this->file($hash)) ? $file : NULL;
+		return is_file($filename)
+			&& is_string($data = hash_file('haval160,4', $filename, TRUE))
+			&& is_string($file = $this->assign(...[$hash = $this->hash($data),
+				filesize($filename),
+				...is_int($pos = strrpos($basename = basename($filename), '.'))
+					? [strtolower(substr($basename, $pos + 1, 8)), substr($basename, 0, $pos)]
+					: ['', $basename], $node]))
+			&& copy($filename, $file) ? $hash : NULL;
+
 	}
+	function storage_localfolder(string $dirname, string $node = NULL)
+	{
+		if (is_resource($handle = opendir($dirname)))
+		{
+			readdir($handle);
+			readdir($handle);
+			if ($hash = $this->create(basename($dirname), $node))
+			{
+				while (is_string($itemname = readdir($handle)))
+				{
+					if (is_dir($filename = "{$dirname}/{$itemname}"))
+					{
+						$this->storage_localfolder($filename, $hash);
+					}
+					else
+					{
+						$this->storage_localfile($filename, $hash);
+					}
+				}
+			}
+			closedir($handle);
+		}
+	}
+
 	function storage_uploadfile(string $name, string $node = NULL):array
 	{
 		foreach ($this->request_uploadedfile($name) as $file)
@@ -96,17 +129,18 @@ SELECT ?a.* FROM nfas,a WHERE ?a.node=a.hash)SELECT * FROM a',
 
 	function create(string $name, string $node = NULL, string $type = NULL):?string
 	{
-		return $this->node($node) && $this->nfas->insert([
-			'hash' => $hash = substr('W' . $this->hash($this->random(16)), $type === NULL ? 0 : 1, 12),
-			'hits' => 0,
-			'size' => 0,
-			'time' => $this->time,
-			'flag' => 0,
-			'node' => $node,
-			'type' => $type,
-			'name' => $name]) && ($type === NULL
-			|| ($this->assign($file = $this->file($hash)) && touch($file, $this->time))
-			|| $this->nfas->delete('WHERE hash=?s LIMIT 1', $hash) > 1) ? $hash : NULL;
+		return $this->node($node) && ($type === NULL
+			? $this->nfas->insert([
+				'hash' => $hash = 'W' . substr($this->hash($this->random(16)), 1),
+				'hits' => 0,
+				'size' => 0,
+				'time' => $this->time,
+				'flag' => 0,
+				'node' => $node,
+				'type' => $type,
+				'name' => $name])
+			: (is_string($file = $this->assign($hash = $this->hash($this->random(16)), 0, $type, $name, $node))
+				&& touch($file, $this->time))) ? $hash : NULL;
 	}
 	function rename(string $hash, string $name):bool
 	{

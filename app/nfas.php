@@ -21,6 +21,7 @@ require __DIR__ . '/../webapp_nfas.php';
 		
 // 	}
 // }
+
 new class extends webapp_nfas
 {
 	function __construct()
@@ -28,23 +29,20 @@ new class extends webapp_nfas
 		parent::__construct(new io);
 
 
-		var_dump( $this->tableinit() );
-		return;
-		
-		if ($this->mysql->connect_errno || 1)
-		{
+		// if ($this->mysql->connect_errno || 1)
+		// {
 
-			$a = ($this->mysql)('SHOW TABLES LIKE ?s', 'nfas')->array();
-			var_dump($a);
+		// 	$a = ($this->mysql)('SHOW TABLES LIKE ?s', 'nfas')->array();
+		// 	var_dump($a);
 
 
-			if ($this->admin === FALSE)
-			{
-				$this->app('webapp_echo_html')->title('Initialize NFAS');
-				$this->get_admin();
-			}
-			return;
-		}
+		// 	if ($this->admin === FALSE)
+		// 	{
+		// 		$this->app('webapp_echo_html')->title('Initialize NFAS');
+		// 		$this->get_admin();
+		// 	}
+		// 	return;
+		// }
 
 
 		if ($this->router === $this && in_array($this->method, ['get_open', 'get_download']) === FALSE)
@@ -52,8 +50,20 @@ new class extends webapp_nfas
 			$this->app('webapp_echo_html')->title('NFAS');
 		}
 	}
-	function get_home()
+	function get_home(string $hash = NULL)
 	{
+		if ($this->node($hash))
+		{
+			$this->app('webapp_echo_html')->title('NFAS');
+			$ul = $this->app->main->append('ul');
+			foreach ($this->nfas('WHERE node=??', $hash ?? 'null') as $item)
+			{
+				$ul->append('li')->append('a', [$item['name'], 'href' => "?home/{$item['hash']}"]);
+			}
+
+		
+		}
+		
 
 	}
 	
