@@ -13,7 +13,20 @@ class webapp_nfas extends webapp
 			? $this->mysql->{static::tablename}(...$conditionals)
 			: $this->mysql->{static::tablename};
 	}
-	function file(string $hash):string
+	function node(?string $hash):array
+	{
+		return $hash === NULL
+			? ['hash' => NULL, 'hits' => 0, 'size' => 0, 'time' => 0, 'flag' => 0,
+				'node' => NULL, 'type' => NULL, 'name' => 'root', 'json' => NULL]
+			: (preg_match('/^W[0-9A-V]{11}$/', $hash)
+				? $this->nfas('WHERE type IS NULL AND hash=?s LIMIT 1', $hash)->array() : []);
+	}
+	function file(string $hash):array
+	{
+		return preg_match('/^[0-9A-V]{12}$/', $hash)
+			? $this->nfas('WHERE type IS NOT NULL AND hash=?s LIMIT 1', $hash)->array() : [];
+	}
+	function filename(string $hash)
 	{
 		return static::rootdir . chunk_split(substr($hash, 0, 6), 2, '/') . substr($hash, -6);
 	}
@@ -29,19 +42,10 @@ class webapp_nfas extends webapp
 				'node' => $node,
 				'type' => $type,
 				'name' => $name])
-			&& ((is_dir($dirname = dirname($file = $this->file($hash))) || mkdir($dirname, recursive: TRUE))
-				|| $this->nfas->delete('WHERE hash=?s LIMIT 1', $hash) > 1) ? $file : NULL;
+			&& ((is_dir($dirname = dirname($filename = $this->filename($hash))) || mkdir($dirname, recursive: TRUE))
+				|| $this->nfas->delete('WHERE hash=?s LIMIT 1', $hash) > 1) ? $filename : NULL;
 	}
-	function savefile(string $hash, int $size, string $type, string $name, string $node = NULL)
-	{
-
-	}
-	function node(string $hash = NULL):bool
-	{
-		return $hash === NULL || (preg_match('/^W[0-9A-V]{11}$/', $hash)
-			&& $this->nfas('WHERE type IS NULL and hash=?s', $hash)->array());
-	}
-	function storage_localfile(string $filename, string $node = NULL)
+	function storage_localfile(string $filename, string $node = NULL):?string
 	{
 		return is_file($filename)
 			&& is_string($data = hash_file('haval160,4', $filename, TRUE))
@@ -53,8 +57,9 @@ class webapp_nfas extends webapp
 			&& copy($filename, $file) ? $hash : NULL;
 
 	}
-	function storage_localfolder(string $dirname, string $node = NULL)
+	function storage_localfolder(string $dirname, string $node = NULL):int
 	{
+		$count = 0;
 		if (is_resource($handle = opendir($dirname)))
 		{
 			readdir($handle);
@@ -63,18 +68,14 @@ class webapp_nfas extends webapp
 			{
 				while (is_string($itemname = readdir($handle)))
 				{
-					if (is_dir($filename = "{$dirname}/{$itemname}"))
-					{
-						$this->storage_localfolder($filename, $hash);
-					}
-					else
-					{
-						$this->storage_localfile($filename, $hash);
-					}
+					$count += is_dir($filename = "{$dirname}/{$itemname}")
+						? $this->storage_localfolder($filename, $hash)
+						: is_string($this->storage_localfile($filename, $hash));
 				}
 			}
 			closedir($handle);
 		}
+		return $count;
 	}
 
 	function storage_uploadfile(string $name, string $node = NULL):array
@@ -87,27 +88,17 @@ class webapp_nfas extends webapp
 	}
 
 
-	function exists(string $hash):bool
+	// function exists(string $hash):bool
+	// {
+	// 	return preg_match('/^[0-9A-V]{12}$/', $hash) && is_file($this->file($hash));
+	// }
+	
+	function nodeitem(?string $hash, int $page, int $item = 42):webapp_mysql_table
 	{
-		return preg_match('/^[0-9A-V]{12}$/', $hash) && is_file($this->file($hash));
+		return ($hash === NULL 
+			? $this->nfas('WHERE node IS NULL')
+			: $this->nfas('WHERE node=?s', $hash))->paging($page, $item);
 	}
-	function storage(array $fileinfo, string $hash = NULL)
-	{
-		do
-		{
-			if ($hash)
-			{
-				if ($this->node($hash) === FALSE)
-				{
-					break;
-				}
-			}
-
-
-		} while (0);
-		return FALSE;
-	}
-
 
 
 	function linkroot(string $hash):webapp_mysql
@@ -161,7 +152,7 @@ SELECT ?a.* FROM nfas,a WHERE ?a.node=a.hash)SELECT * FROM a',
 				{
 					if (str_starts_with($item['hash'], 'W') === FALSE)
 					{
-						is_file($file = $this->file($item['hash'])) === FALSE || unlink($file);
+						is_file($filename = $this->filename($item['hash'])) === FALSE || unlink($filename);
 					}
 				}
 			}

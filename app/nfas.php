@@ -22,6 +22,8 @@ require __DIR__ . '/../webapp_nfas.php';
 // 	}
 // }
 
+
+
 new class extends webapp_nfas
 {
 	function __construct()
@@ -45,26 +47,48 @@ new class extends webapp_nfas
 		// }
 
 
-		if ($this->router === $this && in_array($this->method, ['get_open', 'get_download']) === FALSE)
-		{
-			$this->app('webapp_echo_html')->title('NFAS');
-		}
+		// if ($this->router === $this && in_array($this->method, ['get_open', 'get_download']) === FALSE)
+		// {
+		// 	$this->app('webapp_echo_html')->title('NFAS');
+		// }
 	}
-	function get_home(string $hash = NULL)
+	function get_home(string $hash = NULL, int $page = 1)
 	{
-		if ($this->node($hash))
+		if ($node = $this->node($hash))
 		{
-			$this->app('webapp_echo_html')->title('NFAS');
+			$this->app('webapp_echo_html')->title($node['name']);
 			$ul = $this->app->main->append('ul');
-			foreach ($this->nfas('WHERE node=??', $hash ?? 'null') as $item)
+			foreach ($this->nodeitem($node['hash'], $page) as $item)
 			{
 				$ul->append('li')->append('a', [$item['name'], 'href' => "?home/{$item['hash']}"]);
 			}
 
-		
+			return;
 		}
-		
-
+		return 404;
+	}
+	function get_node(string $hash = NULL, int $page = 1)
+	{
+		if ($node = $this->node($hash))
+		{
+			$this->app('webapp_echo_json', $node);
+			foreach ($this->nodeitem($node['hash'], $page) as $item)
+			{
+				unset($item['node'], $item['json']);
+				$this->app['item'][] = $item;
+			}
+			return;
+		}
+		return 404;
+	}
+	function get_echo(string $hash)
+	{
+		if ($file = $this->file($hash))
+		{
+			print_r($file);
+			return;
+		}
+		return 404;
 	}
 	
 	function get_admin()
