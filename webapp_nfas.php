@@ -95,9 +95,9 @@ class webapp_nfas extends webapp
 	
 	function nodeitem(?string $hash, int $page, int $item = 42):webapp_mysql_table
 	{
-		return ($hash === NULL 
-			? $this->nfas('WHERE node IS NULL')
-			: $this->nfas('WHERE node=?s', $hash))->paging($page, $item);
+		return ($hash === NULL
+			? $this->nfas('WHERE node IS NULL ORDER BY type ASC')
+			: $this->nfas('WHERE node=?s ORDER BY type ASC', $hash))->paging($page, $item);
 	}
 
 

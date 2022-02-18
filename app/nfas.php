@@ -71,11 +71,16 @@ new class extends webapp_nfas
 	{
 		if ($node = $this->node($hash))
 		{
-			$this->app('webapp_echo_json', $node);
-			foreach ($this->nodeitem($node['hash'], $page) as $item)
+			$this->app('webapp_echo_json', []);
+			foreach ($this->iterator([$node], $this->nodeitem($node['hash'], $page)) as $item)
 			{
-				unset($item['node'], $item['json']);
-				$this->app['item'][] = $item;
+				$this->app[] = [
+					'hash' => $item['hash'],
+					'size' => $item['size'],
+					'time' => $item['time'],
+					'type' => $item['type'],
+					'name' => $item['name']
+				];
 			}
 			return;
 		}

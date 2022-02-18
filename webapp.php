@@ -203,7 +203,16 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 		libxml_use_internal_errors(FALSE);
 		return $xml;
 	}
-
+	static function iterator(iterable ...$aggregate):iterable
+	{
+		foreach ($aggregate as $iter)
+		{
+			foreach ($iter as $item)
+			{
+				yield $item;
+			}
+		}
+	}
 
 	// static function debugtime(?float &$time = 0):float
 	// {
