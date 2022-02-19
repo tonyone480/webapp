@@ -61,6 +61,10 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 		}
 		return $hash;
 	}
+	static function hashfile(string $filename, bool $care = FALSE):?string
+	{
+		return is_string($hash = hash_file('haval160,4', $filename, TRUE)) ? static::hash($hash, $care) : NULL;
+	}
 	static function iphex(string $ip):string
 	{
 		return str_pad(bin2hex(inet_pton($ip)), 32, '0', STR_PAD_LEFT);
@@ -582,31 +586,24 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 			default => $this->io->request_content()
 		};
 	}
-	function request_uploadedfile(string $name, int $maximum = 1):ArrayObject
+	function request_uploadedfile(string $name, int $maximum = NULL):ArrayObject
 	{
-		if (array_key_exists($name, $this->uploadedfiles ??= $this->io->request_uploadedfile()) === FALSE || is_array($this->uploadedfiles[$name]))
-		{
-			$uploadedfiles = [];
-			if (array_key_exists($name, $this->uploadedfiles))
+		return array_key_exists($name, $this->uploadedfiles ??= $this->io->request_uploadedfile())
+			&& is_object($this->uploadedfiles[$name]) ? $this->uploadedfiles[$name]
+			: $this->uploadedfiles[$name] = new class($this, array_key_exists($name, $this->uploadedfiles)
+				? array_slice($this->uploadedfiles[$name], 0, $maximum) : []) extends ArrayObject implements Stringable
 			{
-				foreach ($this->uploadedfiles[$name] as $uploadedfile)
+				function __construct(public readonly webapp $webapp, array $uploadedfiles)
 				{
-					$uploadedfiles[$this->hash(hash_file('haval160,4', $uploadedfile['file'], TRUE))] = $uploadedfile;
-					if (count($uploadedfiles) === $maximum)
-					{
-						break;
-					}
+					parent::__construct($uploadedfiles, ArrayObject::STD_PROP_LIST);
 				}
-			}
-			$this->uploadedfiles[$name] = new class($uploadedfiles, ArrayObject::STD_PROP_LIST) extends ArrayObject implements Stringable
-			{
 				function __toString():string
 				{
-					return join(',', $this->column('file'));
+					return join('|', $this->column('file'));
 				}
-				function column(string $type):array
+				function column(string $key):array
 				{
-					return array_column($this->getArrayCopy(), $type);
+					return array_column($this->getArrayCopy(), $key);
 				}
 				function size():int
 				{
@@ -620,22 +617,37 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 				// {
 				// 	return file_get_contents($hash === NULL ? $this : $this[$hash]['file']);
 				// }
+				function movefile(int $index, string $filename):bool
+				{
+					//$index = max(1, $index) < count($this)
+
+					//if (array_key_exists($index, $this))
+					return move_uploaded_file($this[$index]['file'], $filename);
+				}
 				function moveto(string $filename):array
 				{
 					$success = [];
-					$date = array_combine(['date', 'year', 'month', 'day', 'week', 'yday', 'time', 'hours', 'minutes', 'seconds'], explode(' ', date('Ymd Y m d w z His H i s')));
-					foreach ($this as $hash => $info)
+					foreach ($this as $file)
 					{
-						if ((is_dir($rootdir = dirname($file = preg_replace_callback('/\{([a-z]+)(?:\,(-?\d+)(?:\,(-?\d+))?)?\}/i', fn(array $format):string => match ($format[1])
-						{
-							'hash' => count($format) > 2 ? substr($hash, ...array_slice($format, 2)) : $hash,
-							'name', 'type' => $info[$format[1]],
-							default => $date[$format[1]] ?? $format[0]
-						}, $filename))) || mkdir($rootdir, recursive: TRUE)) && move_uploaded_file($this[$hash]['file'], $file)) {
-							$this[$hash]['file'] = $file;
-							$success[$hash] = $this[$hash];
-						}
+						// if (move_uploaded_file($file['file'], $filename)
+						// {
+
+						// }
+						print_r($file);
 					}
+					// $date = array_combine(['date', 'year', 'month', 'day', 'week', 'yday', 'time', 'hours', 'minutes', 'seconds'], explode(' ', date('Ymd Y m d w z His H i s')));
+					// foreach ($this as $hash => $info)
+					// {
+					// 	if ((is_dir($rootdir = dirname($file = preg_replace_callback('/\{([a-z]+)(?:\,(-?\d+)(?:\,(-?\d+))?)?\}/i', fn(array $format):string => match ($format[1])
+					// 	{
+					// 		'hash' => count($format) > 2 ? substr($hash, ...array_slice($format, 2)) : $hash,
+					// 		'name', 'type' => $info[$format[1]],
+					// 		default => $date[$format[1]] ?? $format[0]
+					// 	}, $filename))) || mkdir($rootdir, recursive: TRUE)) && move_uploaded_file($this[$hash]['file'], $file)) {
+					// 		$this[$hash]['file'] = $file;
+					// 		$success[$hash] = $this[$hash];
+					// 	}
+					// }
 					return $success;
 				}
 				// function detect(string $mime):bool
@@ -651,8 +663,6 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 				// 	return TRUE;
 				// }
 			};
-		}
-		return $this->uploadedfiles[$name];
 	}
 	//response
 	function response_status(int $code):void

@@ -596,8 +596,8 @@ class webapp_form
 				'class' => 'webapp',
 				...is_string($action) ? ['action' => $action] : []])]
 			: [$context instanceof webapp ? $context : NULL, new webapp_html('<form/>')];
-		$this->xml['enctype'] = 'application/x-www-form-urlencoded';
-		$this->fieldset();
+		//$this->xml['enctype'] = 'application/x-www-form-urlencoded';
+		$this->enctype()->fieldset();
 	}
 	function __invoke(array $values = []):NULL|array|static
 	{
@@ -718,6 +718,11 @@ class webapp_form
 		return NULL;
 		
 	}
+	function enctype(string $type = 'application/x-www-form-urlencoded'):static
+	{
+		$this->xml['enctype'] = $type;
+		return $this;
+	}
 	function fieldset(string $name = NULL):webapp_html
 	{
 		return $this->fieldset = $this->xml->fieldset($name);
@@ -772,6 +777,8 @@ class webapp_form
 
 
 			'textarea' => $this->fieldset->append('textarea', ['name' => $alias] + $attr),
+			'file' => $this->enctype('multipart/form-data')->fieldset->append('input', ['type' => $type,
+				'name' => array_key_exists('multiple', $attr) ? "{$alias}[]" : $alias] + $attr),
 			default => $this->fieldset->append('input', ['type' => $type, 'name' => $alias] + $attr)
 		};
 	}

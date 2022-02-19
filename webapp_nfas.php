@@ -40,21 +40,32 @@ class webapp_nfas extends webapp
 				'time' => $this->time,
 				'flag' => 0,
 				'node' => $node,
-				'type' => $type,
+				'type' => strtolower($type),
 				'name' => $name])
 			&& ((is_dir($dirname = dirname($filename = $this->filename($hash))) || mkdir($dirname, recursive: TRUE))
 				|| $this->nfas->delete('WHERE hash=?s LIMIT 1', $hash) > 1) ? $filename : NULL;
 	}
+	function storage(callable $storage, string $filename, int $size, string $type, string $name, string $node = NULL):?string
+	{
+		return is_string($hash = $this->hashfile($filename))
+			&& is_string($file = $this->assign($hash, $size, $type, $name, $node))
+			&& ($storage($filename, $file) || $this->nfas->delete('WHERE hash=?s LIMIT 1', $hash) > 1) ? $hash : NULL;
+	}
 	function storage_localfile(string $filename, string $node = NULL):?string
 	{
 		return is_file($filename)
-			&& is_string($data = hash_file('haval160,4', $filename, TRUE))
-			&& is_string($file = $this->assign(...[$hash = $this->hash($data),
-				filesize($filename),
+			&& $this->storage(...[copy(...), $filename, filesize($filename),
 				...is_int($pos = strrpos($basename = basename($filename), '.'))
-					? [strtolower(substr($basename, $pos + 1, 8)), substr($basename, 0, $pos)]
-					: ['', $basename], $node]))
-			&& copy($filename, $file) ? $hash : NULL;
+					? [substr($basename, $pos + 1, 8), substr($basename, 0, $pos)]
+					: ['', $basename], $node]);
+		// return is_file($filename)
+		// 	&& is_string($data = $this->hashfile($filename))
+		// 	&& is_string($file = $this->assign(...[$hash = $this->hash($data),
+		// 		filesize($filename),
+		// 		...is_int($pos = strrpos($basename = basename($filename), '.'))
+		// 			? [substr($basename, $pos + 1, 8), substr($basename, 0, $pos)]
+		// 			: ['', $basename], $node]))
+		// 	&& copy($filename, $file) ? $hash : NULL;
 
 	}
 	function storage_localfolder(string $dirname, string $node = NULL):int
@@ -78,13 +89,20 @@ class webapp_nfas extends webapp
 		return $count;
 	}
 
-	function storage_uploadfile(string $name, string $node = NULL):array
+	function storage_uploadfile(string $name, int $maximum = NULL, string $node = NULL):array
 	{
-		foreach ($this->request_uploadedfile($name) as $file)
+		$success = [];
+		if ($this->node($node))
 		{
-			print_r($file);
+			foreach ($this->request_uploadedfile($name, $maximum) as $file)
+			{
+				if ($hash = $this->storage(move_uploaded_file(...), $file['file'],
+					$file['size'], $file['type'], $file['name'], $node)) {
+					$success[] = $hash;
+				}
+			}
 		}
-		return [];
+		return $success;
 	}
 
 

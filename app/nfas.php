@@ -1,34 +1,13 @@
 <?php
 require __DIR__ . '/../webapp_io_std.php';
 require __DIR__ . '/../webapp_nfas.php';
-// class nfas extends webapp_echo_json
-// {
-// 	function post_admin()
-// 	{
-// 		if ($admin = webapp_echo_html::form_sign_in($this))
-// 		{
-// 			var_dump($admin);
-// 			if ($this->admin($signature = $this->signature($admin['username'], $input['password'])))
-// 						{
-// 							$this->response_refresh(0);
-// 							$this->response_cookie($this['admin_cookie'], $this->app['signature'] = $signature);
-// 						}
-// 						else
-// 						{
-// 							$this->app['errors'][] = 'Sign in failed';
-// 						}
-// 		}
-		
-// 	}
-// }
-
-
-
 new class extends webapp_nfas
 {
 	function __construct()
 	{
-		parent::__construct(new io);
+		parent::__construct(new io, ['mysql_password' => 'aa']);
+		print_r($this->mysql);
+		exit;
 
 
 		// if ($this->mysql->connect_errno || 1)
@@ -95,10 +74,42 @@ new class extends webapp_nfas
 		}
 		return 404;
 	}
-	
+	function post_admin()
+	{
+		if ($admin = webapp_echo_html::form_sign_in($this))
+		{
+			var_dump($admin);
+			// if ($this->admin($signature = $this->signature($admin['username'], $input['password'])))
+			// 			{
+			// 				$this->response_refresh(0);
+			// 				$this->response_cookie($this['admin_cookie'], $this->app['signature'] = $signature);
+			// 			}
+			// 			else
+			// 			{
+			// 				$this->app['errors'][] = 'Sign in failed';
+			// 			}
+		}
+		
+	}
 	function get_admin()
 	{
-		webapp_echo_html::form_sign_in($this->app->main, '?nfas/admin');
+		$this->app('webapp_echo_html')->title('NFAS Admin');
+		webapp_echo_html::form_sign_in($this->app->main);
+	}
+	function post_test()
+	{
+		$this->storage(copy(...), 'C:/Users/makcoo/Desktop/python/1A2B.py', 0, 'py', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
+		print_r($this->mysql);
+		//$this->storage_uploadfile('upfiles', 10);
+	}
+	function get_test()
+	{
+		$this->app('webapp_echo_html')->title('uptest');
+		$form = $this->app->main->form();
+
+		$form->field('upfiles', 'file', ['multiple' => NULL]);
+
+		$form->button('upload', 'submit');
 	}
 	function get_open(string $hash)
 	{

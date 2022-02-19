@@ -62,8 +62,9 @@ final class io implements webapp_io
 						'file' => $file['tmp_name'],
 						'size' => $file['size'],
 						'mime' => $file['type'],
-						'name' => $file['name'],
-						'type' => preg_match('/\.(\w{1,256})$/i', $file['name'], $suffix) ? strtolower($suffix[1]) : 'unknown'
+						...is_int($pos = strrpos($basename = basename($file['name']), '.'))
+							? ['type' => substr($basename, $pos + 1, 8), 'name' => substr($basename, 0, $pos)]
+							: ['type' => '', 'name' => $basename]
 					];
 				}
 			}
