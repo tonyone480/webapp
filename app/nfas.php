@@ -6,8 +6,9 @@ new class extends webapp_nfas
 	function __construct()
 	{
 		parent::__construct(new io, ['mysql_password' => 'aa']);
-		print_r($this->mysql);
-		exit;
+		// $this->mysql->nfas->insert(['hash' => 1]);
+		// print_r($this->mysql);
+		// exit;
 
 
 		// if ($this->mysql->connect_errno || 1)
