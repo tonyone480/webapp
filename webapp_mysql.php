@@ -270,10 +270,21 @@ class webapp_mysql extends mysqli implements IteratorAggregate
 			}
 		};
 	}
-
+	function datatypes():array
+	{
+		return $this('SELECT DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS GROUP BY DATA_TYPE ORDER BY DATA_TYPE ASC')->column('DATA_TYPE');
+	}
 	function show(mixed ...$commands):static
 	{
 		return $this('SHOW ' . $this->format(...$commands));
+	}
+	function character():static
+	{
+		return $this->show('CHARACTER SET');
+	}
+	function collation():static
+	{
+		return $this->show('COLLATION');
 	}
 	function processlist():static
 	{

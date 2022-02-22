@@ -32,32 +32,6 @@ class webapp_router_query extends webapp_echo_json
 }
 new class extends webapp
 {
-	const fieldtype = [
-		'tinyint',
-		'smallint',
-		'int',
-		'bigint',
-		'float',
-		'double',
-		'decimal',
-		'date',
-		'datetime',
-		'time',
-		'timestamp',
-		'year',
-		'char',
-		'varchar',
-		'tinyblob',
-		'tinytext',
-		'blob',
-		'text',
-		'mediumblob',
-		'mediumtext',
-		'longblob',
-		'longtext',
-		'enum',
-		'set',
-	];
 	function __construct()
 	{
 		if ($this->init_admin_sign_in(new io)) return;
@@ -123,24 +97,16 @@ new class extends webapp
 
 	function mysql():webapp_mysql
 	{
-		$mysql = new webapp_mysql($this->mysql_host,
-			$this->mysql_user, $this->mysql_password, $this->mysql_database);
-		if ($mysql->connect_errno)
+		$mysql = new webapp_mysql($this->mysql_host, $this->mysql_user, $this->mysql_password, $this->mysql_database);
+		if (in_array($this->mysql_charset, $this->charset = $mysql->character()->column('Charset'), TRUE))
 		{
-			//$this->errors[] = $mysql->connect_error;
-		}
-		else
-		{
-			if (in_array($this->mysql_charset,
-				$this->charset = $mysql('show character set')->column('Charset'), TRUE)) {
-				$mysql->set_charset($this->mysql_charset);
-			}
+			$mysql->set_charset($this->mysql_charset);
 		}
 		return $mysql;
 	}
-	function collation()
+	function datatypes():array
 	{
-		//SHOW COLLATION
+		return array_combine($datatype = $this->mysql->datatypes(), $datatype);
 	}
 	function query(...$params):webapp_mysql
 	{
@@ -157,7 +123,7 @@ new class extends webapp
 
 		$form->fieldset('Type / Length');
 		$form->field('type', 'select', [
-			'options' => static::fieldtype
+			'options' => $this->datatypes
 		]);
 		$form->field('length', 'text', ['placeholder' => 'Type max length or enum set']);
 
@@ -196,7 +162,7 @@ new class extends webapp
 		$form->button('Reset', 'reset');
 		if ($form->echo)
 		{
-			foreach ($this->query('SHOW COLLATION') as $row)
+			foreach ($this->mysql->collation() as $row)
 			{
 				$optgroup = ($p = $collation->xpath("optgroup[@label='{$row['Charset']}']"))
 					? $p[0] : $collation->append('optgroup', ['label' => $row['Charset']]);
@@ -369,6 +335,7 @@ new class extends webapp
 		$table = $this->app->main->table(['123','456']);
 		
 	}
+	
 	function get_tab(string $name)
 	{
 		$tabname = $this->url64_decode($name);
