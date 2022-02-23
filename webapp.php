@@ -242,8 +242,8 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 			'admin_cookie'		=> 'webapp',
 			'admin_expire'		=> 604800,
 			//MySQL
-			'mysql_host'		=> 'p:127.0.0.1:3306',
-			'mysql_user'		=> 'root',
+			'mysql_hostname'	=> 'p:127.0.0.1:3306',
+			'mysql_username'	=> 'root',
 			'mysql_password'	=> '',
 			'mysql_database'	=> 'webapp',
 			'mysql_maptable'	=> 'webapp_maptable_',
@@ -467,7 +467,10 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 			? static::authorize($this->request_header('Authorization'), $authenticate)
 			: $this->admin($this->request_header('Authorization'));
 	}
-
+	// function errmsg()
+	// {
+	// 	$this->errors[] = 
+	// }
 
 	//---------------------
 
@@ -503,9 +506,17 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	// 	return new webapp_html_form($this, $node, $action);
 	// }
 	//function sqlite():webapp_sqlite{}
-	function mysql():webapp_mysql
+	function mysql(...$commands):webapp_mysql
 	{
-		$mysql = new webapp_mysql($this['mysql_host'], $this['mysql_user'], $this['mysql_password'], $this['mysql_database'], $this['mysql_maptable']);
+		if ($commands)
+		{
+			return ($this->mysql)(...$commands);
+		}
+		if (property_exists($this, 'mysql'))
+		{
+			return $this->mysql;
+		}
+		$mysql = new webapp_mysql($this['mysql_hostname'], $this['mysql_username'], $this['mysql_password'], $this['mysql_database'], $this['mysql_maptable']);
 		if ($mysql->connect_errno)
 		{
 			$this->errors[] = $mysql->connect_error;

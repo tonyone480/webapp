@@ -35,9 +35,9 @@ new class extends webapp
 	function __construct()
 	{
 		if ($this->init_admin_sign_in(new io)) return;
-		[$this->mysql_host, $this->mysql_user, $this->mysql_password]
-			= json_decode($this->request_cookie_decrypt('mysql_connectto') ?? 'NULL', TRUE)
-				?? [$this['mysql_host'], $this['mysql_user'], $this['mysql_password']];
+		[$this->mysql_hostname, $this->mysql_username, $this->mysql_password]
+			= json_decode($this->request_cookie_decrypt('mysql_hostinfo') ?? 'NULL', TRUE)
+				?? [$this['mysql_hostname'], $this['mysql_username'], $this['mysql_password']];
 		$this->mysql_database = $this->request_cookie('mysql_database');
 		$this->mysql_charset = $this->request_cookie('mysql_charset') ?? $this['mysql_charset'];
 		if ($this->router === $this)
@@ -79,14 +79,14 @@ new class extends webapp
 			
 		
 			
-			foreach ($this->query('SHOW DATABASES') as $db)
+			foreach ($this->mysql('SHOW DATABASES') as $db)
 			{
 				$node = $ul->append('li');
 				$node->append('a', [$db['Database'], 'href' => '?db/' . $this->url64_encode($db['Database'])]);
 				if ($db['Database'] === $this->mysql_database)
 				{
 					$node = $node->append('ul', ['class' => 'webapp-select']);
-					foreach ($this->query('SHOW TABLE STATUS') as $tab)
+					foreach ($this->mysql('SHOW TABLE STATUS') as $tab)
 					{
 						$node->append('li')->append('a', ["{$tab['Name']}[" . ($tab['Rows'] ?? 0) . ']', 'href' => '?tab/' . $this->url64_encode($tab['Name'])]);
 					}
@@ -95,9 +95,17 @@ new class extends webapp
 		}
 	}
 
-	function mysql():webapp_mysql
+	function mysql(...$commands):webapp_mysql
 	{
-		$mysql = new webapp_mysql($this->mysql_host, $this->mysql_user, $this->mysql_password, $this->mysql_database);
+		if ($commands)
+		{
+			return ($this->mysql)(...$commands);
+		}
+		if (property_exists($this, 'mysql'))
+		{
+			return $this->mysql;
+		}
+		$mysql = new webapp_mysql($this->mysql_hostname, $this->mysql_username, $this->mysql_password, $this->mysql_database);
 		if (in_array($this->mysql_charset, $this->charset = $mysql->character()->column('Charset'), TRUE))
 		{
 			$mysql->set_charset($this->mysql_charset);
@@ -107,10 +115,6 @@ new class extends webapp
 	function datatypes():array
 	{
 		return array_combine($datatype = $this->mysql->datatypes(), $datatype);
-	}
-	function query(...$params):webapp_mysql
-	{
-		return ($this->mysql)(...$params);
 	}
 	function form_field(string $tabname, webapp|webapp_html $context = NULL, string $action = NULL):array|webapp_form
 	{
@@ -137,7 +141,7 @@ new class extends webapp
 		
 
 		// $collation = [];
-		// foreach ($this->query('SHOW COLLATION') as $row)
+		// foreach ($this->mysql('SHOW COLLATION') as $row)
 		// {
 		// 	$collation[$row['Charset']][] = $row['Collation'];
 		// }
@@ -169,7 +173,7 @@ new class extends webapp
 				$optgroup->append('option', [$row['Collation'], 'value' => $row['Collation']]);
 
 			}
-			foreach ($this->query('SHOW FIELDS FROM ?a', $tabname) as $row)
+			foreach ($this->mysql('SHOW FIELDS FROM ?a', $tabname) as $row)
 			{
 				$after->append('option', ["{$row['Field']}:{$row['Type']}", 'value' => $row['Field']]);
 			}
@@ -187,7 +191,7 @@ new class extends webapp
 	{
 		$form = new webapp_form($context, $action);
 		$form->legend($tabname);
-		foreach ($this->query('SHOW FULL FIELDS FROM ?a', $tabname) as $row)
+		foreach ($this->mysql('SHOW FULL FIELDS FROM ?a', $tabname) as $row)
 		{
 			$form->fieldset($row['Field']);
 			preg_match('/(\w+)(?:\((\d+)\)(?:\s(\w+))?)?/', $row['Type'], $type);
@@ -226,7 +230,7 @@ new class extends webapp
 
 	function post_home()
 	{
-		$this->response_cookie_encrypt('mysql_connectto', json_encode(array_values($this->request_content()), JSON_UNESCAPED_UNICODE));
+		$this->response_cookie_encrypt('mysql_hostinfo', json_encode(array_values($this->request_content()), JSON_UNESCAPED_UNICODE));
 		$this->response_cookie('mysql_database');
 		$this->response_location('?console');
 	}
@@ -235,9 +239,9 @@ new class extends webapp
 		
 		$form = $this->app->main->form('?home');
 		$form->fieldset('MySQL Host');
-		$form->field('host', 'text', ['value' => $this->mysql_host]);
+		$form->field('hostname', 'text', ['value' => $this->mysql_hostname]);
 		$form->fieldset('Username');
-		$form->field('user', 'text', ['value' => $this->mysql_user]);
+		$form->field('username', 'text', ['value' => $this->mysql_username]);
 		$form->fieldset('Password');
 		$form->field('password', 'text', ['value' => $this->mysql_password]);
 		$form->fieldset();
@@ -276,7 +280,7 @@ new class extends webapp
 			$this->response_location('?db');
 			return 302;
 		}
-		$table = $this->app->main->table($this->query('SHOW TABLE STATUS')->result($fields), function(array $row, webapp $webapp)
+		$table = $this->app->main->table($this->mysql('SHOW TABLE STATUS')->result($fields), function(array $row, webapp $webapp)
 		{
 			$this->row();
 			$this->cell([
@@ -327,7 +331,7 @@ new class extends webapp
 		$fieldset->append('td')->appends('span', ['Name', 'Comment']);
 
 
-		$table->footer($this->query('SHOW CREATE DATABASE ?a', $this->mysql_database)->value(1));
+		$table->footer($this->mysql('SHOW CREATE DATABASE ?a', $this->mysql_database)->value(1));
 		
 		$table->xml['class'] .= '-grid';
 
@@ -339,7 +343,7 @@ new class extends webapp
 	function get_tab(string $name)
 	{
 		$tabname = $this->url64_decode($name);
-		$table = $this->app->main->table($this->query('SHOW FULL FIELDS FROM ?a', $tabname), function(array $row)
+		$table = $this->app->main->table($this->mysql('SHOW FULL FIELDS FROM ?a', $tabname), function(array $row)
 		{
 			$this->row();
 	
@@ -404,13 +408,13 @@ new class extends webapp
 		
 
 		$table->footer()->details('Create table')->append('code', [
-			$this->query('SHOW CREATE TABLE ?a', $tabname)->value(1),
+			$this->mysql('SHOW CREATE TABLE ?a', $tabname)->value(1),
 			'class' => 'webapp-codeblock'
 		]);
 		$table->xml['class'] = 'webapp-grid';
 
 
-		// $table = $this->app->main->table($this->query('SHOW INDEX FROM ?a', $tabname)->result($fields));
+		// $table = $this->app->main->table($this->mysql('SHOW INDEX FROM ?a', $tabname)->result($fields));
 		// $table->fieldset(...$fields);
 		// $table->xml['class'] .= '-grid';
 	}
@@ -575,7 +579,7 @@ new class extends webapp
 			$this->mysql->kill(intval($id));
 			return 302;
 		}
-		$table = $this->app->main->table($this->query('SHOW PROCESSLIST')->result($fields), function(array $data)
+		$table = $this->app->main->table($this->mysql('SHOW PROCESSLIST')->result($fields), function(array $data)
 		{
 			$this->row();
 			//$this->cell(['a', 'Kill', 'href' => '?processlist/' . $data['Id']]);
