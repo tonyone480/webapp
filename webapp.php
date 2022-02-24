@@ -479,6 +479,8 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	//----------------
 	function open(string $url, array $options = []):webapp_client_http
 	{
+		// $options['headers']['Authorization'] ??= 'Digest ' . $this->signature($this['admin_username'], $this['admin_password']);
+		$options['headers']['User-Agent'] ??= 'WebApp/' . self::version;
 		return webapp_client_http::open($url, $options);
 
 		// return $this(new webapp_client_http($url, $timeout))->headers([
