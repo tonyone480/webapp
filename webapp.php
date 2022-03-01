@@ -565,11 +565,11 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	{
 		return $this->io->request_header($name);
 	}
-	// function request_language():string
-	// {
-	// 	['zh' => 'CN', 'en' => 'US']
-	// 	return is_string($language = $this->request_header('Accept-Language')) ? $language : 'zh-CN';
-	// }
+	function request_locale():array
+	{
+		return is_string($locale = $this->request_cookie('locale') ?? $this->request_header('Accept-Language'))
+			&& preg_match('/([a-z]{2})[_\-]([a-z]{2,3})/', strtolower($locale), $name) ? array_slice($name, 1) : ['zh', 'cn'];
+	}
 	function request_device():string
 	{
 		return $this->request_header('User-Agent') ?? 'Unknown';
