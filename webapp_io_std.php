@@ -8,12 +8,12 @@ final class io implements webapp_io
 	}
 	function request_header(string $name):?string
 	{
-		return match($key = strtr(strtoupper($name), '-', '_'))
+		return $_SERVER[match($key = strtr(strtoupper($name), '-', '_'))
 		{
-			'AUTHORIZATION' => $_SERVER['PHP_AUTH_DIGEST'] ?? NULL,
-			'CONTENT_TYPE', 'CONTENT_LENGTH' => $_SERVER[$key] ?? NULL,
-			default => $_SERVER["HTTP_{$key}"] ?? NULL
-		};
+			'AUTHORIZATION' => 'PHP_AUTH_DIGEST',
+			'CONTENT_TYPE', 'CONTENT_LENGTH' => $key,
+			default => "HTTP_{$key}"
+		}] ?? NULL;
 	}
 	function request_method():string
 	{
