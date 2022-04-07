@@ -1,5 +1,5 @@
 <?php
-require __DIR__ . '/../webapp_io_std.php';
+require __DIR__ . '/../webapp_stdio.php';
 class webapp_router_query extends webapp_echo_json
 {
 	function __construct(webapp $webapp)
@@ -34,7 +34,7 @@ new class extends webapp
 {
 	function __construct()
 	{
-		if ($this->init_admin_sign_in(new io)) return;
+		if ($this->init_admin_sign_in()) return;
 		[$this->mysql_hostname, $this->mysql_username, $this->mysql_password]
 			= json_decode($this->request_cookie_decrypt('mysql_hostinfo') ?? 'NULL', TRUE)
 				?? [$this['mysql_hostname'], $this['mysql_username'], $this['mysql_password']];

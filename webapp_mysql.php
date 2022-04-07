@@ -277,7 +277,11 @@ class webapp_mysql extends mysqli implements IteratorAggregate
 	{
 		return $this('SHOW ' . $this->format(...$commands));
 	}
-	function character():static
+	function tablestatus():static
+	{
+		return $this->show('TABLE STATUS');
+	}
+	function characterset():static
 	{
 		return $this->show('CHARACTER SET');
 	}
@@ -288,6 +292,17 @@ class webapp_mysql extends mysqli implements IteratorAggregate
 	function processlist():static
 	{
 		return $this->show('PROCESSLIST');
+	}
+	function exists_table(string $name):bool
+	{
+		foreach ($this->tablestatus() as $table)
+		{
+			if ($table['Name'] === $name)
+			{
+				return TRUE;
+			}
+		}
+		return FALSE;
 	}
 }
 abstract class webapp_mysql_table implements IteratorAggregate, Countable, Stringable

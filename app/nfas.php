@@ -1,36 +1,16 @@
 <?php
-require __DIR__ . '/../webapp_io_std.php';
+require __DIR__ . '/../webapp_stdio.php';
 require __DIR__ . '/../webapp_nfas.php';
 new class extends webapp_nfas
 {
 	function __construct()
 	{
-		parent::__construct(new io, ['mysql_password' => 'aa']);
-		// $this->mysql->nfas->insert(['hash' => 1]);
-		// print_r($this->mysql);
-		// exit;
-
-
-		// if ($this->mysql->connect_errno || 1)
-		// {
-
-		// 	$a = ($this->mysql)('SHOW TABLES LIKE ?s', 'nfas')->array();
-		// 	var_dump($a);
-
-
-		// 	if ($this->admin === FALSE)
-		// 	{
-		// 		$this->app('webapp_echo_html')->title('Initialize NFAS');
-		// 		$this->get_admin();
-		// 	}
-		// 	return;
-		// }
-
-
-		// if ($this->router === $this && in_array($this->method, ['get_open', 'get_download']) === FALSE)
-		// {
-		// 	$this->app('webapp_echo_html')->title('NFAS');
-		// }
+		if ($this->init_admin_sign_in()) return;
+		if ($this->mysql->connect_errno
+			|| $this->mysql->exists_table(static::tablename) === FALSE
+			|| $this->init() === FALSE) {
+			return $this->response_status(500);
+		}
 	}
 	function get_home(string $hash = NULL, int $page = 1)
 	{
@@ -68,12 +48,14 @@ new class extends webapp_nfas
 	}
 	function get_echo(string $hash)
 	{
-		if ($file = $this->file($hash))
-		{
-			print_r($file);
-			return;
-		}
-		return 404;
+		
+		
+		// if ($file = $this->file($hash))
+		// {
+		// 	print_r($file);
+		// 	return;
+		// }
+		// return 404;
 	}
 	function post_admin()
 	{
@@ -92,16 +74,11 @@ new class extends webapp_nfas
 		}
 		
 	}
-	function get_admin()
-	{
-		$this->app('webapp_echo_html')->title('NFAS Admin');
-		webapp_echo_html::form_sign_in($this->app->main);
-	}
 	function post_test()
 	{
-		$this->storage(copy(...), 'C:/Users/makcoo/Desktop/python/1A2B.py', 0, 'py', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
-		print_r($this->mysql);
-		//$this->storage_uploadfile('upfiles', 10);
+		//print_r($this->storage_localfile('C:\Users\mac\Desktop\sql.txt'));
+		print_r( $this->storage_localfolder('C:/Users/mac/Desktop/test') );
+		//print_r( $this->storage_uploadedfile('upfiles', 10) );
 	}
 	function get_test()
 	{

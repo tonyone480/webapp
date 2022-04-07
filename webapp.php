@@ -230,7 +230,7 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	{
 		[$this->webapp, $this->configs] = [$this, $config + [
 			//Request
-			'request_method'	=> in_array($method = strtolower($io->request_method()), ['get', 'post', 'put', 'delete'], TRUE) ? $method : 'get',
+			'request_method'	=> in_array($method = strtolower($io->request_method()), ['get', 'post', 'put', 'patch', 'delete'], TRUE) ? $method : 'get',
 			'request_query'		=> $io->request_query(),
 			//Application
 			'app_charset'		=> 'utf-8',
@@ -601,14 +601,16 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	}
 	function request_uploadedfile(string $name, int $maximum = NULL):ArrayObject
 	{
-		return array_key_exists($name, $this->uploadedfiles ??= $this->io->request_uploadedfile())
-			&& is_object($this->uploadedfiles[$name]) ? $this->uploadedfiles[$name]
-			: $this->uploadedfiles[$name] = new class($this, array_key_exists($name, $this->uploadedfiles)
-				? array_slice($this->uploadedfiles[$name], 0, $maximum) : []) extends ArrayObject implements Stringable
+		return array_key_exists($name, $this->uploadedfiles ??= $this->io->request_uploadedfile()) && is_object($this->uploadedfiles[$name])
+			? $this->uploadedfiles[$name] : $this->uploadedfiles[$name] = new class($this, $this->uploadedfiles[$name] ?? [], $maximum) extends ArrayObject implements Stringable
 			{
-				function __construct(public readonly webapp $webapp, array $uploadedfiles)
+				function __construct(public readonly webapp $webapp, array $uploadedfiles, int $maximum = NULL)
 				{
-					parent::__construct($uploadedfiles, ArrayObject::STD_PROP_LIST);
+					parent::__construct(flags: ArrayObject::STD_PROP_LIST);
+					foreach (array_slice($uploadedfiles, 0, $maximum) as $uploadedfile)
+					{
+						$this[] = ['hash'=> $webapp->hashfile($uploadedfile['file']), ...$uploadedfile];
+					}
 				}
 				function __toString():string
 				{
@@ -725,9 +727,13 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 		return $this->io->response_sendfile($filename);
 	}
 	//append function
-	final function init_admin_sign_in(webapp_io $io, array $config = []):bool
+	function allowed(string ...$methods):bool
 	{
-		self::__construct($io, $config);
+		return in_array($this->method, ['get_captcha', 'get_qrcode', 'get_scss', ...$methods], TRUE);
+	}
+	final function init_admin_sign_in(array $config = [], webapp_io $io = new webapp_stdio):bool
+	{
+		self::__construct($config, $io);
 		if (method_exists(...$this->route))
 		{
 			if ($this->router === $this && in_array($this->method, ['get_captcha', 'get_qrcode', 'get_scss'], TRUE)) return TRUE;
