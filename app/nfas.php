@@ -49,13 +49,7 @@ new class extends webapp_nfas
 	function get_echo(string $hash)
 	{
 		
-		
-		// if ($file = $this->file($hash))
-		// {
-		// 	print_r($file);
-		// 	return;
-		// }
-		// return 404;
+		print_r($this->file($hash));
 	}
 	function post_admin()
 	{

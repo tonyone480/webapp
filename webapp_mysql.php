@@ -157,21 +157,27 @@ class webapp_mysql extends mysqli implements IteratorAggregate
 	{
 		return parent::kill($pid ?? $this->thread_id);
 	}
-
+	function syncable():bool
+	{
+		return boolval($this('SELECT @@autocommit')->value());
+	}
 	function sync(Closure $submit, mixed ...$params):bool
 	{
-		if ($this->autocommit(FALSE))
-		{
-			if ($submit->call($this, ...$params))
-			{
-				$this->commit();
-				$this->autocommit(TRUE);
-				return TRUE;
-			}
-			$this->rollback();
-			$this->autocommit(TRUE);
-		}
-		return FALSE;
+		return $this->syncable() && $this->autocommit(FALSE)
+			&& [($success = $submit(...$params) && $this->commit()) || $this->rollback(),
+				$this->autocommit(TRUE)] ? $success : FALSE;
+		// if ($this->autocommit(FALSE))
+		// {
+		// 	if ($submit->call($this, ...$params))
+		// 	{
+		// 		$this->commit();
+		// 		$this->autocommit(TRUE);
+		// 		return TRUE;
+		// 	}
+		// 	$this->rollback();
+		// 	$this->autocommit(TRUE);
+		// }
+		// return FALSE;
 	}
 	function cond(array $fieldinfo, array $cond):ArrayObject
 	{

@@ -40,7 +40,8 @@ class webapp_nfas extends webapp
 	function file(string $hash):array
 	{
 		return preg_match('/^[0-9A-V]{12}$/', $hash)
-			? $this->nfas('WHERE type IS NOT NULL AND hash=?s LIMIT 1', $hash)->array() : [];
+			&& ($file = $this->nfas('WHERE type IS NOT NULL AND hash=?s LIMIT 1', $hash)->array())
+			? ['file' => $this->filename($file['hash'])] + $file : [];
 	}
 	function filename(string $hash):string
 	{
@@ -96,7 +97,6 @@ class webapp_nfas extends webapp
 		}
 		return $success;
 	}
-
 	function storage_uploadedfile(string $name, int $maximum = NULL, string $node = NULL):array
 	{
 		$success = [];
@@ -189,6 +189,7 @@ SELECT ?a.* FROM nfas,a WHERE ?a.node=a.hash)SELECT * FROM a',
 					}
 				}
 			}
+			//$this->mysql->autocommit(TRUE);
 		}
 	}
 
