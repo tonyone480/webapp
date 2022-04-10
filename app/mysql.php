@@ -65,14 +65,16 @@ new class extends webapp
 			{
 				return;
 			}
+			
 			if ($this->mysql->connect_errno)
 			{
 				return $this->break($this->get_home(...));
 			}
 		
-
-			$this->app->aside->select(
-				array_combine($this->charset, $this->charset))->setattr(['class' => 'webapp-button'])->selected($this->mysql_charset);
+			
+			$this->app->aside->select(array_combine($this->charset, $this->charset))->setattr([
+				'onchange' => 'location.replace(`?console/${this.value}`)',
+				'class' => 'webapp-button'])->selected($this->mysql_charset);
 
 			$ul = $this->app->aside->append('ul', ['class' => 'webapp-select']);
 	
@@ -106,7 +108,7 @@ new class extends webapp
 			return $this->mysql;
 		}
 		$mysql = new webapp_mysql($this->mysql_hostname, $this->mysql_username, $this->mysql_password, $this->mysql_database);
-		if (in_array($this->mysql_charset, $this->charset = $mysql->character()->column('Charset'), TRUE))
+		if (in_array($this->mysql_charset, $this->charset = $mysql->characterset()->column('Charset'), TRUE))
 		{
 			$mysql->set_charset($this->mysql_charset);
 		}
@@ -591,6 +593,6 @@ new class extends webapp
 		$table->header('Processlist');
 
 
-		$table->xml['class'] = 'webapp-grid';
+		$table->xml['class'] = 'webapp-even';
 	}
 };

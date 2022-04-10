@@ -20,6 +20,7 @@ $danger: rgb(203, 36, 49);
 	--webapp-anchor: $anchor;
 	--webapp-button: $button;
 
+	--webapp-hint: $hint;
 	--webapp-edge: $edge;
 
 	--webapp-primary: $primary;
@@ -282,5 +283,76 @@ nav[class|=webapp]{
 		>li{
 			display: inline-block;
 		}
+	}
+}
+
+table[class|=webapp]{
+	display: inline-table;
+	border: 1px solid var(--webapp-foreground);
+	border-collapse: collapse;
+	empty-cells: show;
+	td{
+		
+		padding: var(--webapp-gapradius);
+		&:empty::before{
+			content: 'NULL';
+			color: var(--webapp-hint);
+		}
+		// >span{
+		// 	display: block;
+		// 	overflow: hidden;
+		// 	text-overflow: ellipsis;
+		// }
+	}
+	>thead{
+		>tr:first-child{
+			background-color: var(--webapp-anchor);
+			color: var(--webapp-background);
+		}
+	}
+	>tbody{
+		>tr.fieldset{
+			background-color: var(--webapp-hint);
+			>td{
+				white-space: nowrap;
+			}
+		}
+		>tr:not(.fieldset)>td{
+			border: 1px solid var(--webapp-foreground);
+			overflow: hidden;
+			white-space: pre;
+			text-overflow: ellipsis;
+		}
+	}
+	>tfoot{
+		background-color: var(--webapp-button);
+	}
+
+
+	// &[class*=-highlight]{
+	// 	>tbody>tr:hover{
+	// 		background-color: $anchor;
+	// 		>td{
+	// 			color: $background;
+	// 		}
+	// 	}
+	// }
+	
+	
+	&[class*=-even]{
+		>tbody>tr:nth-child(even) {
+			background-color: var(--webapp-button);
+		}
+	}
+	&[class*=-top]{
+		>tbody>tr>td{
+			vertical-align: top;
+		}
+	}
+}
+select[class|=webapp]{
+	outline: none;
+	>optgroup,>option{
+		background-color: var(--webapp-background);
 	}
 }

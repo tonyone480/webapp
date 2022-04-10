@@ -344,8 +344,10 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 			if (property_exists($this, 'buffer'))
 			{
 				if ($this['gzip_level']
-					&& stripos($this->request_header('Accept-Encoding'), 'gzip') !== FALSE
-					&& stream_filter_append($this->buffer, 'zlib.deflate', STREAM_FILTER_READ, ['level' => $this['gzip_level'], 'window' => 31, 'memory' => 9])) {
+					&& is_string($encoding = $this->request_header('Accept-Encoding'))
+					&& stripos($encoding, 'gzip') !== FALSE
+					&& stream_filter_append($this->buffer, 'zlib.deflate', STREAM_FILTER_READ,
+						['level' => $this['gzip_level'], 'window' => 31, 'memory' => 9])) {
 					$this->io->response_header('Content-Encoding: gzip');
 				}
 				//Content-Length: 

@@ -6,6 +6,7 @@
   --webapp-gapradius: .4rem;
   --webapp-anchor: #0366d6;
   --webapp-button: #eff3f6;
+  --webapp-hint: silver;
   --webapp-edge: #1b1f23;
   --webapp-primary: #28a745;
   --webapp-danger: #cb2431;
@@ -254,4 +255,60 @@ nav[class|=webapp] {
 
 nav[class|=webapp] > ul:first-child > li {
   display: inline-block;
+}
+
+table[class|=webapp] {
+  display: inline-table;
+  border: 1px solid var(--webapp-foreground);
+  border-collapse: collapse;
+  empty-cells: show;
+}
+
+table[class|=webapp] td {
+  padding: var(--webapp-gapradius);
+}
+
+table[class|=webapp] td:empty::before {
+  content: 'NULL';
+  color: var(--webapp-hint);
+}
+
+table[class|=webapp] > thead > tr:first-child {
+  background-color: var(--webapp-anchor);
+  color: var(--webapp-background);
+}
+
+table[class|=webapp] > tbody > tr.fieldset {
+  background-color: var(--webapp-hint);
+}
+
+table[class|=webapp] > tbody > tr.fieldset > td {
+  white-space: nowrap;
+}
+
+table[class|=webapp] > tbody > tr:not(.fieldset) > td {
+  border: 1px solid var(--webapp-foreground);
+  overflow: hidden;
+  white-space: pre;
+  text-overflow: ellipsis;
+}
+
+table[class|=webapp] > tfoot {
+  background-color: var(--webapp-button);
+}
+
+table[class|=webapp][class*=-even] > tbody > tr:nth-child(even) {
+  background-color: var(--webapp-button);
+}
+
+table[class|=webapp][class*=-top] > tbody > tr > td {
+  vertical-align: top;
+}
+
+select[class|=webapp] {
+  outline: none;
+}
+
+select[class|=webapp] > optgroup, select[class|=webapp] > option {
+  background-color: var(--webapp-background);
 }
