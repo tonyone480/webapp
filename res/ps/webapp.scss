@@ -20,6 +20,7 @@ $danger: rgb(203, 36, 49);
 	--webapp-anchor: $anchor;
 	--webapp-button: $button;
 
+	--webapp-hover: $hover;
 	--webapp-hint: $hint;
 	--webapp-edge: $edge;
 
@@ -292,7 +293,6 @@ table[class|=webapp]{
 	border-collapse: collapse;
 	empty-cells: show;
 	td{
-		
 		padding: var(--webapp-gapradius);
 		&:empty::before{
 			content: 'NULL';
@@ -311,6 +311,9 @@ table[class|=webapp]{
 		}
 	}
 	>tbody{
+		>tr>td{
+			border: 1px solid var(--webapp-foreground);
+		}
 		>tr.fieldset{
 			background-color: var(--webapp-hint);
 			>td{
@@ -318,7 +321,6 @@ table[class|=webapp]{
 			}
 		}
 		>tr:not(.fieldset)>td{
-			border: 1px solid var(--webapp-foreground);
 			overflow: hidden;
 			white-space: pre;
 			text-overflow: ellipsis;
@@ -329,16 +331,12 @@ table[class|=webapp]{
 	}
 
 
-	// &[class*=-highlight]{
-	// 	>tbody>tr:hover{
-	// 		background-color: $anchor;
-	// 		>td{
-	// 			color: $background;
-	// 		}
-	// 	}
-	// }
-	
-	
+	&[class*=-hover]{
+		>tbody>tr:not(.fieldset):hover{
+			background-color: var(--webapp-hover);
+			
+		}
+	}
 	&[class*=-even]{
 		>tbody>tr:nth-child(even) {
 			background-color: var(--webapp-button);

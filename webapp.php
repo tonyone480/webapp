@@ -263,10 +263,10 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 			'gzip_level'		=> -1,
 			'smtp_host'			=> 'tcp://username:password@host']];
 		[$this->route, $this->entry] = method_exists($this, $route = sprintf('%s_%s', $this['request_method'],
-			preg_match('/^\w+(?=\/([\-\w]*))?/', $this['request_query'], $entry)
-				? $entry[0] : $entry[] = $this['app_index']))
+			preg_match('/^[-\w]+(?=\/([\-\w]*))?/', $this['request_query'], $entry)
+				? $track = strtr($entry[0], '-', '_') : $entry[] = $this['app_index']))
 			? [[$this, $route], array_slice($entry, 1)]
-			: [[$this['app_router'] . $entry[0], sprintf('%s_%s', $this['request_method'],
+			: [[$this['app_router'] . $track, sprintf('%s_%s', $this['request_method'],
 				count($entry) > 1 ? strtr($entry[1], '-', '_') : $this['app_index'])], []];
 		[&$this->router, &$this->method] = $this->route;
 	}

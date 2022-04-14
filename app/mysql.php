@@ -19,7 +19,16 @@ class webapp_router_query extends webapp_echo_json
 	}
 	function post_console()
 	{
-		$this['post'] = $_POST;
+		$input = $this->webapp->request_content();
+		if ($input['createdb'])
+		{
+			$this->webapp->mysql->createdb($input['createdb']);
+		}
+		//$this['post'] = $_POST;
+	}
+	function get_createtab()
+	{
+		$this->webapp->mysql->createtab('resources');
 	}
 	function post_insert(string $tab)
 	{
@@ -321,6 +330,10 @@ new class extends webapp
 			$td->span[] = $row['Auto_increment'] ?? '-';
 		}, $this);
 
+		$table->header($this->mysql_database);
+
+		$table->bar->append('a', ['Create Table', 'href' => '?query/createtab']);
+
 		
 		$fieldset = $table->fieldset();
 
@@ -413,7 +426,7 @@ new class extends webapp
 			$this->mysql('SHOW CREATE TABLE ?a', $tabname)->value(1),
 			'class' => 'webapp-codeblock'
 		]);
-		$table->xml['class'] = 'webapp-grid';
+		$table->xml['class'] = 'webapp';
 
 
 		// $table = $this->app->main->table($this->mysql('SHOW INDEX FROM ?a', $tabname)->result($fields));
@@ -428,7 +441,7 @@ new class extends webapp
 		
 		
 		$table = $this->app->main->table($datatab->paging($page, $rows)->result($fields));
-		$table->xml['class'] = 'webapp-grid';
+		$table->xml['class'] = 'webapp';
 		$table->header($tabname);
 		
 		$table->cond([
@@ -581,7 +594,7 @@ new class extends webapp
 			$this->mysql->kill(intval($id));
 			return 302;
 		}
-		$table = $this->app->main->table($this->mysql('SHOW PROCESSLIST')->result($fields), function(array $data)
+		$table = $this->app->main->table($this->mysql->processlist()->result($fields), function(array $data)
 		{
 			$this->row();
 			//$this->cell(['a', 'Kill', 'href' => '?processlist/' . $data['Id']]);
@@ -593,6 +606,6 @@ new class extends webapp
 		$table->header('Processlist');
 
 
-		$table->xml['class'] = 'webapp-even';
+		$table->xml['class'] = 'webapp-even-hover';
 	}
 };

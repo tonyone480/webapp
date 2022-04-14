@@ -6,6 +6,7 @@
   --webapp-gapradius: .4rem;
   --webapp-anchor: #0366d6;
   --webapp-button: #eff3f6;
+  --webapp-hover: #f3f3f3;
   --webapp-hint: silver;
   --webapp-edge: #1b1f23;
   --webapp-primary: #28a745;
@@ -278,6 +279,10 @@ table[class|=webapp] > thead > tr:first-child {
   color: var(--webapp-background);
 }
 
+table[class|=webapp] > tbody > tr > td {
+  border: 1px solid var(--webapp-foreground);
+}
+
 table[class|=webapp] > tbody > tr.fieldset {
   background-color: var(--webapp-hint);
 }
@@ -287,7 +292,6 @@ table[class|=webapp] > tbody > tr.fieldset > td {
 }
 
 table[class|=webapp] > tbody > tr:not(.fieldset) > td {
-  border: 1px solid var(--webapp-foreground);
   overflow: hidden;
   white-space: pre;
   text-overflow: ellipsis;
@@ -295,6 +299,10 @@ table[class|=webapp] > tbody > tr:not(.fieldset) > td {
 
 table[class|=webapp] > tfoot {
   background-color: var(--webapp-button);
+}
+
+table[class|=webapp][class*=-hover] > tbody > tr:not(.fieldset):hover {
+  background-color: var(--webapp-hover);
 }
 
 table[class|=webapp][class*=-even] > tbody > tr:nth-child(even) {
