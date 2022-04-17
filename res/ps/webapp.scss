@@ -354,3 +354,7 @@ select[class|=webapp]{
 		background-color: var(--webapp-background);
 	}
 }
+code[class|=webapp]{
+	white-space: pre;
+	font-family: var(--webapp-font-monospace);
+}

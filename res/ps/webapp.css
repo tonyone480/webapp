@@ -320,3 +320,8 @@ select[class|=webapp] {
 select[class|=webapp] > optgroup, select[class|=webapp] > option {
   background-color: var(--webapp-background);
 }
+
+code[class|=webapp] {
+  white-space: pre;
+  font-family: var(--webapp-font-monospace);
+}

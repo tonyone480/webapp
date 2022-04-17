@@ -428,10 +428,16 @@ new class extends webapp
 		]);
 		$table->xml['class'] = 'webapp';
 
+		
 
-		// $table = $this->app->main->table($this->mysql('SHOW INDEX FROM ?a', $tabname)->result($fields));
-		// $table->fieldset(...$fields);
-		// $table->xml['class'] .= '-grid';
+		$table = $this->app->main->table($this->mysql('SHOW INDEX FROM ?a', $tabname)->result($fields), function(array $data)
+		{
+			$this->row();
+			$this->cell([['a', 'Delete', 'href' => '#']], 'iter');
+			$this->cells($data);
+		});
+		$table->fieldset('Function', ...$fields);
+		$table->xml['style'] = 'margin-top: var(--webapp-gap)';
 	}
 	function get_data(string $name, int $page = 1, int $rows = 40)
 	{

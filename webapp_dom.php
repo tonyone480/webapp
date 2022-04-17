@@ -12,31 +12,31 @@ class webapp_xml extends SimpleXMLElement
 	}
 	function clone(bool $deep = TRUE):DOMNode
 	{
-		return $this[0]->dom()->cloneNode($deep);
+		return $this->dom()->cloneNode($deep);
 	}
 	function cdata(string $value):DOMNode
 	{
-		return $this[0]->dom()->appendChild(new DOMCdataSection($value));
+		return $this->dom()->appendChild(new DOMCdataSection($value));
 	}
 	function comment(string $value):DOMNode
 	{
-		return $this[0]->dom()->appendChild(new DOMComment($value));
+		return $this->dom()->appendChild(new DOMComment($value));
 	}
 	function entity(string $name):DOMNode
 	{
-		return $this[0]->dom()->appendChild(new DOMEntityReference($name));
+		return $this->dom()->appendChild(new DOMEntityReference($name));
 	}
 	function pi(string ...$values):DOMNode
 	{
-		return $this[0]->dom()->appendChild(new DOMProcessingInstruction(...$values));
+		return $this->dom()->appendChild(new DOMProcessingInstruction(...$values));
 	}
 	function text(string ...$values):DOMNode
 	{
-		return $this[0]->dom()->appendChild(new DOMText(...$values));
+		return $this->dom()->appendChild(new DOMText(...$values));
 	}
 	function xml(string $data):DOMNode
 	{
-		$dom = $this[0]->dom();
+		$dom = $this->dom();
 		$xml = $dom->ownerDocument->createDocumentFragment();
 		if ($xml->appendXML($data))
 		{
@@ -46,7 +46,7 @@ class webapp_xml extends SimpleXMLElement
 	}
 	function insert(DOMNode|string $element, ?string $position = NULL):DOMNode|static
 	{
-		$dom = $this[0]->dom();
+		$dom = $this->dom();
 		$node = is_string($element) ? $dom->ownerDocument->createElement($element) : $element;
 		match ($position)
 		{
@@ -84,18 +84,18 @@ class webapp_xml extends SimpleXMLElement
 		{
 			$iterator->call($this[0], $value, ...$params);
 		}
-		return $this[0];
+		return $this;
 	}
 	//获取属性
 	function getattr(string $name = NULL):NULL|string|array
 	{
-		$attributes = ((array)$this[0]->attributes())['@attributes'] ?? [];
+		$attributes = ((array)$this->attributes())['@attributes'] ?? [];
 		return is_string($name) ? $attributes[$name] ?? NULL : $attributes;
 	}
 	//设置属性
 	function setattr(string|array $name, $value = NULL):static
 	{
-		$node = $this[0];
+		$node = $this;
 		foreach (is_string($name) ? [$name => $value] : $name as $name => $value)
 		{
 			if ((is_string($name) || $name === 0) && is_scalar($value))
@@ -114,22 +114,22 @@ class webapp_xml extends SimpleXMLElement
 	function append(string $name, NULL|string|array $contents = NULL):static
 	{
 		return is_array($contents)
-			? ($node = &$this[0]->{$name}[])->setattr($contents)
-			: $this[0]->addChild($name, $contents);
+			? $this->addChild($name)->setattr($contents)
+			: $this->addChild($name, $contents);
 	}
 	function appends(string $name, iterable $contents, string $keyattr = NULL):static
 	{
 		if ($keyattr) foreach ($contents as $key => $content)
 		{
-			$this[0]->append($name, is_array($content)
+			$this->append($name, is_array($content)
 				? [$keyattr => $key] + $content
 				: [$content, $keyattr => $key]);
 		}
 		else foreach ($contents as $content)
 		{
-			$this[0]->append($name, $content);
+			$this->append($name, $content);
 		}
-		return $this[0];
+		return $this;
 	}
 
 	
@@ -137,11 +137,11 @@ class webapp_xml extends SimpleXMLElement
 
 	function parent():static
 	{
-		return $this[0]->xpath('..')[0] ?? $this[0];
+		return $this->xpath('..')[0] ?? $this;
 	}
 	function remove():static
 	{
-		$child = $this[0]->dom();
+		$child = $this->dom();
 		$parent = $child->parentNode;
 		$parent->removeChild($child);
 		return static::from($parent);
