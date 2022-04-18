@@ -8,7 +8,7 @@ class webapp_xml extends SimpleXMLElement
 	}
 	function dom():DOMNode
 	{
-		return dom_import_simplexml($this[0]);
+		return dom_import_simplexml($this);
 	}
 	function clone(bool $deep = TRUE):DOMNode
 	{
@@ -30,9 +30,9 @@ class webapp_xml extends SimpleXMLElement
 	{
 		return $this->dom()->appendChild(new DOMProcessingInstruction(...$values));
 	}
-	function text(string ...$values):DOMNode
+	function text(string $data = ''):DOMNode
 	{
-		return $this->dom()->appendChild(new DOMText(...$values));
+		return $this->dom()->appendChild(new DOMText($data));
 	}
 	function xml(string $data):DOMNode
 	{
