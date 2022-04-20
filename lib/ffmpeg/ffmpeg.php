@@ -34,13 +34,12 @@ class ffmpeg
 			'bufsize' => '1200k',
 		]
 	];
-	protected $mpeg = 'ffmpeg', $probe = 'ffprobe';
 	private $format = [], $audio = [], $video = [], $fixed = 1, $options, $filename, $output;
 	function __construct(string $filename, string $option = '-hide_banner -loglevel error -stats -y')
 	{
 		$this->options = [$option];
 		$this->filename = realpath($filename);
-		if ($probe = json_decode(shell_exec("{$this->probe} -v quiet -print_format json -show_format -show_streams \"{$this->filename}\""), TRUE))
+		if ($probe = json_decode(shell_exec(static::ffprobe . " -v quiet -print_format json -show_format -show_streams \"{$this->filename}\""), TRUE))
 		{
 			$this->format = $probe['format'];
 			foreach ($probe['streams'] as $stream)
@@ -201,7 +200,7 @@ class ffmpeg
 				return array_slice([240, 360, 480, 720, 1080, 1440, 2160], 0, $i + 1);
 			}
 		}
-		return [];
+		return [360];
 	}
 	//m3u8
 	function m3u8_play(string $dirname, array $quality):bool
@@ -223,7 +222,7 @@ class ffmpeg
 		}
 		return count($playlist) > 2 && file_put_contents("{$dirname}/play.m3u8", iconv('ASCII','UTF-8', join("\n", $playlist))) !== FALSE;
 	}
-	function m3u8(string $outdir, array $allow = [1080, 720, 480, 420], bool $strict = FALSE):bool
+	function m3u8_multi_quality(string $outdir, array $allow = [1080, 720, 480, 420], bool $strict = FALSE):bool
 	{
 		if (($dirname = $this->mkdir($outdir))
 			&& ($quality = array_intersect($this->v_qualityable(), array_keys(static::quality), $allow))
@@ -238,5 +237,14 @@ class ffmpeg
 			return $this(...$options) === 0 && unlink($keyinfo) && $this->m3u8_play($dirname, $quality);
 		}
 		return FALSE;
+	}
+	function m3u8(string $outdir, int $quality = 720):bool
+	{
+		return ($dirname = $this->mkdir($outdir))
+			&& file_put_contents($keycode = "{$dirname}/keycode", random_bytes(16))
+			&& file_put_contents($keyinfo = "{$dirname}/keyinfo", join("\n", ['keycode', $keycode, bin2hex(random_bytes(16))]))
+			&& is_string($option = $this->v_quality(in_array($quality, $qualityable = $this->v_qualityable(), TRUE) ? $quality : end($qualityable)))
+			&& $this($option, "-hls_key_info_file \"{$keyinfo}\"", "-hls_segment_filename \"{$dirname}/%04d.ts\" \"{$dirname}/playlist.m3u8\"") === 0
+			&& unlink($keyinfo);
 	}
 }
