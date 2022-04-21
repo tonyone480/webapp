@@ -49,7 +49,7 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	{
 		for ($hash = 5381, $i = strlen($data); $i;)
 		{
-			$hash = ($hash << 5 & 0xfffffffffffffff) + ord($data[--$i]);
+			$hash = ($hash & 0xfffffffffffffff) + (($hash & 0x1ffffffffffffff) << 5) + ord($data[--$i]);
 		}
 		return $hash;
 	}
