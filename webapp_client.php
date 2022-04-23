@@ -340,7 +340,7 @@ class webapp_client_http extends webapp_client implements ArrayAccess
 	function request(string $method, string $path, $data = NULL, string $type = NULL):bool
 	{
 		$request = ["{$method} {$path} HTTP/1.1"];
-		foreach ($this->request + $this->headers as $name => $value)
+		foreach ($this->headers as $name => $value)
 		{
 			$request[] = "{$name}: {$value}";
 		}
