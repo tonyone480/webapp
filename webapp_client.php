@@ -258,7 +258,7 @@ class webapp_client_http extends webapp_client implements ArrayAccess
 		'Host' => '*',
 		'Connection' => 'keep-alive',
 		'User-Agent' => 'WebApp/Client',
-		'Accept' => 'application/json,application/xml,text/html;q=0.9, */*;q=0.8',
+		'Accept' => 'application/json,application/xml,text/html;q=0.9,*/*;q=0.8',
 		'Accept-Encoding' => 'gzip, deflate',
 		'Accept-Language' => 'zh-CN, zh;q=0.9, en;q=0.8'
 	], $cookies = [], $response = [];

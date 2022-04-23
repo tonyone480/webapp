@@ -144,14 +144,14 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	{
 		return static::encrypt(pack('VCCa*', static::time(), strlen($username), strlen($password), $username . $password . $additional));
 	}
-	static function authorize(?string $signature, callable $authenticate, &$result = NULL):bool
+	static function authorize(?string $signature, callable $authenticate, &$return = NULL):bool
 	{
 		return is_string($data = static::decrypt($signature))
 			&& strlen($data) > 5
 			&& extract(unpack('Vsigntime/C2length', $data)) === 3
 			&& strlen($data) > 5 + $length1 + $length2
 			&& is_array($acc = unpack("a{$length1}uid/a{$length2}pwd/a*add", $data, 6))
-			&& $result = $authenticate($acc['uid'], $acc['pwd'], $signtime, $acc['add']);
+			&& $return = $authenticate($acc['uid'], $acc['pwd'], $signtime, $acc['add']);
 	}
 	static function captcha_random(int $length, int $expire):?string
 	{

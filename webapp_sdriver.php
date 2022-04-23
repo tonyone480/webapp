@@ -1,19 +1,21 @@
 <?php
-class webapp_driver extends webapp
+class webapp_sdriver extends webapp
 {
-	function slave():webapp_client_http
+	function sync():webapp_client_http
 	{
-		return (new webapp_client_http($this['app_master']))->headers([
+		$sync = new webapp_client_http($this['app_syncurl']);
+		$sync->autoretry = 2;
+		return $sync->headers([
 			'Authorization' => 'Digest ' . $this->signature($this['admin_username'], $this['admin_password'], (string)$this['app_sid'])
 		]);
 	}
 	function get(string $router):string|array|webapp_xml
 	{
-		return $this->slave->goto("{$this->slave->path}?{$router}")->content();
+		return $this->sync->goto("{$this->sync->path}?{$router}")->content();
 	}
 	function post(string $router, array $data):string|array|webapp_xml
 	{
-		return $this->slave->goto("{$this->slave->path}?{$router}", [
+		return $this->sync->goto("{$this->sync->path}?{$router}", [
 			'method' => 'POST',
 			'type' => 'application/json',
 			'data' => $data
@@ -21,7 +23,7 @@ class webapp_driver extends webapp
 	}
 	function delete(string $router):bool
 	{
-		return is_object($this->slave->goto("{$this->slave->path}?{$router}", ['method' => 'POST'])->content());
+		return is_object($this->sync->goto("{$this->sync->path}?{$router}", ['method' => 'POST'])->content());
 	}
 	function pull(string $router, int $size = 1000):iterable
 	{
