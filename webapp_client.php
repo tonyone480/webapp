@@ -2,11 +2,13 @@
 declare(strict_types=1);
 class webapp_client implements Stringable, Countable
 {
-	const timeout = 4, flags = STREAM_CLIENT_CONNECT | STREAM_CLIENT_PERSISTENT;
 	public array $errors = [];
+	protected readonly int $timeout, $flags;
 	private $filter, $buffer, $client;
-	function __construct(public readonly string $socket)
+	function __construct(public readonly string $socket, array $options = [])
 	{
+		$this->timeout = $options['timeout'] ?? 4;
+		$this->flags = $options['flags'] ?? (STREAM_CLIENT_CONNECT | STREAM_CLIENT_PERSISTENT);
 		$this->buffer = fopen('php://memory', 'r+');
 		$this->reconnect();
 	}
@@ -53,7 +55,7 @@ class webapp_client implements Stringable, Countable
 		{
 			//var_dump("reconnect");
 			if (is_resource($client = @stream_socket_client($this->socket, $erron, $error,
-				static::timeout, static::flags, stream_context_create(['ssl' => [
+				$this->timeout, $this->flags, stream_context_create(['ssl' => [
 					'verify_peer' => FALSE,
 					'verify_peer_name' => FALSE,
 					'allow_self_signed' => TRUE]])))
@@ -252,25 +254,31 @@ class webapp_client_debug extends php_user_filter
 // }
 class webapp_client_http extends webapp_client implements ArrayAccess
 {
-	public string $path;
-	public int $autoretry = 0, $autojump = 0;
+	public readonly string $path;
+	protected readonly int $autoretry, $autojump;
 	protected array $headers = [
 		'Host' => '*',
 		'Connection' => 'keep-alive',
 		'User-Agent' => 'WebApp/Client',
 		'Accept' => 'application/json,application/xml,text/html;q=0.9,*/*;q=0.8',
-		'Accept-Encoding' => 'gzip, deflate',
-		'Accept-Language' => 'zh-CN, zh;q=0.9, en;q=0.8'
+		'Accept-Encoding' => 'gzip,deflate',
+		'Accept-Language' => 'zh-CN,zh;q=0.9,en;q=0.8'
 	], $cookies = [], $response = [];
-	function __construct(public readonly string $url, private array &$referers = [])
+	function __construct(public readonly string $url, array $options = [], private array &$referers = [])
 	{
 		[$socket, $this->headers['Host'], $this->path] = $parse = static::parseurl($url);
+		$this->autoretry = $options['autoretry'] ?? 0;
+		$this->autojump = $options['autojump'] ?? 0;
 		$this->referers[$socket] = $this;
+		if (array_key_exists('headers', $options))
+		{
+			$this->headers($options['headers']);
+		}
 		if (count($parse) > 3)
 		{
 			$this->headers['Authorization'] = 'Basic ' . base64_encode(join(':', array_slice($parse, 3)));
 		}
-		parent::__construct($socket);
+		parent::__construct($socket, $options);
 	}
 	function offsetExists(mixed $offset):bool
 	{
@@ -332,7 +340,7 @@ class webapp_client_http extends webapp_client implements ArrayAccess
 	function request(string $method, string $path, $data = NULL, string $type = NULL):bool
 	{
 		$request = ["{$method} {$path} HTTP/1.1"];
-		foreach ($this->headers as $name => $value)
+		foreach ($this->request + $this->headers as $name => $value)
 		{
 			$request[] = "{$name}: {$value}";
 		}
@@ -474,25 +482,26 @@ class webapp_client_http extends webapp_client implements ArrayAccess
 			if (preg_match('/^https?\:\/\//i', $url) === 0)
 			{
 				$client = $this;
-				$client->path = $url;
+				$path = $url;
 				continue;
 			}
 			[$socket,, $path] = static::parseurl($url);
 			if (array_key_exists($socket, $this->referers))
 			{
 				$client = $this->referers[$socket];
-				$client->path = $path;
 				continue;
 			}
-			$client = new static($url, $this->referers);
-			$client['User-Agent'] = $this->headers['User-Agent'];
-			$client->autoretry = $this->autoretry;
-			$client->autojump = $this->autojump;
+			$path = ($client = new static($url, [
+				'timeout' => $this->timeout,
+				'flags' => $this->flags,
+				'autoretry' => $this->autoretry,
+				'autojump' => $this->autojump,
+				'headers' => ['User-Agent' => $this->headers['User-Agent']]
+			], $this->referers))->path;
 		} while ($client
-			->headers(['Referer' => $this->url, ...$options['headers'] ?? []])
+			->headers(['Referer' => $this->url])
 			->cookies($options['cookies'] ?? [])
-			->request($options['method'] ?? 'GET',
-				$client->path,
+			->request($options['method'] ?? 'GET', $path,
 				$options['data'] ?? NULL,
 				$options['type'] ?? NULL)
 			&& $autojump-- > 0
@@ -511,9 +520,10 @@ class webapp_client_http extends webapp_client implements ArrayAccess
 		[$mime, $type] = explode('/', $this->mimetype(), 2);
 		return match ($mime)
 		{
-			'text' => preg_match('/^(html|csv)$/', $type) ? $type : 'txt',
+			'text' => $type === 'plain' ? 'txt' : $type,
 			'image' => $type === 'jpeg' ? 'jpg' : $type,
-			default => $mime === 'application' && preg_match('/^(xml|svg)$/', $type) ? 'xml' : 'unknown'
+			//'audio', 'video' => $type,
+			default => $mime === 'application' && preg_match('/^(xml|svg)$/', $type) ? 'xml' : $type
 		};
 	}
 	function content(?string $mimetype = NULL):string|array|SimpleXMLElement
@@ -536,10 +546,7 @@ class webapp_client_http extends webapp_client implements ArrayAccess
 	}
 	static function open(string $url, array $options = []):static
 	{
-		$client = new static($url);
-		$client->autoretry = $options['autoretry'] ?? 0;
-		$client->autojump = $options['autojump'] ?? 0;
-		return $client->goto($client->path, $options);
+		return ($http = new static($url, $options))->goto($http->path, $options);
 	}
 	static function parseurl(string $url):array
 	{

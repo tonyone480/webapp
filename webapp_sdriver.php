@@ -3,9 +3,7 @@ class webapp_sdriver extends webapp
 {
 	function sync():webapp_client_http
 	{
-		$sync = new webapp_client_http($this['app_syncurl']);
-		$sync->autoretry = 2;
-		return $sync->headers([
+		return (new webapp_client_http($this['app_syncurl'], ['autoretry' => 2]))->headers([
 			'Authorization' => 'Digest ' . $this->signature($this['admin_username'], $this['admin_password'], (string)$this['app_sid'])
 		]);
 	}
