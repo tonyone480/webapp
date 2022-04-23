@@ -2,7 +2,7 @@
 declare(strict_types=1);
 class webapp_client implements Stringable, Countable
 {
-	const timeout = 4, flags = STREAM_CLIENT_CONNECT;
+	const timeout = 4, flags = STREAM_CLIENT_CONNECT | STREAM_CLIENT_PERSISTENT;
 	public array $errors = [];
 	private $filter, $buffer, $client;
 	function __construct(public readonly string $socket)
