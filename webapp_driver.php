@@ -1,5 +1,5 @@
 <?php
-class webapp_saol extends webapp
+class webapp_driver extends webapp
 {
 	function slave():webapp_client_http
 	{
