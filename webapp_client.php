@@ -487,7 +487,6 @@ class webapp_client_http extends webapp_client implements ArrayAccess
 		$autojump = $this->autojump;
 		do
 		{
-			
 			$referer = isset($client) ? $client->url : $this->url;
 			if (preg_match('/^https?\:\/\//i', $url) === 0)
 			{
