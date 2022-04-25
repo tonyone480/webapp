@@ -270,16 +270,24 @@ class webapp_client_http extends webapp_client implements ArrayAccess
 		$this->autoretry = $options['autoretry'] ?? 0;
 		$this->autojump = $options['autojump'] ?? 0;
 		$this->referers[$socket] = $this;
-		if (array_key_exists('headers', $options))
-		{
-			$this->headers($options['headers']);
-		}
 		if (count($parse) > 3)
 		{
 			$this->headers['Authorization'] = 'Basic ' . base64_encode(join(':', array_slice($parse, 3)));
 		}
+		if (array_key_exists('headers', $options))
+		{
+			$this->headers($options['headers']);
+		}
+		if (array_key_exists('cookies', $options))
+		{
+			$this->cookies($options['cookies']);
+		}
 		parent::__construct($socket, $options);
 	}
+	// function __debugInfo():array
+	// {
+	// 	return $this->response;
+	// }
 	function offsetExists(mixed $offset):bool
 	{
 		return array_key_exists($offset, $this->response);
@@ -479,6 +487,7 @@ class webapp_client_http extends webapp_client implements ArrayAccess
 		$autojump = $this->autojump;
 		do
 		{
+			$referer = isset($client) ? $client->url : $this->url;
 			if (preg_match('/^https?\:\/\//i', $url) === 0)
 			{
 				$client = $this;
@@ -496,11 +505,11 @@ class webapp_client_http extends webapp_client implements ArrayAccess
 				'flags' => $this->flags,
 				'autoretry' => $this->autoretry,
 				'autojump' => $this->autojump,
-				'headers' => ['User-Agent' => $this->headers['User-Agent']]
+				'headers' => ['User-Agent' => $this->headers['User-Agent']],
+				'cookies' => $this->cookies
 			], $this->referers))->path;
 		} while ($client
-			->headers(['Referer' => $this->url])
-			->cookies($options['cookies'] ?? [])
+			->headers(['Referer' => $referer])
 			->request($options['method'] ?? 'GET', $path,
 				$options['data'] ?? NULL,
 				$options['type'] ?? NULL)

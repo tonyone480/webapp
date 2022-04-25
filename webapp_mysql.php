@@ -341,7 +341,10 @@ abstract class webapp_mysql_table implements IteratorAggregate, Countable, Strin
 	}
 	function __invoke(mixed ...$conditionals):static
 	{
-		$this->cond = $this->mysql->format(...$conditionals);
+		if ($conditionals)
+		{
+			$this->cond = $this->mysql->format(...$conditionals);
+		}
 		return $this;
 	}
 	function __toString():string
@@ -363,7 +366,7 @@ abstract class webapp_mysql_table implements IteratorAggregate, Countable, Strin
 	}
 	function result(&$fields = NULL, bool $detailed = FALSE):iterable
 	{
-		return $this->getIterator()->result($fields);
+		return $this->getIterator()->result($fields, $detailed);
 	}
 	function object(string $class = 'stdClass', array $constructor_args = []):object
 	{
@@ -385,6 +388,7 @@ abstract class webapp_mysql_table implements IteratorAggregate, Countable, Strin
 	{
 		return array_column($this->all(), $key, $index);
 	}
+
 
 
 	// function &tablename():string
