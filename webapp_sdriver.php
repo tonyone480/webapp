@@ -7,11 +7,11 @@ class webapp_sdriver extends webapp
 			'Authorization' => 'Digest ' . $this->signature($this['admin_username'], $this['admin_password'], (string)$this['app_sid'])
 		]);
 	}
-	function get(string $router):string|array|webapp_xml
+	function get(string $router):string|webapp_xml
 	{
 		return $this->sync->goto("{$this->sync->path}?{$router}")->content();
 	}
-	function post(string $router, array $data):string|array|webapp_xml
+	function post(string $router, array $data = []):string|webapp_xml
 	{
 		return $this->sync->goto("{$this->sync->path}?{$router}", [
 			'method' => 'POST',
@@ -19,9 +19,9 @@ class webapp_sdriver extends webapp
 			'data' => $data
 		])->content();
 	}
-	function delete(string $router):bool
+	function delete(string $router):string|webapp_xml
 	{
-		return is_object($this->sync->goto("{$this->sync->path}?{$router}", ['method' => 'POST'])->content());
+		return $this->sync->goto("{$this->sync->path}?{$router}", ['method' => 'POST'])->content();
 	}
 	function pull(string $router, int $size = 1000):iterable
 	{
@@ -46,6 +46,11 @@ class webapp_sdriver extends webapp
 	function play(string $resource, string $signature):array
 	{
 		return is_object($play = $this->get("play/{$resource}{$signature}")) && isset($play->play) ? $play->play->getattr() : [];
+	}
+	function favorite(string $resource, string $signature, bool $append = TRUE):array
+	{
+		return is_object($favorite = $this->{$append ? 'get' : 'delete'}("favorite/{$resource}{$signature}")) && isset($favorite->favorite)
+			? [...$favorite->favorite->getattr(), 'favorites' => strlen($favorite->favorite) ? str_split($favorite->favorite, 12) : []] : [];
 	}
 
 }

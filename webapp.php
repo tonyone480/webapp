@@ -466,8 +466,8 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	function authorization(Closure $authenticate = NULL):bool
 	{
 		return $authenticate
-			? static::authorize($this->request_header('Authorization'), $authenticate)
-			: $this->admin($this->request_header('Authorization'));
+			? static::authorize($this->request_authorization(), $authenticate)
+			: $this->admin($this->request_authorization());
 	}
 	// function errmsg()
 	// {
@@ -566,6 +566,11 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	function request_header(string $name):?string
 	{
 		return $this->io->request_header($name);
+	}
+	function request_authorization(&$type = NULL):?string
+	{
+		return is_string($authorization = $this->request_header('Authorization'))
+			? ([$type] = explode(' ', $authorization, 2))[1] ?? $type : NULL;
 	}
 	function request_locale():array
 	{

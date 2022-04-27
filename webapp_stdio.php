@@ -72,12 +72,19 @@ else
 		}
 		function request_header(string $name):?string
 		{
-			return $_SERVER[match($key = strtr(strtoupper($name), '-', '_'))
-			{
-				'AUTHORIZATION' => 'PHP_AUTH_DIGEST',
-				'CONTENT_TYPE', 'CONTENT_LENGTH' => $key,
-				default => "HTTP_{$key}"
-			}] ?? NULL;
+			return apache_request_headers()[$name]
+				?? $_SERVER[match($alias = strtr(strtoupper($name), '-', '_'))
+				{
+					'CONTENT_TYPE', 'CONTENT_LENGTH' => $alias,
+					default => "HTTP_{$alias}"
+				}] ?? ($alias === 'AUTHORIZATION' ? match(TRUE)
+				{
+					array_key_exists('PHP_AUTH_DIGEST', $_SERVER)
+						=> "Digest {$_SERVER['PHP_AUTH_DIGEST']}",
+					isset($_SERVER['PHP_AUTH_USER'], $_SERVER['PHP_AUTH_PW'])
+						=> 'Basic ' . base64_encode("{$_SERVER['PHP_AUTH_USER']}:{$_SERVER['PHP_AUTH_PW']}"),
+					default => $_SERVER['AUTHORIZATION'] ?? NULL
+				} : NULL);
 		}
 		function request_method():string
 		{
