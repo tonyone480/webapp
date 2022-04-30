@@ -5,6 +5,11 @@ trait webapp_echo
 	public readonly webapp $webapp;
 	abstract function __construct(webapp $webapp);
 	abstract function __toString():string;
+	// static function __callStatic(string $name, array $arguments)
+	// {
+	// 	return webapp::$name(...$arguments);
+	// 	var_dump($name,  $arguments);
+	// }
 	// function __get(string $name):mixed
 	// {
 	// 	return $this->{$name} = &$this->webapp->{$name};

@@ -130,15 +130,15 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 		} while (0);
 		return NULL;
 	}
-	static function encrypt(?string $data):?string
+	static function encrypt(?string $data, bool $rawdata = FALSE):?string
 	{
-		return is_string($data) && is_string($binary = openssl_encrypt($data, 'aes-128-gcm', static::key, OPENSSL_RAW_DATA, md5(static::key, TRUE), $tag)) ? static::url64_encode($tag . $binary) : NULL;
+		return is_string($data) && is_string($binary = openssl_encrypt($data, 'aes-128-gcm', static::key, OPENSSL_RAW_DATA, $iv = static::random(12), $tag)) ? static::url64_encode($tag . $iv . $binary) : NULL;
 	}
 	static function decrypt(?string $data):?string
 	{
-		return is_string($data) && strlen($data) > 20
+		return is_string($data) && strlen($data) > 37
 			&& is_string($binary = static::url64_decode($data))
-			&& is_string($result = openssl_decrypt(substr($binary, 16), 'aes-128-gcm', static::key, OPENSSL_RAW_DATA, md5(static::key, TRUE), substr($binary, 0, 16))) ? $result : NULL;
+			&& is_string($result = openssl_decrypt(substr($binary, 28), 'aes-128-gcm', static::key, OPENSSL_RAW_DATA, substr($binary, 16, 12), substr($binary, 0, 16))) ? $result : NULL;
 	}
 	static function signature(string $username, string $password, string $additional = NULL):?string
 	{
@@ -481,7 +481,7 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	//----------------
 	function open(string $url, array $options = []):webapp_client_http
 	{
-		// $options['headers']['Authorization'] ??= 'Digest ' . $this->signature($this['admin_username'], $this['admin_password']);
+		// $options['headers']['Authorization'] ??= 'Bearer ' . $this->signature($this['admin_username'], $this['admin_password']);
 		$options['headers']['User-Agent'] ??= 'WebApp/' . self::version;
 		return webapp_client_http::open($url, $options);
 

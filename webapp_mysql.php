@@ -324,6 +324,7 @@ abstract class webapp_mysql_table implements IteratorAggregate, Countable, Strin
 	public array $paging = [];
 	private string $cond = '', $fields = '*';
 	protected ?string $tablename, $primary;
+	protected ?mysqli_result $lastresult;
 	function __construct(protected readonly webapp_mysql $mysql)
 	{
 	}
@@ -349,7 +350,6 @@ abstract class webapp_mysql_table implements IteratorAggregate, Countable, Strin
 	}
 	function __toString():string
 	{
-		//return [$this->cond, $this->cond = '', $this->fields = '*'][0];
 		$cond = $this->cond;
 		$this->fields = '*';
 		$this->cond = '';
@@ -364,9 +364,12 @@ abstract class webapp_mysql_table implements IteratorAggregate, Countable, Strin
 	{
 		return ($this->mysql)('SELECT ?? FROM ?a??', $this->fields, $this->tablename, (string)$this);
 	}
-	function result(&$fields = NULL, bool $detailed = FALSE):iterable
+	function result(&$fields = NULL, bool $detailed = FALSE):mysqli_result
 	{
-		return $this->getIterator()->result($fields, $detailed);
+		$result = $this->getIterator()->getIterator();
+		$fields = $detailed ? $result->fetch_fields() : array_column($result->fetch_fields(), 'name');
+		$result->paging = $this->paging;
+		return $result;
 	}
 	function object(string $class = 'stdClass', array $constructor_args = []):object
 	{
@@ -431,11 +434,13 @@ abstract class webapp_mysql_table implements IteratorAggregate, Countable, Strin
 	}
 	function paging(int $index, int $rows = 21):static
 	{
+		$fields = $this->fields;
 		$this->paging['count'] = $this->count($this->paging['cond']);
 		$this->paging['max'] = ceil($this->paging['count'] / $rows);
 		$this->paging['index'] = max(1, min($index, $this->paging['max']));
 		$this->paging['skip'] = ($this->paging['index'] - 1) * $rows;
 		$this->paging['rows'] = $rows;
+		$this->fields = $fields;
 		return $this(join(' ', [$this->paging['cond'], 'LIMIT', "{$this->paging['skip']},{$rows}"]));
 	}
 	// function column(string ...$keys):array
