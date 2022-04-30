@@ -130,7 +130,7 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 		} while (0);
 		return NULL;
 	}
-	static function encrypt(?string $data, bool $rawdata = FALSE):?string
+	static function encrypt(?string $data):?string
 	{
 		return is_string($data) && is_string($binary = openssl_encrypt($data, 'aes-128-gcm', static::key, OPENSSL_RAW_DATA, $iv = static::random(12), $tag)) ? static::url64_encode($tag . $iv . $binary) : NULL;
 	}
