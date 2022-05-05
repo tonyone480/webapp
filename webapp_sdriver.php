@@ -38,6 +38,7 @@ class webapp_sdriver extends webapp
 		}
 	}
 
+
 	function account(string $signature = NULL):array
 	{
 		return is_object($account = $this->get($signature === NULL ? 'register' : "account/{$signature}")) && isset($account->account)
@@ -49,12 +50,12 @@ class webapp_sdriver extends webapp
 	}
 	function favorite(string $resource, string $signature, bool $append = TRUE):array
 	{
-		return is_object($favorite = $this->{$append ? 'get' : 'delete'}("favorite/{$resource}{$signature}")) && isset($favorite->favorite)
+		return is_object($favorite = $this->{$append ? 'post' : 'delete'}("favorite/{$resource}{$signature}")) && isset($favorite->favorite)
 			? [...$favorite->favorite->getattr(), 'favorites' => strlen($favorite->favorite) ? str_split($favorite->favorite, 12) : []] : [];
 	}
-	function payment()
+	function payment(string $signature, array $data)
 	{
-
+		print_r( $this->post("payment/{$signature}", $data) );
 	}
 
 	

@@ -599,6 +599,10 @@ class webapp_form
 		//$this->xml['enctype'] = 'application/x-www-form-urlencoded';
 		$this->enctype()->fieldset();
 	}
+	function a(array|callable $values = NULL)
+	{
+		
+	}
 	function __invoke(array $values = []):NULL|array|static
 	{
 		do
@@ -669,7 +673,7 @@ class webapp_form
 				// 	continue;
 				// }
 				//数据输入检查
-				$value = $input[$name];
+				$value = $input[$name] ?? NULL;
 				switch ($tagname)
 				{
 					case 'div':
@@ -718,6 +722,10 @@ class webapp_form
 		return NULL;
 		
 	}
+	function files(string $name):ArrayObject
+	{
+
+	}
 	function enctype(string $type = 'application/x-www-form-urlencoded'):static
 	{
 		$this->xml['enctype'] = $type;
@@ -763,24 +771,25 @@ class webapp_form
 	function field(string $name, string $type = 'hidden', array $attr = []):webapp_html
 	{
 		$alias = preg_match('/^\w+/', $name, $pattern) ? $pattern[0] : $this->index++;
-		return $this->fields[$alias] = match ($type)
-		{
-			'webapp-select' => $this->fieldset->select(
-				$attr['options'] ?? [],
-				array_key_exists('data-multiple', $attr),
-				$name, $attr['data-placeholder'] ?? NULL)->setattr($attr),
-			'radio',
-			'checkbox' => $this->fieldset->select($attr['options'] ?? [], $type === 'checkbox', $name),
-			'select' => $this->fieldset->select($attr['options'] ?? [])
-				->setattr(['name' => array_key_exists('multiple', $attr) ? "{$alias}[]" : $alias] + $attr),
+		return $type === 'file'
+			? $this->files[$alias] = $this->enctype('multipart/form-data')->fieldset->append('input', [
+				'type' => $type, 'name' => array_key_exists('multiple', $attr) ? "{$alias}[]" : $alias] + $attr)
+			: $this->fields[$alias] = match ($type)
+			{
+				'webapp-select' => $this->fieldset->select(
+					$attr['options'] ?? [],
+					array_key_exists('data-multiple', $attr),
+					$name, $attr['data-placeholder'] ?? NULL)->setattr($attr),
+				'radio',
+				'checkbox' => $this->fieldset->select($attr['options'] ?? [], $type === 'checkbox', $name),
+				'select' => $this->fieldset->select($attr['options'] ?? [])
+					->setattr(['name' => array_key_exists('multiple', $attr) ? "{$alias}[]" : $alias] + $attr),
 
 
 
-			'textarea' => $this->fieldset->append('textarea', ['name' => $alias] + $attr),
-			'file' => $this->enctype('multipart/form-data')->fieldset->append('input', ['type' => $type,
-				'name' => array_key_exists('multiple', $attr) ? "{$alias}[]" : $alias] + $attr),
-			default => $this->fieldset->append('input', ['type' => $type, 'name' => $alias] + $attr)
-		};
+				'textarea' => $this->fieldset->append('textarea', ['name' => $alias] + $attr),
+				default => $this->fieldset->append('input', ['type' => $type, 'name' => $alias] + $attr)
+			};
 	}
 	function novalidate():static
 	{

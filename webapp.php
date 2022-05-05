@@ -423,6 +423,10 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	}
 	final function offsetSet(mixed $key, mixed $value):void
 	{
+		if ($key === NULL)
+		{
+			$this->errors[] = (string)$value;
+		}
 		//$this->configs[$key] = $value;
 	}
 	final function offsetUnset(mixed $key):void
@@ -602,7 +606,7 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 			'application/x-www-form-urlencoded',
 			'multipart/form-data' => $this->io->request_formdata(),
 			'application/json' => json_decode($this->io->request_content(), TRUE),
-			'application/xml' => $this->xml($this->io->request_content()),
+			'application/xml' => static::xml($this->io->request_content()),
 			default => $this->io->request_content()
 		};
 	}
@@ -622,6 +626,10 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 				function __toString():string
 				{
 					return join('|', $this->column('file'));
+				}
+				function __debugInfo():array
+				{
+					return $this->getArrayCopy();
 				}
 				function column(string $key):array
 				{
