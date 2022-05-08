@@ -599,7 +599,8 @@ class webapp_form
 		//$this->xml['enctype'] = 'application/x-www-form-urlencoded';
 		$this->enctype()->fieldset();
 	}
-	function a(array|callable $values = NULL)
+	//
+	function a():ArrayObject
 	{
 		
 	}
@@ -720,6 +721,10 @@ class webapp_form
 		} while (0);
 		$errors[] = "Form input[{$name}] invalid";
 		return NULL;
+		
+	}
+	function fatch()
+	{
 		
 	}
 	function files(string $name):ArrayObject

@@ -23,6 +23,28 @@ class webapp_sdriver extends webapp
 	{
 		return $this->sync->goto("{$this->sync->path}?{$router}", ['method' => 'POST'])->content();
 	}
+
+	function get_sync()
+	{
+		if ($this->authorization)
+		{
+
+
+			var_dump($this->authorization);
+			return 200;
+		}
+		return 401;
+	}
+	function post_sync()
+	{
+		if ($this->authorization)
+		{
+
+
+			var_dump($this->authorization);
+		}
+		
+	}
 	function pull(string $router, int $size = 1000):iterable
 	{
 		for ($max = 1, $index = 0; $max > $index++;)

@@ -261,6 +261,7 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 			//Misc
 			'copy_webapp'		=> 'Web Application v' . self::version,
 			'gzip_level'		=> -1,
+			//'smtp_context'		=> ['ssl://smtp.gmail.com:465', 'username@gmail.com', 'password']
 			'smtp_host'			=> 'tcp://username:password@host']];
 		[$this->route, $this->entry] = method_exists($this, $route = sprintf('%s_%s', $this['request_method'],
 			$track = preg_match('/^[-\w]+(?=\/([\-\w]*))?/', $this['request_query'], $entry)
@@ -423,10 +424,7 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	}
 	final function offsetSet(mixed $key, mixed $value):void
 	{
-		if ($key === NULL)
-		{
-			$this->errors[] = (string)$value;
-		}
+		$this->errors[] = (string)$value;
 		//$this->configs[$key] = $value;
 	}
 	final function offsetUnset(mixed $key):void
@@ -473,10 +471,6 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 			? static::authorize($this->request_authorization(), $authenticate)
 			: $this->admin($this->request_authorization());
 	}
-	// function errmsg()
-	// {
-	// 	$this->errors[] = 
-	// }
 
 	//---------------------
 

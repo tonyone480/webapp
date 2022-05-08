@@ -1,5 +1,23 @@
 <?php
 declare(strict_types=1);
+class webapp_client_debug extends php_user_filter
+{
+	//注意：过滤流在内部读取时只能过滤一个队列，这是一个BUG？
+	function filter($in, $out, &$consumed, $closing):int
+	{
+		echo "\r\n", $consumed === NULL
+			? '>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'
+			: '<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<',
+			"\r\n";
+		while ($bucket = stream_bucket_make_writeable($in))
+		{
+			$consumed += $bucket->datalen;
+			stream_bucket_append($out, $bucket);
+			echo quoted_printable_encode($bucket->data);
+		}
+		return PSFS_PASS_ON;
+	}
+}
 class webapp_client implements Stringable, Countable
 {
 	public array $errors = [];
@@ -8,7 +26,9 @@ class webapp_client implements Stringable, Countable
 	function __construct(public readonly string $socket, array $options = [])
 	{
 		$this->timeout = $options['timeout'] ?? 4;
-		$this->flags = $options['flags'] ?? (STREAM_CLIENT_CONNECT | STREAM_CLIENT_PERSISTENT);
+		$this->flags = STREAM_CLIENT_CONNECT | (array_key_exists('persistent', $options)
+			? ($options['persistent'] ? STREAM_CLIENT_PERSISTENT : 0)
+			: STREAM_CLIENT_PERSISTENT);
 		$this->buffer = fopen('php://memory', 'r+');
 		$this->reconnect();
 	}
@@ -190,68 +210,131 @@ class webapp_client implements Stringable, Countable
 		return is_int($copied = @stream_copy_to_stream($stream, $this->client, $length))
 			&& ($length === NULL || $copied === $length);
 	}
-}
-class webapp_client_debug extends php_user_filter
-{
-	//注意：过滤流在内部读取时只能过滤一个队列，这是一个BUG？
-	function filter($in, $out, &$consumed, $closing):int
+	static function boundary():string
 	{
-		echo "\r\n", $consumed === NULL
-			? '>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'
-			: '<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<',
-			"\r\n";
-		while ($bucket = stream_bucket_make_writeable($in))
-		{
-			$consumed += $bucket->datalen;
-			stream_bucket_append($out, $bucket);
-			echo quoted_printable_encode($bucket->data);
-		}
-		return PSFS_PASS_ON;
+		return '----WebApp' . bin2hex(random_bytes(16));
 	}
 }
-// class webapp_client_smtp extends webapp_client
-// {
-// 	function __construct(string $host)
-// 	{
-// 		$parse = static::parseurl($host, 25);
-// 		parent::__construct($parse[0]);
-// 		//$this->debug(STREAM_FILTER_ALL);
-// 		if ($this->readstat() === 220)
-// 		{
-// 			if (count($parse) > 3)
-// 			{
-// 				$this->send("EHLO {$parse[1]}\r\n");
-// 				if ($this->readstat($status) && strpos(join($status), 'AUTH LOGIN'))
-// 				{
-// 					$this->send("AUTH LOGIN\r\n");
-// 					$this->readstat($status);
-// 					$this->send(base64_encode($parse[3]) . "\r\n");
-// 					$this->readstat($status);
-// 					$this->send(base64_encode($parse[4]) . "\r\n");
-// 					$this->readstat($status);
-// 					print_r($status);
-// 				}
-// 			}
-// 			else
-// 			{
-// 				$this->send("HELO {$parse[1]}\r\n");
-// 			}
-// 			// if ($this->readstat() === 220) 
-// 			// {
+class webapp_client_smtp extends webapp_client
+{
+	private array $dialog = [];
+	private string $username = 'anonymous@localhost', $boundary;
+	function __construct(string $socket, array $options = [])
+	{
+		parent::__construct($socket, $options);
+		$this->boundary = static::boundary();
+		if ($this->readstat() === 220)
+		{
+			$host = parse_url($socket)['host'];
+			array_key_exists('username', $options)
+				? $this("EHLO {$host}") === 250
+					&& strpos(join($this->dialog), 'AUTH LOGIN')
+					&& $this('AUTH LOGIN') === 334
+					&& $this(base64_encode($this->username = $options['username'])) === 334
+					&& $this(base64_encode($options['password'] ?? '')) === 235
+				: $this("HELO {$host}") === 250;
+		}
+	}
+	function __destruct()
+	{
+		$this('QUIT');
+		parent::__destruct();
+	}
+	function __invoke(string $command):int
+	{
+		$this->dialog[] = $command;
+		return $this->send("{$command}\r\n") ? $this->readstat() : -1;
+	}
+	function __debugInfo():array
+	{
+		return $this->dialog;
+	}
+	private function readstat():int
+	{
+		while ($this->readline($content))
+		{
+			if (preg_match('/^\d{3}\-/', $this->dialog[] = $content))
+			{
+				continue;
+			}
+			return intval($content);
+		}
+		return -1;
+	}
 
-// 			// }
-// 		}
+	// function mailto(){}
+	// function maildata(){}
+	
+	function header(string $subject, string $to, string $from = ''):bool
+	{
+		return $this->echo(join("\r\n", [
+			'Date: ' . date('r'),
+			sprintf('Subject: =?UTF-8?B?%s?=', base64_encode($subject)),
+			sprintf('To: =?UTF-8?B?%s?=', base64_encode($to)),
+			'MIME-Version: 1.0',
+			'Content-type: multipart/mixed; boundary=' . $this->boundary,
+			"\r\n"
+		]));
+	}
+	function content(string $data, string $type = 'text/plain; charset=utf-8'):bool
+	{
+		return $this->echo(join("\r\n", [
+			"--{$this->boundary}",
+			'Content-type: ' . $type,
+			'',
+			$data,
+			'']));
+	}
+	function attach(string $filename, string $name = NULL)
+	{
+		return $this->echo(join("\r\n", [
+			"--{$this->boundary}",
+			"Content-Disposition: attachment; filename=\"cool.txt\"",
+			'Content-Transfer-Encoding: base64',
+			'',
+			base64_encode(file_get_contents($filename)),
+			'']));
+		//JVBEDi0xLjMKJcfsj6IKNSAwIG9iago8PC9MZW5ndGggNiAwIFIvRmlsdGVyIC9GbGF0
+	}
+	function sendto(string $mail)
+	{
+		$this("MAIL FROM: <{$this->username}>");
+		$this("RCPT TO: <{$mail}>");
+		$this('DATA');
+		//$this->push();
+		$this((string)$this);
+		$this("--{$this->boundary}--\r\n.\r\n");
+
+		print_r($this);
+
 		
-// 	}
-// 	private function readstat(?array &$status = []):int
-// 	{
-// 		for (;$this->readline($content); $status[] = $content);
-// 		return intval(end($status));
-// 	}
-// 	function mailto():bool
-// 	{
-// 	}
-// }
+	}
+
+	
+	// function mailto(string $to, )
+	// {
+	// 	$this("MAIL FROM: <{$this->username}>");
+
+
+	// 	$this('RCPT TO: <tonyone480@gmail.com>');
+
+
+	// 	$this('DATA');
+	// 	$this(join("\r\n",[
+	// 		'Subject: Test-message',
+	// 		'from: <'.$this->username.'>',
+	// 		'to: <tonyone480@gmail.com>',
+	// 		'MIME-Version: 1.0',
+	// 		'',
+	// 		'你好 gmail!!!',
+	// 		'.'
+	// 	]));
+	// }
+	// static function sendmail()
+	// {
+		
+	// }
+}
 class webapp_client_http extends webapp_client implements ArrayAccess
 {
 	public readonly string $path;
@@ -366,7 +449,7 @@ class webapp_client_http extends webapp_client implements ArrayAccess
 				'application/x-www-form-urlencoded' => $this->echo(http_build_query($data)),
 				'multipart/form-data' => $this->form($data, '',
 					$contents = '--' . join("\r\n", [
-						$boundary = uniqid('----WebAppFormBoundarys'),
+						$boundary = static::boundary(),
 						'Content-Disposition: form-data; name="%s"', "\r\n"]),
 					substr($contents, 0, -4) . "; filename=\"%s\"\r\nContent-Type: application/octet-stream\r\n\r\n",
 					$type .= "; boundary={$boundary}") && $this->echo("--{$boundary}--"),
