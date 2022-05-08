@@ -24,14 +24,21 @@ class webapp_sdriver extends webapp
 		return $this->sync->goto("{$this->sync->path}?{$router}", ['method' => 'POST'])->content();
 	}
 
-	function get_sync()
+	function get_sync(string $method)
 	{
 		if ($this->authorization)
 		{
-
-
-			var_dump($this->authorization);
-			return 200;
+			if (method_exists($this, $method))
+			{
+				if ($this->{$method}($this->request_content()))
+				{
+					$this->echo('SUCCESS');
+					return 200;
+				}
+				$this->echo('FAILURE');
+				return 500;
+			}
+			return 404;
 		}
 		return 401;
 	}
