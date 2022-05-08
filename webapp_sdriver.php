@@ -30,7 +30,7 @@ class webapp_sdriver extends webapp
 		{
 			if (method_exists($this, $method))
 			{
-				if ($this->{$method}($this->request_content()))
+				if ($this->{$method}(...$this->request_content()))
 				{
 					$this->echo('SUCCESS');
 					return 200;
