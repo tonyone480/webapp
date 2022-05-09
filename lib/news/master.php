@@ -4,7 +4,7 @@ class webapp_router_admin extends webapp_echo_html
 	function __construct(webapp $webapp)
 	{
 		parent::__construct($webapp);
-		if ($webapp->admin === FALSE)
+		if (!$webapp->admin)
 		{
 			if (str_ends_with($webapp->method, 't_home'))
 			{
