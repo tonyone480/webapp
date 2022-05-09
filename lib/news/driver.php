@@ -1,5 +1,5 @@
 <?php
-class webapp_sdriver extends webapp
+class news_driver extends webapp
 {
 	function sync():webapp_client_http
 	{
@@ -23,8 +23,7 @@ class webapp_sdriver extends webapp
 	{
 		return $this->sync->goto("{$this->sync->path}?{$router}", ['method' => 'POST'])->content();
 	}
-
-	function get_sync(string $method)
+	function post_sync(string $method)
 	{
 		if ($this->authorization)
 		{
@@ -41,16 +40,6 @@ class webapp_sdriver extends webapp
 			return 404;
 		}
 		return 401;
-	}
-	function post_sync()
-	{
-		if ($this->authorization)
-		{
-
-
-			var_dump($this->authorization);
-		}
-		
 	}
 	function pull(string $router, int $size = 1000):iterable
 	{

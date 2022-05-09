@@ -144,14 +144,14 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	{
 		return static::encrypt(pack('VCCa*', static::time(), strlen($username), strlen($password), $username . $password . $additional));
 	}
-	static function authorize(?string $signature, callable $authenticate, &$return = NULL):bool
+	static function authorize(?string $signature, callable $authenticate):mixed
 	{
 		return is_string($data = static::decrypt($signature))
 			&& strlen($data) > 5
 			&& extract(unpack('Vsigntime/C2length', $data)) === 3
 			&& strlen($data) > 5 + $length1 + $length2
 			&& is_array($acc = unpack("a{$length1}uid/a{$length2}pwd/a*add", $data, 6))
-			&& $return = $authenticate($acc['uid'], $acc['pwd'], $signtime, $acc['add']);
+				? $authenticate($acc['uid'], $acc['pwd'], $signtime, $acc['add']) : NULL;
 	}
 	static function captcha_random(int $length, int $expire):?string
 	{
@@ -457,15 +457,16 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	}
 
 
-	function admin(?string $signature = NULL):bool
+	function admin(?string $signature = NULL):mixed
 	{
 		return static::authorize(func_num_args() ? $signature : $this->request_cookie($this['admin_cookie']),
-			fn(string $username, string $password, int $signtime):bool =>
+			fn(string $username, string $password, int $signtime, string $additional):array =>
 				$signtime > static::time(-$this['admin_expire'])
 				&& $username === $this['admin_username']
-				&& $password === $this['admin_password']);
+				&& $password === $this['admin_password']
+					? [$username, $password, $additional] : []);
 	}
-	function authorization(Closure $authenticate = NULL):bool
+	function authorization(Closure $authenticate = NULL):mixed
 	{
 		return $authenticate
 			? static::authorize($this->request_authorization(), $authenticate)
