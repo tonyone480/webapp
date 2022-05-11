@@ -16,7 +16,7 @@ class news_driver extends webapp
 				$params = $this->request_content();
 				foreach ($params as &$value)
 				{
-					if (str_starts_with($value, '<?xml'))
+					if (str_starts_with($value, '<'))
 					{
 						$value = $this->xml($value);
 					}
