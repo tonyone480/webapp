@@ -677,7 +677,8 @@ class webapp_form
 				$value = $input[$name] ?? NULL;
 				switch ($tagname)
 				{
-					case 'div':
+					case 'fieldset':
+						break;
 					case 'select':
 						if ($tagname === 'div')
 						{

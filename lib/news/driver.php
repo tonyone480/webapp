@@ -1,10 +1,22 @@
 <?php
 class news_driver extends webapp
 {
+	function clientip():string
+	{
+		return match (TRUE)
+		{
+			//cloudflare客户端IP
+			is_string($ip = $this->request_header('CF-Connecting-IP')) => $ip,
+			//标准代理客户端IP
+			is_string($ip = $this->request_header('X-Forwarded-For')) => explode(',', $ip, 2)[0],
+			default => $this->request_ip()
+		};
+	}
 	function sync():webapp_client_http
 	{
 		return (new webapp_client_http($this['app_syncurl'], ['autoretry' => 2]))->headers([
-			'Authorization' => 'Bearer ' . $this->signature($this['admin_username'], $this['admin_password'], (string)$this['app_sid'])
+			'Authorization' => 'Bearer ' . $this->signature($this['admin_username'], $this['admin_password'], (string)$this['app_sid']),
+			'X-Client-IP' => $this->clientip
 		]);
 	}
 	function get(string $router):string|webapp_xml

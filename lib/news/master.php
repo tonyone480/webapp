@@ -27,7 +27,7 @@ class webapp_router_admin extends webapp_echo_html
 			['Admin', '?admin'],
 			['Accounts', '?admin/accounts'],
 			['Payments', '?admin/payments'],
-			['Ads', '?admin/ads'],
+			['Ads', '?admin/ads']
 		]);
 	}
 	function form_admin($ctx)
@@ -106,26 +106,37 @@ class webapp_router_admin extends webapp_echo_html
 		$form->field('pic', 'file', ['accept' => 'image/*']);
 
 		$form->fieldset('名称跳转');
-		$form->field('name', 'text');
-		$form->field('goto', 'text');
+		$form->field('name', 'text', ['placeholder' => '广告名称']);
+		$form->field('goto', 'text', ['placeholder' => '跳转地址', 'required' => NULL]);
 
-		$form->fieldset('有效时间段');
-		$form->field('timestart', 'date', ['value' => date('Y-m-d')]);
-		$form->field('timeend', 'date');
+		$form->fieldset('有效时间段，每天展示时间段');
+		
+		$form->field('timestart', 'datetime-local', ['value' => date('Y-m-d\T00:00')]);
+		$form->field('timeend', 'datetime-local', ['value' => date('Y-m-d\T23:59')]);
 
-		$form->fieldset('每周几显示');
-		$form->field('weekset', 'select');
+		$form->fieldset('每周几显示，空为时间内展示');
+		foreach ($form->field('weekset', 'checkbox', ['options' => [
+			'星期日', '星期一', '星期三', '星期四', '星期五', '星期六'
+		]])->ul->li as $li){
+			$li->label->input['checked'] = NULL;
+		};
+
+		$form->fieldset('展示方式：小于0点击次数，大于0展示次数');
+		$form->field('count', 'number', ['value' => 0]);
 
 		$form->fieldset();
 		$form->button('提交', 'submit');
+
+
 		return $form();
 	}
 	function post_ads()
 	{
 		$form = $this->form_ads($this->webapp);
+		
 		print_r($form);
 
-		print_r($this->webapp->request_uploadedfile('pic'));
+		//print_r($this->webapp->request_uploadedfile('pic'));
 	}
 	function get_ads()
 	{
@@ -134,6 +145,10 @@ class webapp_router_admin extends webapp_echo_html
 }
 class news_master extends webapp
 {
+	function clientip():string
+	{
+		return $this->iphex($this->request_header('X-Client-IP') ?? $this->request_ip());
+	}
 	function sync(int $site, string $method, array $context = []):bool|iterable
 	{
 		$sync = new webapp_client_http("http://{$this['app_site'][$site]}/", ['autoretry' => 2]);
@@ -186,6 +201,7 @@ class news_master extends webapp
 	{
 		return $this->hash($this->site . $this->time . join($contents), TRUE);
 	}
+
 
 
 	function get_test()
@@ -322,10 +338,13 @@ COMMENT);
 			'expire' => $this->time,
 			'balance' => 0,
 			'lasttime' => $this->time,
+			'lastip' => $this->iphex('127.0.0.1'),
+			'device' => 'pc',
+			'phone' => '',
 			'pwd' => random_int(100000, 999999),
 			'name' => $this->hash($rand),
-			'gender' => ['男', '女'][intval(ord($rand) > 10)],
-			'favorites' => ''])) {
+			'favorites' => '',
+			'historys' => ''])) {
 			$this->account_xml($account);
 		}
 	}
