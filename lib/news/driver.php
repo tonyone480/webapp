@@ -1,6 +1,11 @@
 <?php
 class news_driver extends webapp
 {
+	function aa(webapp_xml $a)
+	{
+		print_r($a);
+		return TRUE;
+	}
 	//控制端远程调用接口（请勿非本地调用）
 	function post_sync(string $method)
 	{
@@ -8,13 +13,17 @@ class news_driver extends webapp
 		{
 			if (method_exists($this, $method))
 			{
-				if ($this->{$method}(...$this->request_content()))
+				$params = $this->request_content();
+				foreach ($params as &$value)
 				{
-					$this->echo('SUCCESS');
-					return 200;
+					if (str_starts_with($value, '<?xml'))
+					{
+						$value = $this->xml($value);
+					}
 				}
-				$this->echo('FAILURE');
-				return 500;
+				return current($this->{$method}(...$params)
+					? [200, $this->echo('SUCCESS')]
+					: [500, $this->echo('FAILURE')]);
 			}
 			return 404;
 		}

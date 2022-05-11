@@ -1,7 +1,7 @@
 <?php
 class webapp_router_admin extends webapp_echo_html
 {
-	function __construct(webapp $webapp)
+	function __construct(news_master $webapp)
 	{
 		parent::__construct($webapp);
 		if (!$webapp->admin)
@@ -140,7 +140,10 @@ class webapp_router_admin extends webapp_echo_html
 	}
 	function get_ads()
 	{
-		$this->form_ads($this->main);
+		//print_r($this->webapp->resource_xml($this->webapp->mysql->resources->array()));
+		print_r( $this->webapp->call(0, 'aa', [$this->webapp->resource_xml($this->webapp->mysql->resources->array())]) );
+		// print_r( $this->webapp->resource_xml($this->webapp->mysql->resources->array()) );
+		// $this->form_ads($this->main);
 	}
 }
 class news_master extends webapp
@@ -153,41 +156,65 @@ class news_master extends webapp
 	{
 		return $this->iphex($this->clientip);
 	}
-	function sync(int $site, string $method, array $context = []):bool|iterable
+	function sync(int $site):webapp_client_http
 	{
-		$sync = new webapp_client_http("http://{$this['app_site'][$site]}/", ['autoretry' => 2]);
-		$sync->headers([
+		return (new webapp_client_http("http://{$this['app_site'][$site]}/", ['autoretry' => 2]))->headers([
 			'Authorization' => 'Bearer ' . $this->signature($this['admin_username'], $this['admin_password']),
 			'X-Client-IP' => $this->clientip
 		]);
-		if ($context)
+	}
+	function call(int $site, string $method, array $params = []):bool|string|array|webapp_xml
+	{
+		foreach ($params as &$value)
 		{
-			$sync->goto("{$sync->path}?sync/{$method}", [
-				'type' => 'application/json',
-				'data' => $context
-			]);
-			return $sync->content() === 'SUCCESS';
-		}
-
-
-		while (is_object($xml = $sync->goto("{$sync->path}?{$method}")->content()) && $xml->count())
-		{
-			foreach ($xml->children() as $children)
+			if ($value instanceof webapp_xml)
 			{
-				yield $children;
+				$value = $value->asXML();
 			}
 		}
-		// for ($max = 1, $index = 0; $max > $index++;)
-		// {
-		// 	if (is_object($xml = $sync->goto("{$sync->path}?{$method}")->content()))
-		// 	{
-		// 		$max = (int)$xml['max'];
-		// 		foreach ($xml->children() as $children)
-		// 		{
-		// 			yield $children;
-		// 		}
-		// 	}
-		// }
+		$sync = $this->sync($site);
+		return is_string($content = $sync->goto("{$sync->path}?sync/{$method}", [
+			'method' => 'POST',
+			'type' => 'application/json',
+			'data' => $params
+		])->content()) && preg_match('/^(SUCCESS|OK)/i', $content) ? TRUE : $content;
+	}
+	function pull(int $site, string $router):iterable
+	{
+		$sync = $this->sync($site);
+		$max = NULL;
+		do
+		{
+			if (is_object($xml = $sync->goto("{$sync->path}?pull/{$router}")->content()))
+			{
+				$max ??= intval($xml['max']);
+				foreach ($xml->children() as $children)
+				{
+					yield $children;
+				}
+			}
+		} while (--$max > 0);
+	}
+	function get_pull()
+	{
+		if (PHP_SAPI !== 'cli' || $this->request_ip() !== '127.0.0.1')
+		{
+			$this->echo('Please run at the local command line');
+			return;
+		}
+		for (;;)
+		{
+			foreach ($this['app_site'] as $id => $ip)
+			{
+				var_dump($ip);
+				foreach ($this->pull($id, 'incr-res') as $res)
+				{
+					print_r($res);
+				}
+				
+			}
+			sleep(5);
+		}
 	}
 	function maskfile(string $src, string $dst):bool
 	{
@@ -207,15 +234,18 @@ class news_master extends webapp
 		return $this->hash($this->site . $this->time . join($contents), TRUE);
 	}
 
+	//-----------------------------------------------------------------------------------------------------
 
 
 	function get_test()
 	{
-		//var_dump( $this->sync(0, 'delItem', ['tag', 'asdasdawf']) );
-		// foreach ($this->sync(0, 'incr') as $incr)
-		// {
-		// 	var_dump((string)$incr['hash']);
-		// }
+
+		foreach ($this->pull(0, 'incr-res') as $res)
+		{
+			print_r($res);
+		}
+		
+		//var_dump( $this->call(0, 'aa', [webapp::xml('<xml><a>222</a></xml>')]) );
 	}
 	function get_home()
 	{
@@ -264,22 +294,26 @@ COMMENT);
 		}
 	}
 	//广告
+	function ad_xml(array $ad):webapp_xml
+	{
+		return $this->xml->append('ad', [
+			'hash' => $ad['hash'],
+			'seat' => $ad['seat'],
+			'timestart' => $ad['timestart'],
+			'timeend' => $ad['timeend'],
+			'weekset' => $ad['weekset'],
+			'count' => $ad['count'],
+			'click' => $ad['click'],
+			'view' => $ad['view'],
+			'name' => $ad['name'],
+			'goto' => $ad['goto']
+		]);
+	}
 	function get_ads()
 	{
-		foreach ($this->mysql->ads('WHERE site=?i', $this->site) as $ad)
+		foreach ($this->mysql->ads('WHERE site=?i AND seat', $this->site) as $ad)
 		{
-			$this->app->xml->append('ad', [
-				'hash' => $ad['hash'],
-				'seat' => $ad['seat'],
-				'timestart' => $ad['timestart'],
-				'timeend' => $ad['timeend'],
-				'weekset' => $ad['weekset'],
-				'count' => $ad['count'],
-				'click' => $ad['click'],
-				'view' => $ad['view'],
-				'name' => $ad['name'],
-				'goto' => $ad['goto']
-			]);
+			$this->ad_xml($ad);
 		}
 	}
 
@@ -287,6 +321,23 @@ COMMENT);
 
 
 	//资源
+	function resource_xml(array $resource):webapp_xml
+	{
+		$node = $this->xml->append('resource', [
+			'hash' => $resource['hash'],
+			'time' => $resource['time'],
+			'batch' => $resource['batch'],
+			'require' => $resource['require'],
+			'duration' => $resource['duration'],
+			'view' => $resource['view'],
+			'like' => $resource['like'],
+			'tags' => $resource['tags'],
+			'actors' => $resource['actors'],
+			//'name' => $resource['name']
+		]);
+		$node->cdata($resource['name']);
+		return $node;
+	}
 	function get_resources(string $tag = NULL, int $page = 1, int $size = 1000)
 	{
 		$cond = ['WHERE FIND_IN_SET(?i,sites) AND checked=1', $this->site];
@@ -299,24 +350,13 @@ COMMENT);
 		$this->app->xml->setattr($resources->paging);
 		foreach ($resources as $resource)
 		{
-			$this->app->xml->append('resource', [
-				'hash' => $resource['hash'],
-				'time' => $resource['time'],
-				'batch' => $resource['batch'],
-				'require' => $resource['require'],
-				'duration' => $resource['duration'],
-				'view' => $resource['view'],
-				'like' => $resource['like'],
-				'tags' => $resource['tags'],
-				'actors' => $resource['actors'],
-				//'name' => $resource['name']
-			])->cdata($resource['name']);
+			$this->resource_xml($resource);
 		}
 	}
 	//标签
-	function tag_xml(array $tag)
+	function tag_xml(array $tag):webapp_xml
 	{
-		$this->app->xml->append('tag', [
+		return $this->xml->append('tag', [
 			'hash' => $tag['hash'],
 			'level' => $tag['level'],
 			'count' => $tag['count'],
@@ -344,9 +384,9 @@ COMMENT);
 		return $this->authorize($signature, fn(string $uid, string $pwd):array
 			=> $this->mysql->accounts('WHERE uid=?s AND site=?i AND pwd=?s LIMIT 1', $uid, $this->site, $pwd)->array());
 	}
-	function account_xml(array $account, string $signature = NULL)
+	function account_xml(array $account, string $signature = NULL):webapp_xml
 	{
-		$account = $this->app->xml->append('account', [
+		$node = $this->xml->append('account', [
 			'uid' => $account['uid'],
 			'signature' => $signature ?? $this->signature($account['uid'], $account['pwd']),
 			'expire' => $account['expire'],
@@ -357,8 +397,8 @@ COMMENT);
 			'phone' => $account['phone'],
 			'name' => $account['name']
 		]);
-		$account->append('favorites')->cdata($account['favorites']);
-		$account->append('historys')->cdata($account['historys']);
+		$node->append('favorites')->cdata($account['favorites']);
+		$node->append('historys')->cdata($account['historys']);
 	}
 	function get_register()
 	{
@@ -506,50 +546,5 @@ COMMENT);
 
 
 
-	//访问
-	function visits(string $ip, int $increment):bool
-	{
-		$date = date('Ymd', $this->time);
-		$hash = $this->hash("{$this->site}{$date}" . inet_pton($ip), TRUE);
-		return $this->mysql->visits('WHERE hash=?s', $hash)->update('count=count+' . $increment)
-			|| $this->mysql->visits->insert([
-				'hash' => $hash,
-				'site' => $this->site,
-				'date' => $date,
-				'iphex' => $this->iphex($ip),
-				'count' => $increment]);
-	}
-	function post_visits()
-	{
-		if (is_array($input = $this->request_content()))
-		{
-			foreach ($input as $ip => $increment)
-			{
-				print_r($ip);
-			}
-		}
-	}
-	function get_visits(int $date = NULL)
-	{
-		//var_dump( $this->visits('127.0.0.1', 1) );
-		// print_r($this->mysql);
-
-		$this->app->xml['date'] = $date ??= date('Ymd');
-		$site = NULL;
-		foreach ($this->mysql->visits('WHERE date=?i ORDER BY site asc', $date) as $view)
-		{
-			if ($site !== $view['site'])
-			{
-				$node = $this->app->xml->append('site', ['id' => $site = $view['site'], 'uip' => 0, 'count' => 0]);
-			}
-			$node['count'] += $view['count'];
-			$node['uip'] += 1;
-			$node->append('view', [
-				'hash' => $view['hash'],
-				'ip' => $this->hexip($view['iphex']),
-				'count' => $view['count']
-			]);
-		}
-	}
 
 };
