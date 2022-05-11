@@ -147,13 +147,18 @@ class news_master extends webapp
 {
 	function clientip():string
 	{
-		return $this->iphex($this->request_header('X-Client-IP') ?? $this->request_ip());
+		return $this->request_header('X-Client-IP') ?? $this->request_ip();
+	}
+	function clientiphex():string
+	{
+		return $this->iphex($this->clientip);
 	}
 	function sync(int $site, string $method, array $context = []):bool|iterable
 	{
 		$sync = new webapp_client_http("http://{$this['app_site'][$site]}/", ['autoretry' => 2]);
 		$sync->headers([
-			'Authorization' => 'Bearer ' . $this->signature($this['admin_username'], $this['admin_password'], (string)$site)
+			'Authorization' => 'Bearer ' . $this->signature($this['admin_username'], $this['admin_password']),
+			'X-Client-IP' => $this->clientip
 		]);
 		if ($context)
 		{
@@ -258,6 +263,29 @@ COMMENT);
 			$this->app->xml['count'] = $count;
 		}
 	}
+	//广告
+	function get_ads()
+	{
+		foreach ($this->mysql->ads('WHERE site=?i', $this->site) as $ad)
+		{
+			$this->app->xml->append('ad', [
+				'hash' => $ad['hash'],
+				'seat' => $ad['seat'],
+				'timestart' => $ad['timestart'],
+				'timeend' => $ad['timeend'],
+				'weekset' => $ad['weekset'],
+				'count' => $ad['count'],
+				'click' => $ad['click'],
+				'view' => $ad['view'],
+				'name' => $ad['name'],
+				'goto' => $ad['goto']
+			]);
+		}
+	}
+
+
+
+
 	//资源
 	function get_resources(string $tag = NULL, int $page = 1, int $size = 1000)
 	{

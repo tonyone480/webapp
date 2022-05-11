@@ -1,40 +1,7 @@
 <?php
 class news_driver extends webapp
 {
-	function clientip():string
-	{
-		return match (TRUE)
-		{
-			//cloudflare客户端IP
-			is_string($ip = $this->request_header('CF-Connecting-IP')) => $ip,
-			//标准代理客户端IP
-			is_string($ip = $this->request_header('X-Forwarded-For')) => explode(',', $ip, 2)[0],
-			default => $this->request_ip()
-		};
-	}
-	function sync():webapp_client_http
-	{
-		return (new webapp_client_http($this['app_syncurl'], ['autoretry' => 2]))->headers([
-			'Authorization' => 'Bearer ' . $this->signature($this['admin_username'], $this['admin_password'], (string)$this['app_sid']),
-			'X-Client-IP' => $this->clientip
-		]);
-	}
-	function get(string $router):string|webapp_xml
-	{
-		return $this->sync->goto("{$this->sync->path}?{$router}")->content();
-	}
-	function post(string $router, array $data = []):string|webapp_xml
-	{
-		return $this->sync->goto("{$this->sync->path}?{$router}", [
-			'method' => 'POST',
-			'type' => 'application/json',
-			'data' => $data
-		])->content();
-	}
-	function delete(string $router):string|webapp_xml
-	{
-		return $this->sync->goto("{$this->sync->path}?{$router}", ['method' => 'POST'])->content();
-	}
+	//控制端远程调用接口（请勿非本地调用）
 	function post_sync(string $method)
 	{
 		if ($this->authorization)
@@ -53,6 +20,47 @@ class news_driver extends webapp
 		}
 		return 401;
 	}
+	//获取客户端IP
+	function clientip():string
+	{
+		return $this->request_header('X-Client-IP')	//内部转发客户端IP
+			?? $this->request_header('CF-Connecting-IP') //cloudflare客户端IP
+			?? (is_string($ip = $this->request_header('X-Forwarded-For')) //标准代理客户端IP
+				? explode(',', $ip, 2)[0] : $this->request_ip()); //默认请求原始IP
+	}
+	//获取客户端IP十六进制32长度
+	function clientiphex():string
+	{
+		return $this->iphex($this->clientip);
+	}
+	//数据同步对象
+	function sync():webapp_client_http
+	{
+		return (new webapp_client_http($this['app_syncurl'], ['autoretry' => 2]))->headers([
+			'Authorization' => 'Bearer ' . $this->signature($this['admin_username'], $this['admin_password'], (string)$this['app_sid']),
+			'X-Client-IP' => $this->clientip
+		]);
+	}
+	//数据同步GET方法（尽量不要去使用）
+	function get(string $router):string|webapp_xml
+	{
+		return $this->sync->goto("{$this->sync->path}?{$router}")->content();
+	}
+	//数据同步POST方法（尽量不要去使用）
+	function post(string $router, array $data = []):string|webapp_xml
+	{
+		return $this->sync->goto("{$this->sync->path}?{$router}", [
+			'method' => 'POST',
+			'type' => 'application/json',
+			'data' => $data
+		])->content();
+	}
+	//数据同步DELETE方法（尽量不要去使用）
+	function delete(string $router):string|webapp_xml
+	{
+		return $this->sync->goto("{$this->sync->path}?{$router}", ['method' => 'POST'])->content();
+	}
+	//统一拉取数据方法
 	function pull(string $router, int $size = 1000):iterable
 	{
 		for ($max = 1, $index = 0; $max > $index++;)
@@ -67,8 +75,38 @@ class news_driver extends webapp
 			}
 		}
 	}
+	//是否显示这条广告
+	function adshowable(array $ad):bool
+	{
+		do
+		{
+			if ($ad['timestart'] > $this->time || $this->time > $ad['timeend'])
+			{
+				break;
+			}
+			if ($ad['weekset'])
+			{
+				[$time, $week] = explode(',', date('Hi,w', $this->time));
+				if (date('Hi', $ad['timestart']) > $time
+					|| $time > date('Hi', $ad['timeend'])
+					|| in_array($week, explode(',', $ad['weekset'], TRUE)) === FALSE) {
+					break;
+				}
+			}
+			return $ad['count'] ? ($ad['click'] < abs($ad['count']) || $ad['view'] < $ad['count']) : TRUE;
+		} while (0);
+		return FALSE;
+	}
 
 
+
+
+
+
+
+
+
+	//一下是实验测试函数
 	function account(string $signature = NULL):array
 	{
 		return is_object($account = $this->get($signature === NULL ? 'register' : "account/{$signature}")) && isset($account->account)
