@@ -110,7 +110,10 @@ class news_driver extends webapp
 	function account(string $signature = NULL):array
 	{
 		return is_object($account = $this->get($signature === NULL ? 'register' : "account/{$signature}")) && isset($account->account)
-			? [...$account->account->getattr(), 'favorites' => strlen($account->account) ? str_split($account->account, 12) : []] : [];
+			? [...$account->account->getattr(),
+			'favorites' => (string)$account->account->favorites,
+			'historys' => (string)$account->account->historys
+			] : [];
 	}
 	function play(string $resource, string $signature):array
 	{

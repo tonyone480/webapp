@@ -346,14 +346,19 @@ COMMENT);
 	}
 	function account_xml(array $account, string $signature = NULL)
 	{
-		$this->app->xml->append('account', [
+		$account = $this->app->xml->append('account', [
 			'uid' => $account['uid'],
 			'signature' => $signature ?? $this->signature($account['uid'], $account['pwd']),
 			'expire' => $account['expire'],
 			'balance' => $account['balance'],
-			'name' => $account['name'],
-			//'gender' => $account['gender']
-		])->cdata($account['favorites']);
+			'lasttime' => $account['lasttime'],
+			'lastip' => $account['lastip'],
+			'device' => $account['device'],
+			'phone' => $account['phone'],
+			'name' => $account['name']
+		]);
+		$account->append('favorites')->cdata($account['favorites']);
+		$account->append('historys')->cdata($account['historys']);
 	}
 	function get_register()
 	{
