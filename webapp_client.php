@@ -203,7 +203,7 @@ class webapp_client implements Stringable, Countable
 	//发送
 	function send(string $data):bool
 	{
-		return @fwrite($this->client, $data) === strlen($data);
+		return $this->client && @fwrite($this->client, $data) === strlen($data);
 	}
 	function sendfrom($stream, int $length = NULL):bool
 	{

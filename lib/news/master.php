@@ -123,10 +123,10 @@ class webapp_router_admin extends webapp_echo_html
 		$form->field('goto', 'url', ['placeholder' => '跳转地址', 'required' => NULL]);
 
 		$form->fieldset('有效时间段，每天展示时间段');
-		$form->field('timestart', 'datetime-local', ['value' => date('Y-m-d\T00:00')]);
-		$form->field('timeend', 'datetime-local', [
-			'format' => fn($i,$v)=>$i?strtotime($v):date('Y-m-d\TH:i',$v),
-			'value' => date('Y-m-d\T23:59')], fn($i,$v)=>$i?strtotime($v):date('Y-m-d\TH:i',$v));
+		$form->field('timestart', 'datetime-local', ['value' => date('Y-m-d\T00:00')],
+			fn($i,$v)=>$i?strtotime($v):date('Y-m-d\TH:i',$v));
+		$form->field('timeend', 'datetime-local', ['value' => date('Y-m-d\T23:59')],
+			fn($i,$v)=>$i?strtotime($v):date('Y-m-d\TH:i',$v));
 
 		$form->fieldset('每周几显示，空为时间内展示');
 		$form->field('weekset', 'checkbox', ['options' => [
@@ -197,8 +197,8 @@ class webapp_router_admin extends webapp_echo_html
 		$form = $this->form_ad($this->main);
 		if ($ad = $this->webapp->mysql->ads('WHERE hash=?s', $hash)->array())
 		{
-			$ad['timestart'] = date('Y-m-d\TH:i', $ad['timestart']);
-			$ad['timeend'] = date('Y-m-d\TH:i', $ad['timeend']);
+			//$ad['timestart'] = date('Y-m-d\TH:i', $ad['timestart']);
+			//$ad['timeend'] = date('Y-m-d\TH:i', $ad['timeend']);
 			if ($ad['weekset'])
 			{
 				foreach (explode(',', $ad['weekset']) as $weekset)
@@ -207,16 +207,18 @@ class webapp_router_admin extends webapp_echo_html
 					// var_dump($weekset);
 				}
 			}
-			print_r($form['weekset']->getname());
+			//print_r($form['weekset']->getname());
 
-			$form->setdefault($ad);
+			//$form->setdefault($ad);
+			$form->echo($ad);
 		}
 	}
 	function get_ad_del(string $hash)
 	{
 		$ad = $this->webapp->mysql->ads('WHERE hash=?s', $hash)->array();
-		if ($this->webapp->mysql->ads->delete('WHERE hash=?s', $ad['hash'])
-			&& $this->webapp->call($ad['site'], 'delAd', [$ad['hash']])) {
+		if ($ad
+			&& $this->webapp->call($ad['site'], 'delAd', [$ad['hash']])
+			&& $this->webapp->mysql->ads->delete('WHERE hash=?s', $ad['hash'])) {
 			return $this->okay('?admin/ads');
 		}
 		$this->warn('广告删除失败！');

@@ -290,7 +290,7 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 						{
 							break;
 						}
-						if (preg_match_all('/\,(\w+)(?:\:([\%\+\-\.\/\=\w]+))?/',
+						if (preg_match_all('/\,(\w+)(?:\:([\%\+\-\.\/\=\w]*))?/',
 							$this['request_query'], $pattern, PREG_SET_ORDER | PREG_UNMATCHED_AS_NULL)) {
 							$parameters = array_column($pattern, 2, 1);
 							foreach (array_slice($tracert->getParameters(), intval($router === $this)) as $parameter)
@@ -301,7 +301,7 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 									{
 										'int' => intval($parameters[$parameter->name]),
 										'float' => floatval($parameters[$parameter->name]),
-										//'string' => urldecode($parameters[$parameter->name]),
+										'string' => (string)$parameters[$parameter->name],
 										default => $parameters[$parameter->name]
 									};
 									continue;
