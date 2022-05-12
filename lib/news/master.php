@@ -30,6 +30,15 @@ class webapp_router_admin extends webapp_echo_html
 			['Ads', '?admin/ads']
 		]);
 	}
+	function warn(string $text)
+	{
+		$this->main->append('h4', $text);
+	}
+	function okay(string $goto):int
+	{
+		$this->webapp->response_location($this->webapp->request_referer() ?? $goto);
+		return 302;
+	}
 	function form_admin($ctx)
 	{
 		$form = new webapp_form($ctx);
@@ -95,7 +104,11 @@ class webapp_router_admin extends webapp_echo_html
 	function get_payments()
 	{
 	}
-	function form_ads($ctx)
+
+
+
+	//广告
+	function form_ad($ctx)
 	{
 		$form = new webapp_form($ctx);
 
@@ -107,22 +120,26 @@ class webapp_router_admin extends webapp_echo_html
 
 		$form->fieldset('名称跳转');
 		$form->field('name', 'text', ['placeholder' => '广告名称']);
-		$form->field('goto', 'text', ['placeholder' => '跳转地址', 'required' => NULL]);
+		$form->field('goto', 'url', ['placeholder' => '跳转地址', 'required' => NULL]);
 
 		$form->fieldset('有效时间段，每天展示时间段');
-		
 		$form->field('timestart', 'datetime-local', ['value' => date('Y-m-d\T00:00')]);
-		$form->field('timeend', 'datetime-local', ['value' => date('Y-m-d\T23:59')]);
+		$form->field('timeend', 'datetime-local', [
+			'format' => fn($i,$v)=>$i?strtotime($v):date('Y-m-d\TH:i',$v),
+			'value' => date('Y-m-d\T23:59')], fn($i,$v)=>$i?strtotime($v):date('Y-m-d\TH:i',$v));
 
 		$form->fieldset('每周几显示，空为时间内展示');
-		foreach ($form->field('weekset', 'checkbox', ['options' => [
+		$form->field('weekset', 'checkbox', ['options' => [
 			'星期日', '星期一', '星期三', '星期四', '星期五', '星期六'
-		]])->ul->li as $li){
-			$li->label->input['checked'] = NULL;
-		};
+		]]);
+		$form->field('seat', 'checkbox', ['options' => [
+			'位置0', '位置1', '位置2', '位置3', '位置4', '位置5'
+		]]);
 
 		$form->fieldset('展示方式：小于0点击次数，大于0展示次数');
 		$form->field('count', 'number', ['value' => 0]);
+
+		
 
 		$form->fieldset();
 		$form->button('提交', 'submit');
@@ -130,20 +147,79 @@ class webapp_router_admin extends webapp_echo_html
 
 		return $form();
 	}
-	function post_ads()
-	{
-		$form = $this->form_ads($this->webapp);
-		
-		print_r($form);
 
-		//print_r($this->webapp->request_uploadedfile('pic'));
-	}
 	function get_ads()
 	{
-		//print_r($this->webapp->resource_xml($this->webapp->mysql->resources->array()));
-		print_r( $this->webapp->call(0, 'aa', [$this->webapp->resource_xml($this->webapp->mysql->resources->array())]) );
-		// print_r( $this->webapp->resource_xml($this->webapp->mysql->resources->array()) );
-		// $this->form_ads($this->main);
+		$this->main->append('div', ['style' => 'margin-bottom: 1rem'])->append('a', ['Create Ad', 'href' => '?admin/ad-new']);
+
+		$ads = $this->webapp->mysql->ads->result($fields);
+		$table = $this->main->table($ads, function($ad)
+		{
+			$this->row();
+			$this->cell([
+				['a', 'Del', 'href' => "?admin/ad-del,hash:{$ad['hash']}"],
+				['apsn', '|'],
+				['a', 'Edit', 'href' => "?admin/ad-upd,hash:{$ad['hash']}"]
+			], 'iter');
+			$this->cells($ad);
+		});
+		$table->fieldset('#', ...$fields);
+	}
+	function post_ad_new()
+	{
+		$data = $this->form_ad($this->webapp);
+		if ($data && $this->webapp->call($data['site'], 'saveAd', [$this->webapp->ad_xml($ad = [
+				'hash' => $this->webapp->randhash(),
+				'site' => $data['site'],
+				'time' => $this->webapp->time,
+				'seat' => is_array($data['seat']) ? join(',', $data['seat']) : $data['seat'],
+				'timestart' => strtotime($data['timestart']),
+				'timeend' => strtotime($data['timeend']),
+				'weekset' => is_array($data['weekset']) ? join(',', $data['weekset']) : $data['weekset'],
+				'count' => $data['count'],
+				'click' => 0,
+				'view' => 0,
+				'name' => $data['name'],
+				'goto' => $data['goto']
+			])]) && $this->webapp->mysql->ads->insert($ad)) {
+			return $this->okay('?admin/ads');
+		}
+		$this->warn('广告新建失败！');
+	}
+	function get_ad_new()
+	{
+		$this->form_ad($this->main);
+	}
+	function post_ad_upd(string $hash)
+	{}
+	function get_ad_upd(string $hash)
+	{
+		$form = $this->form_ad($this->main);
+		if ($ad = $this->webapp->mysql->ads('WHERE hash=?s', $hash)->array())
+		{
+			$ad['timestart'] = date('Y-m-d\TH:i', $ad['timestart']);
+			$ad['timeend'] = date('Y-m-d\TH:i', $ad['timeend']);
+			if ($ad['weekset'])
+			{
+				foreach (explode(',', $ad['weekset']) as $weekset)
+				{
+					// $form
+					// var_dump($weekset);
+				}
+			}
+			print_r($form['weekset']->getname());
+
+			$form->setdefault($ad);
+		}
+	}
+	function get_ad_del(string $hash)
+	{
+		$ad = $this->webapp->mysql->ads('WHERE hash=?s', $hash)->array();
+		if ($this->webapp->mysql->ads->delete('WHERE hash=?s', $ad['hash'])
+			&& $this->webapp->call($ad['site'], 'delAd', [$ad['hash']])) {
+			return $this->okay('?admin/ads');
+		}
+		$this->warn('广告删除失败！');
 	}
 }
 class news_master extends webapp
@@ -228,7 +304,10 @@ class news_master extends webapp
 		}
 		return file_put_contents($dst, $bin . $buffer) === $length + 8;
 	}
-
+	function randhash(bool $care = FALSE):string
+	{
+		return $this->hash($this->random(16), $care);
+	}
 	function shorthash(int|string ...$contents):string
 	{
 		return $this->hash($this->site . $this->time . join($contents), TRUE);
