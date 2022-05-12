@@ -615,9 +615,25 @@ class webapp_form implements ArrayAccess
 	{
 		unset($this->fields[$offset]);
 	}
-	function format(string $field, callable $input, callable $output)
+	function echo(array $data):static
 	{
-		
+		if ($this->echo)
+		{
+			foreach ($this->fields as $field => $node)
+			{
+				if (array_key_exists($field, $data) === FALSE)
+				{
+					continue;
+				}
+				(match ($node->getName())
+				{
+					'select' => $node->selected(...),
+					default => fn($value)=>$node->setattr(['value' => $value])
+				})(array_key_exists($field, $this->format)
+					? $this->format[$field](FALSE, $data[$field]) : $data[$field]);
+			}
+		}
+		return $this;
 	}
 
 	//
@@ -795,9 +811,13 @@ class webapp_form implements ArrayAccess
 		}
 		return $this->captcha ?? NULL;
 	}
-	function field(string $name, string $type = 'hidden', array $attr = []):webapp_html
+	function field(string $name, string $type = 'hidden', array $attr = [], callable $format = NULL):webapp_html
 	{
 		$alias = preg_match('/^\w+/', $name, $pattern) ? $pattern[0] : count($this->files) + count($this->fields);
+		if (is_callable($format))
+		{
+			$this->format[$alias] = $format ?? fn($value)=>$value;
+		}
 		return $type === 'file'
 			? $this->files[$alias] = $this->enctype('multipart/form-data')->fieldset->append('input', [
 				'type' => 'file', 'name' => array_key_exists('multiple', $attr) ? "{$alias}[]" : $alias] + $attr)
