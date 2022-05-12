@@ -579,13 +579,13 @@ class webapp_document extends DOMDocument implements Stringable
 	// 	return $document;
 	// }
 }
-class webapp_form
+class webapp_form implements ArrayAccess
 {
 	public readonly bool $echo;
 	public readonly ?webapp $webapp;
 	public readonly webapp_html $xml, $captcha;
 	public webapp_html $fieldset;
-	private $files = [], $fields = [], $index = 0;
+	private array $files = [], $fields = [], $format = [];
 	function __construct(private readonly array|webapp|webapp_html $context, ?string $action = NULL)
 	{
 		[$this->webapp, $this->xml] = ($this->echo = $context instanceof webapp_html)
@@ -599,6 +599,27 @@ class webapp_form
 		//$this->xml['enctype'] = 'application/x-www-form-urlencoded';
 		$this->enctype()->fieldset();
 	}
+	function offsetExists(mixed $offset):bool
+	{
+		return array_key_exists($offset, $this->fields);
+	}
+	function offsetGet(mixed $offset):?webapp_html
+	{
+		return $this->fields[$offset] ?? NULL;
+	}
+	function offsetSet(mixed $offset, mixed $value):void
+	{
+
+	}
+	function offsetUnset(mixed $offset):void
+	{
+		unset($this->fields[$offset]);
+	}
+	function format(string $field, callable $input, callable $output)
+	{
+		
+	}
+
 	//
 	function a():ArrayObject
 	{
@@ -765,9 +786,9 @@ class webapp_form
 			{
 				$this->fields['captcha_encrypt']['value'] = $this->webapp->captcha_random($this->webapp['captcha_unit'], $this->webapp['captcha_expire']);
 				$this->fieldset()->setattr([
-					'style' => "height:{$this->webapp['captcha_params'][1]}px;background:url(?captcha/{$this->fields['captcha_encrypt']['value']}) no-repeat center",
-					'onckick' => ''
-				]);
+					'style' => "height:{$this->webapp['captcha_params'][1]}px;cursor:pointer;background:url(?captcha/{$this->fields['captcha_encrypt']['value']}) no-repeat center",
+					'onclick' => 'fetch("?captcha").then(r=>r.text()).then(r=>this.style.backgroundImage=`url(?captcha/${this.previousElementSibling.firstElementChild.nextElementSibling.value=r})`)'
+				]); 
 				$this->fieldset = $this->captcha;
 			}
 			unset($this->fields['captcha_encrypt'], $this->fields['captcha_decrypt']);
@@ -776,10 +797,10 @@ class webapp_form
 	}
 	function field(string $name, string $type = 'hidden', array $attr = []):webapp_html
 	{
-		$alias = preg_match('/^\w+/', $name, $pattern) ? $pattern[0] : $this->index++;
+		$alias = preg_match('/^\w+/', $name, $pattern) ? $pattern[0] : count($this->files) + count($this->fields);
 		return $type === 'file'
 			? $this->files[$alias] = $this->enctype('multipart/form-data')->fieldset->append('input', [
-				'type' => $type, 'name' => array_key_exists('multiple', $attr) ? "{$alias}[]" : $alias] + $attr)
+				'type' => 'file', 'name' => array_key_exists('multiple', $attr) ? "{$alias}[]" : $alias] + $attr)
 			: $this->fields[$alias] = match ($type)
 			{
 				'webapp-select' => $this->fieldset->select(
@@ -802,7 +823,7 @@ class webapp_form
 		$this->xml->setattr('novalidate');
 		return $this;
 	}
-	private function setdefault(array $values):static
+	function setdefault(array $values):static
 	{
 		foreach ($this->fields as $name => $node)
 		{

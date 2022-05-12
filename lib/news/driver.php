@@ -98,7 +98,7 @@ class news_driver extends webapp
 				[$time, $week] = explode(',', date('Hi,w', $this->time));
 				if (date('Hi', $ad['timestart']) > $time
 					|| $time > date('Hi', $ad['timeend'])
-					|| in_array($week, explode(',', $ad['weekset'], TRUE)) === FALSE) {
+					|| in_array($week, explode(',', $ad['weekset']), TRUE) === FALSE) {
 					break;
 				}
 			}
