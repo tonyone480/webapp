@@ -131,7 +131,7 @@ class webapp_echo_json extends ArrayObject implements Stringable
 	use webapp_echo;
 	function __construct(public readonly webapp $webapp, array|object $data = [])
 	{
-		$webapp->response_content_type('application/json');
+		$webapp->response_content_type("application/json; charset={$webapp['app_charset']}");
 		parent::__construct($data, ArrayObject::STD_PROP_LIST);
 	}
 	function __toString():string

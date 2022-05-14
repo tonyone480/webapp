@@ -2,6 +2,12 @@
 declare(strict_types=1);
 class webapp_xml extends SimpleXMLElement
 {
+	static function escape(string $value):string
+	{
+		return count($values = array_filter(preg_split('/(\'|")/', $value, flags:PREG_SPLIT_DELIM_CAPTURE))) > 1
+			? 'concat(' . join(',', array_map(fn($value) => $value === '\'' ? "\"{$value}\"" : "'{$value}'", $values)) . ')'
+			: (str_contains($value, '"') ? "'{$value}'" : "\"{$value}\"");
+	}
 	function webapp():?webapp
 	{
 		return $this->dom()->ownerDocument->webapp ?? NULL;
@@ -352,24 +358,23 @@ class webapp_html extends webapp_xml
 	}
 	
 	
-	function options(iterable $values, string ...$selected):static
+	function options(iterable $values):static
 	{
 		foreach ($values as $value => $content)
 		{
 			if (is_iterable($content))
 			{
-				$this[0]->append('optgroup', ['label' => $value])->options($content, ...$selected);
+				$this->append('optgroup', ['label' => $value])->options($content);
 				continue;
 			}
-			$this[0]->append('option', in_array($value, $selected, TRUE) ? [$content, 'value' => $value, 'selected' => NULL] : [$content, 'value' => $value]);
+			$this->append('option', [$content, 'value' => $value]);
 		}
-		return $this[0];
+		return $this;
 	}
 	function select(iterable $options, bool $multiple = FALSE, ?string $name = NULL, ?string $placeholder = NULL):static
 	{
 		if ($name)
 		{
-			$node = $placeholder ? $this[0]->details($placeholder) : $this[0];
 			if ($multiple)
 			{
 				$name .= '[]';
@@ -379,68 +384,33 @@ class webapp_html extends webapp_xml
 			{
 				$type = 'radio';
 			}
-			$ul = $node->append('ul');//, ['class' => 'webapp-gap-menu-hover']
-			foreach ($options as $value => $comment)
+			$node = ($placeholder ? $this->details($placeholder) : $this)->append('ul');
+			foreach ($options as $value => $content)
 			{
-				$ul->append('li')->labelinput($name, $type, $value, $comment);
+				$node->append('li')->labelinput($name, $type, $value, $content);
 			}
 
 			//$node->ulselect($name, $options, $multiple);
 			//$node['class'] = 'webapp-button';
-
-
 		}
 		else
 		{
-			$node = $this[0]->append('select');
+			$node = $this->append('select');
 			$node->options($options);
 			//return $this[0]->append('select')->options($options);
 		}
-		
-		
-		
-		return $node;
-
-
-
-		
-	}
-	// function section(string $title, int $level = 1):static
-	// {
-	// 	$node = &$this[0]->section[];
-	// 	$node->{'h' . max(1, min(6, $level))} = $title;
-	// 	return $node;
-	// }
-	function ulselect(string $name, iterable $options, bool $multiple = FALSE):static
-	{
-		$node = $this[0]->append('ul', ['class' => 'webapp-select']);
-		if ($multiple)
-		{
-			$name .= '[]';
-			$type = 'checkbox';
-		}
-		else
-		{
-			$type = 'radio';
-		}
-		foreach ($options as $value => $comment)
-		{
-			$node->append('li')->labelinput($name, $type, $value, $comment);
-		}
-		
-		
 		return $node;
 	}
 	function selected(...$values):static
 	{
 		if ($value = join(' or ', array_map(
-			fn($value) => sprintf('@value="%s"', $value),
+			fn($value) => '@value=' . static::escape($value),
 			array_filter($values, is_scalar(...))))) {
 			[$selected, $selector] = match ($this->getName())
 			{
-				'ul'		=> ['checked', 'li/label/input'],
-				'details'	=> ['checked', 'ul/li/label/input'],
-				default		=> ['selected', 'option']
+				'ul' => ['checked', 'li/label/input'],
+				'details' => ['checked', 'ul/li/label/input'],
+				default => ['selected', 'option']
 			};
 			foreach ($this->xpath("{$selector}[{$value}]") as $node)
 			{
@@ -449,13 +419,49 @@ class webapp_html extends webapp_xml
 		}
 		return $this;
 	}
-	function detailed(string $name, iterable $options, bool $multiple = FALSE):static
+	function selectable():array
 	{
-		$node = $this[0]->details('');
-		$node->ulselect($name, $options, $multiple);
-		$node['class'] = 'webapp-button';
-		return $node;
+		return array_map(strval(...), $this->xpath(match ($this->getName())
+		{
+			'ul' => 'li/label/input/@value',
+			'details' => 'ul/li/label/input/@value',
+			default => 'option/@value'
+		}));
 	}
+	// function section(string $title, int $level = 1):static
+	// {
+	// 	$node = &$this[0]->section[];
+	// 	$node->{'h' . max(1, min(6, $level))} = $title;
+	// 	return $node;
+	// }
+	// function ulselect(string $name, iterable $options, bool $multiple = FALSE):static
+	// {
+	// 	$node = $this[0]->append('ul', ['class' => 'webapp-select']);
+	// 	if ($multiple)
+	// 	{
+	// 		$name .= '[]';
+	// 		$type = 'checkbox';
+	// 	}
+	// 	else
+	// 	{
+	// 		$type = 'radio';
+	// 	}
+	// 	foreach ($options as $value => $comment)
+	// 	{
+	// 		$node->append('li')->labelinput($name, $type, $value, $comment);
+	// 	}
+		
+		
+	// 	return $node;
+	// }
+
+	// function detailed(string $name, iterable $options, bool $multiple = FALSE):static
+	// {
+	// 	$node = $this[0]->details('');
+	// 	$node->ulselect($name, $options, $multiple);
+	// 	$node['class'] = 'webapp-button';
+	// 	return $node;
+	// }
 
 	function atree(iterable $link, bool $fold = FALSE)
 	{
@@ -585,6 +591,7 @@ class webapp_form implements ArrayAccess
 	public readonly ?webapp $webapp;
 	public readonly webapp_html $xml, $captcha;
 	public webapp_html $fieldset;
+	//private readonly array $input;
 	private array $files = [], $fields = [], $format = [];
 	function __construct(private readonly array|webapp|webapp_html $context, ?string $action = NULL)
 	{
@@ -596,8 +603,8 @@ class webapp_form implements ArrayAccess
 				'class' => 'webapp',
 				...is_string($action) ? ['action' => $action] : []])]
 			: [$context instanceof webapp ? $context : NULL, new webapp_html('<form/>')];
-		//$this->xml['enctype'] = 'application/x-www-form-urlencoded';
-		$this->enctype()->fieldset();
+		$this->xml['enctype'] = 'application/x-www-form-urlencoded';
+		$this->fieldset();
 	}
 	function offsetExists(mixed $offset):bool
 	{
@@ -615,32 +622,158 @@ class webapp_form implements ArrayAccess
 	{
 		unset($this->fields[$offset]);
 	}
+	function field(string $name, string $type = 'hidden', array $attr = [], callable $format = NULL):webapp_html
+	{
+		$alias = preg_match('/^\w+/', $name, $pattern) ? $pattern[0] : count($this->files) + count($this->fields);
+		if ($type === 'file')
+		{
+			$this->xml['enctype'] = 'multipart/form-data';
+			return $this->files[$alias] = $this->fieldset->append('input', ['type' => 'file',
+				'name' => array_key_exists('multiple', $attr) ? "{$alias}[]" : $alias] + $attr);
+		}
+		$this->format[$alias] = $format ?? fn($value) => $value;
+		return $this->fields[$alias] = match ($type)
+		{
+			'radio',
+			'checkbox' => $this->fieldset->select($attr['options'] ?? [], $type === 'checkbox', $name),
+			'webapp-select' => $this->fieldset->select($attr['options'] ?? [],
+				array_key_exists('data-multiple', $attr), $name, $attr['data-placeholder'] ?? NULL)->setattr($attr),
+			'select' => $this->fieldset->select($attr['options'] ?? [])
+				->setattr(['name' => array_key_exists('multiple', $attr) ? "{$alias}[]" : $alias] + $attr),
+
+
+
+			'textarea' => $this->fieldset->append('textarea', ['name' => $alias] + $attr),
+			default => $this->fieldset->append('input', ['type' => $type, 'name' => $alias] + $attr)
+		};
+	}
 	function echo(array $data):static
 	{
 		if ($this->echo)
 		{
 			foreach ($this->fields as $field => $node)
 			{
-				if (array_key_exists($field, $data) === FALSE)
+				if (array_key_exists($field, $data))
 				{
-					continue;
+					$value = $this->format[$field]($data[$field], FALSE);
+					match ($node->getName())
+					{
+						'ul',
+						'details',
+						'select'=> $node->selected(...is_array($value) ? $value : [$value]),
+						'textarea' => $node->text($value),
+						default => $node->setattr(['value' => $value])
+					};
 				}
-				(match ($node->getName())
-				{
-					'select' => $node->selected(...),
-					default => fn($value)=>$node->setattr(['value' => $value])
-				})(array_key_exists($field, $this->format)
-					? $this->format[$field](FALSE, $data[$field]) : $data[$field]);
 			}
 		}
 		return $this;
 	}
-
-	//
-	function a():ArrayObject
+	function fetch(&$error = NULL):array
 	{
-		
+		do
+		{
+			if ($this->echo)
+			{
+				break;
+			}
+			if (is_array($this->context))
+			{
+				$input = $this->context;
+			}
+			else
+			{
+				$error ??= $this->context;
+				$input = $this->context->request_content((string)$this->xml['enctype']);
+				if (isset($this->captcha) && (isset($input['captcha_encrypt'], $input['captcha_decrypt'])
+					&& is_string($input['captcha_encrypt']) && is_string($input['captcha_decrypt'])
+					&& $this->context->captcha_verify($input['captcha_encrypt'], $input['captcha_decrypt'])) === FALSE) {
+					$field = 'captcha';
+					break;
+				}
+			}
+			$contents = [];
+			foreach ($this->fields as $field => $node)
+			{
+				switch ($node->getName())
+				{
+					case 'ul':
+					case 'details':
+						$value = array_key_exists($field, $input)
+						? (isset($node['data-multiple']) && is_array($input[$field]) ? array_filter($input[$field], is_scalar(...)) : $input[$field])
+						: (isset($node['data-multiple']) ? [] : NULL);
+						
+
+						if ((isset($node['data-required']) && empty($value))
+							|| (isset($node['data-multiple'])
+							? (is_array($value) && empty(array_diff($value, $node->selectable())))
+							: (is_null($value) || in_array($value, $node->selectable(), TRUE))) === FALSE
+							)
+						{
+							var_dump($value);
+							break 3;
+						};
+						break;
+					case 'select':
+						$value = array_key_exists($field, $input)
+							? (isset($node['multiple']) && is_array($input[$field]) ? array_filter($input[$field], is_scalar(...)) : $input[$field])
+							: (isset($node['multiple']) ? [] : '');
+						if ((isset($node['required']) && empty($value))
+							|| (isset($node['multiple'])
+							? (is_array($value) && empty(array_diff($value, $node->selectable())))
+							: (is_string($value) && in_array($value, $node->selectable()))) === FALSE
+							)
+						{
+							break 3;
+						};
+						break;
+					default:
+						$value = $input[$field] ?? '';
+						if ((isset($node['required']) && empty($value))
+							|| static::validate($node, $value) === FALSE) {
+							break 3;
+						}
+				}
+				$contents[$field] = $this->format[$field]($value, TRUE);
+				// [$required] = match ($node->getName())
+				// {
+				// 	//array_intersect
+				// 	'ul',
+				// 	'details' => [isset($node['data-required'])],
+				// 	'select' => [isset($node['required'])],
+				// 	default => [isset($node['required'])]
+				// };
+				
+				// echo "------------------------\n";
+				// var_dump($required);
+
+
+				// if ($this->required[$field])
+				// switch ($node->getName())
+				// {
+				// 	case 'ul':
+				// 	case 'select':
+						
+				// 		print_r( $node->selectable() );
+				// 		var_dump($field);
+
+
+				// 		continue 2;
+				// 	default:
+				// 		if (static::validate($node, $contents[$field] = $input[$field] ?? '') === FALSE)
+				// 		{
+				// 			break 3;
+				// 		}
+				// }
+			}
+			PRINT_R($contents);
+			return $contents;
+		} while (0);
+		var_dump("Form input[{$field}] invalid");
+		//$errors[] = "Form input[{$field}] invalid";
+		return [];
 	}
+	//
 	function __invoke(array $values = []):NULL|array|static
 	{
 		do
@@ -761,18 +894,10 @@ class webapp_form implements ArrayAccess
 		return NULL;
 		
 	}
-	function fatch()
-	{
-		
-	}
+	
 	function files(string $name):ArrayObject
 	{
 
-	}
-	function enctype(string $type = 'application/x-www-form-urlencoded'):static
-	{
-		$this->xml['enctype'] = $type;
-		return $this;
 	}
 	function fieldset(string $name = NULL):webapp_html
 	{
@@ -811,79 +936,11 @@ class webapp_form implements ArrayAccess
 		}
 		return $this->captcha ?? NULL;
 	}
-	function field(string $name, string $type = 'hidden', array $attr = [], callable $format = NULL):webapp_html
-	{
-		$alias = preg_match('/^\w+/', $name, $pattern) ? $pattern[0] : count($this->files) + count($this->fields);
-		if (is_callable($format))
-		{
-			$this->format[$alias] = $format ?? fn($value)=>$value;
-		}
-		return $type === 'file'
-			? $this->files[$alias] = $this->enctype('multipart/form-data')->fieldset->append('input', [
-				'type' => 'file', 'name' => array_key_exists('multiple', $attr) ? "{$alias}[]" : $alias] + $attr)
-			: $this->fields[$alias] = match ($type)
-			{
-				'webapp-select' => $this->fieldset->select(
-					$attr['options'] ?? [],
-					array_key_exists('data-multiple', $attr),
-					$name, $attr['data-placeholder'] ?? NULL)->setattr($attr),
-				'radio',
-				'checkbox' => $this->fieldset->select($attr['options'] ?? [], $type === 'checkbox', $name),
-				'select' => $this->fieldset->select($attr['options'] ?? [])
-					->setattr(['name' => array_key_exists('multiple', $attr) ? "{$alias}[]" : $alias] + $attr),
 
 
-
-				'textarea' => $this->fieldset->append('textarea', ['name' => $alias] + $attr),
-				default => $this->fieldset->append('input', ['type' => $type, 'name' => $alias] + $attr)
-			};
-	}
 	function novalidate():static
 	{
 		$this->xml->setattr('novalidate');
-		return $this;
-	}
-	function setdefault(array $values):static
-	{
-		foreach ($this->fields as $name => $node)
-		{
-			if (isset($values[$name]))
-			{
-				switch ($node->getName())
-				{
-					case 'div':
-					case 'select':
-						if ($node->getName() === 'select')
-						{
-							$nodename = 'option';
-							$attrname = 'selected';
-						}
-						else
-						{
-							$nodename = 'label/input';
-							$attrname = 'checked';
-						}
-						$more = [];
-						foreach (is_array($values[$name]) ? $values[$name] : [$values[$name]] as $value)
-						{
-							$more[] = "{$nodename}[@value=\"{$value}\"]";
-						}
-						if ($more)
-						{
-							foreach ($node->xpath(join('|', $more)) as $children)
-							{
-								$children[$attrname] = NULL;
-							}
-						}
-						continue 2;
-					case 'textarea':
-						$node->text($values[$name]);
-						continue 2;
-					default:
-						$node['value'] = $values[$name];
-				}
-			}
-		}
 		return $this;
 	}
 	private static function is_numeric(webapp_html $node, string $value):bool

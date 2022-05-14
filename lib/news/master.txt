@@ -1,0 +1,22 @@
+API
+
+数据拉取
+GET ?ads 获取广告
+GET ?tags 获取标签
+GET ?resources 获取资源
+
+账号操作
+GET ?register 注册账号
+GET ?signature/{账号（如：0FqvMsV_ox）} 账号信息
+GET ?account/{签名（如：XGOLT5Q0KTphWfFK2FBGeRZOoV6s-YO-B7LtXXO5VN30pGnNF4FQXCTiM81DEuRO6oh）} 账号信息
+GET ?play/{资源+签名（如：001V4BE4R1TRXGOLT5Q0KTphWfFK2FBGeRZOoV6s-YO-B7LtXXO5VN30pGnNF4FQXCTiM81DEuRO6oh）} 付费播放
+POST ?favorite/{资源+签名} 收藏这个资源
+DELETE ?favorite/{资源+签名} 从收藏里删除这个资源
+
+评论相关
+POST ?comment/{资源+签名} BODY(评论内容) 提交评论
+GET ?comments 获取评论
+
+付款相关
+POST ?payment/{签名} 创建一条付款记录
+GET ?payments/{签名} 拉取付款记录

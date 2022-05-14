@@ -108,7 +108,7 @@ class webapp_router_admin extends webapp_echo_html
 
 
 	//广告
-	function form_ad($ctx)
+	function form_ad($ctx):webapp_form
 	{
 		$form = new webapp_form($ctx);
 
@@ -124,16 +124,16 @@ class webapp_router_admin extends webapp_echo_html
 
 		$form->fieldset('有效时间段，每天展示时间段');
 		$form->field('timestart', 'datetime-local', ['value' => date('Y-m-d\T00:00')],
-			fn($i,$v)=>$i?strtotime($v):date('Y-m-d\TH:i',$v));
+			fn($v,$i)=>$i?strtotime($v):date('Y-m-d\TH:i',$v));
 		$form->field('timeend', 'datetime-local', ['value' => date('Y-m-d\T23:59')],
-			fn($i,$v)=>$i?strtotime($v):date('Y-m-d\TH:i',$v));
+			fn($v,$i)=>$i?strtotime($v):date('Y-m-d\TH:i',$v));
 
 		$form->fieldset('每周几显示，空为时间内展示');
 		$form->field('weekset', 'checkbox', ['options' => [
-			'星期日', '星期一', '星期三', '星期四', '星期五', '星期六'
-		]]);
+			'星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六']],
+			fn($v,$i)=>$i?join(',',$v):explode(',',$v));
 		$form->field('seat', 'checkbox', ['options' => [
-			'位置0', '位置1', '位置2', '位置3', '位置4', '位置5'
+			'位置0', '位置1', '位置2', '位置3', '位置4', '位置5', '位置7', '位置8', '位置9'
 		]]);
 
 		$form->fieldset('展示方式：小于0点击次数，大于0展示次数');
@@ -145,7 +145,7 @@ class webapp_router_admin extends webapp_echo_html
 		$form->button('提交', 'submit');
 
 
-		return $form();
+		return $form;
 	}
 
 	function get_ads()
@@ -168,23 +168,28 @@ class webapp_router_admin extends webapp_echo_html
 	function post_ad_new()
 	{
 		$data = $this->form_ad($this->webapp);
-		if ($data && $this->webapp->call($data['site'], 'saveAd', [$this->webapp->ad_xml($ad = [
-				'hash' => $this->webapp->randhash(),
-				'site' => $data['site'],
-				'time' => $this->webapp->time,
-				'seat' => is_array($data['seat']) ? join(',', $data['seat']) : $data['seat'],
-				'timestart' => strtotime($data['timestart']),
-				'timeend' => strtotime($data['timeend']),
-				'weekset' => is_array($data['weekset']) ? join(',', $data['weekset']) : $data['weekset'],
-				'count' => $data['count'],
-				'click' => 0,
-				'view' => 0,
-				'name' => $data['name'],
-				'goto' => $data['goto']
-			])]) && $this->webapp->mysql->ads->insert($ad)) {
-			return $this->okay('?admin/ads');
-		}
-		$this->warn('广告新建失败！');
+		print_r($data->fetch());
+		print_r($this->webapp->request_content());
+
+
+
+		// if ($data && $this->webapp->call($data['site'], 'saveAd', [$this->webapp->ad_xml($ad = [
+		// 		'hash' => $this->webapp->randhash(),
+		// 		'site' => $data['site'],
+		// 		'time' => $this->webapp->time,
+		// 		'seat' => is_array($data['seat']) ? join(',', $data['seat']) : $data['seat'],
+		// 		'timestart' => strtotime($data['timestart']),
+		// 		'timeend' => strtotime($data['timeend']),
+		// 		'weekset' => is_array($data['weekset']) ? join(',', $data['weekset']) : $data['weekset'],
+		// 		'count' => $data['count'],
+		// 		'click' => 0,
+		// 		'view' => 0,
+		// 		'name' => $data['name'],
+		// 		'goto' => $data['goto']
+		// 	])]) && $this->webapp->mysql->ads->insert($ad)) {
+		// 	return $this->okay('?admin/ads');
+		// }
+		// $this->warn('广告新建失败！');
 	}
 	function get_ad_new()
 	{
@@ -194,24 +199,7 @@ class webapp_router_admin extends webapp_echo_html
 	{}
 	function get_ad_upd(string $hash)
 	{
-		$form = $this->form_ad($this->main);
-		if ($ad = $this->webapp->mysql->ads('WHERE hash=?s', $hash)->array())
-		{
-			//$ad['timestart'] = date('Y-m-d\TH:i', $ad['timestart']);
-			//$ad['timeend'] = date('Y-m-d\TH:i', $ad['timeend']);
-			if ($ad['weekset'])
-			{
-				foreach (explode(',', $ad['weekset']) as $weekset)
-				{
-					// $form
-					// var_dump($weekset);
-				}
-			}
-			//print_r($form['weekset']->getname());
-
-			//$form->setdefault($ad);
-			$form->echo($ad);
-		}
+		$this->form_ad($this->main)->echo($this->webapp->mysql->ads('WHERE hash=?s', $hash)->array());
 	}
 	function get_ad_del(string $hash)
 	{
@@ -330,32 +318,7 @@ class news_master extends webapp
 	}
 	function get_home()
 	{
-		$this->app->xml->comment(<<<COMMENT
-API
-
-资源相关
-GET ?resources 获取资源
-GET ?tags 获取标签
-
-账号相关
-GET ?register 注册账号
-GET ?signature/{账号（如：0FqvMsV_ox）} 账号信息
-GET ?account/{签名（如：XGOLT5Q0KTphWfFK2FBGeRZOoV6s-YO-B7LtXXO5VN30pGnNF4FQXCTiM81DEuRO6oh）} 账号信息
-GET ?play/{资源+签名（如：001V4BE4R1TRXGOLT5Q0KTphWfFK2FBGeRZOoV6s-YO-B7LtXXO5VN30pGnNF4FQXCTiM81DEuRO6oh）} 付费播放
-POST ?favorite/{资源+签名} 收藏这个资源
-DELETE ?favorite/{资源+签名} 从收藏里删除这个资源
-
-评论相关
-POST ?comment/{资源+签名} BODY(评论内容) 提交评论
-GET ?comments 获取评论
-
-付款相关
-POST ?payment/{签名} 创建一条付款记录
-GET ?payments/{签名} 拉取付款记录
-
-COMMENT);
-
-
+		$this->app->xml->comment(file_get_contents(__DIR__.'/master.txt'));
 	}
 	//同步资源
 	function get_pushdata(string $batch)

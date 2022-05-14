@@ -301,7 +301,7 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 									{
 										'int' => intval($parameters[$parameter->name]),
 										'float' => floatval($parameters[$parameter->name]),
-										'string' => (string)$parameters[$parameter->name],
+										'string' => $parameters[$parameter->name] ?? '',
 										default => $parameters[$parameter->name]
 									};
 									continue;
