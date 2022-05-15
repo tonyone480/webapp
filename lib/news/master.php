@@ -167,37 +167,16 @@ class webapp_router_admin extends webapp_echo_html
 	}
 	function post_ad_new()
 	{
-		if ($this->form_ad($this->webapp)->fetch($data))
-		{
-			print_r(['hash' => $this->webapp->randhash(),
-			'time' => $this->webapp->time,
-			'click' => 0,
-			'view' => 0,] + $data);
+		if ($this->form_ad($this->webapp)->fetch($ad, $error)
+			&& $this->webapp->call($ad['site'], 'saveAd', [$this->webapp->ad_xml($ad += [
+				'hash' => $this->webapp->randhash(),
+				'time' => $this->webapp->time,
+				'click' => 0,
+				'view' => 0])])
+			&& $this->webapp->mysql->ads->insert($ad)) {
+			return $this->okay('?admin/ads');
 		}
-
-
-		
-
-
-
-
-		// if ($data && $this->webapp->call($data['site'], 'saveAd', [$this->webapp->ad_xml($ad = [
-		// 		'hash' => $this->webapp->randhash(),
-		// 		'site' => $data['site'],
-		// 		'time' => $this->webapp->time,
-		// 		'seat' => is_array($data['seat']) ? join(',', $data['seat']) : $data['seat'],
-		// 		'timestart' => strtotime($data['timestart']),
-		// 		'timeend' => strtotime($data['timeend']),
-		// 		'weekset' => is_array($data['weekset']) ? join(',', $data['weekset']) : $data['weekset'],
-		// 		'count' => $data['count'],
-		// 		'click' => 0,
-		// 		'view' => 0,
-		// 		'name' => $data['name'],
-		// 		'goto' => $data['goto']
-		// 	])]) && $this->webapp->mysql->ads->insert($ad)) {
-		// 	return $this->okay('?admin/ads');
-		// }
-		// $this->warn('广告新建失败！');
+		$this->warn("广告新建失败, {$error}！");
 	}
 	function get_ad_new()
 	{

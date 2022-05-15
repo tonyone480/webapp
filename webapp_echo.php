@@ -145,7 +145,7 @@ class webapp_echo_xls extends webapp_echo_xml
 		parent::__construct($webapp);
 		#$webapp->response_content_type('application/vnd.openxmlformats-officedocument.wordprocessingml.document');
 		$this->loadXML("<?xml version='1.0' encoding='{$webapp['app_charset']}'?><?mso-application progid='Excel.Sheet'?><Workbook/>");
-		$this->xml->attr([
+		$this->xml->setattr([
 			'xmlns' => 'urn:schemas-microsoft-com:office:spreadsheet',
 			// 'xmlns:o' => 'urn:schemas-microsoft-com:office:office',
 			'xmlns:x' => 'urn:schemas-microsoft-com:office:excel',
@@ -171,7 +171,7 @@ class webapp_echo_xls extends webapp_echo_xml
 	}
 	function appendrow(...$values):webapp_xml
 	{
-		$row = &$this->table->Row[];
+		$row = $this->table->append('Row');
 		foreach ($values as $value)
 		{
 			$row->append('Cell', ['ss:StyleID' => 'sc0'])->append('Data', [$value, 'ss:Type' => 'String']);

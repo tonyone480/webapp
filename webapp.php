@@ -26,7 +26,8 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 {
 	const version = '4.7a', key = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz-';
 	public readonly self $webapp;
-	public readonly object|string $router, $method;
+	public readonly object|string $router;
+	public readonly string $method;
 	private array $errors = [], $cookies = [], $headers = [], $uploadedfiles, $configs, $route, $entry;
 	protected static array $interfaces = [];
 	static function __callStatic(string $name, array $arguments):mixed
@@ -270,6 +271,7 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 			: [[$this['app_router'] . $track, sprintf('%s_%s', $this['request_method'],
 				count($entry) > 1 ? strtr($entry[1], '-', '_') : $this['app_index'])], []];
 		[&$this->router, &$this->method] = $this->route;
+		#set_exception_handler(fn($error) => $io->response_status(500, $io->response_content((string)$error)));
 	}
 	function __destruct()
 	{
@@ -279,52 +281,53 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 			{
 				do
 				{
-					if (($router = is_string($this->router)
-							&& ($method = new $this->router($this))::class === $this->router
-								? $method : $this->router)::class === 'Closure') {
-						$status = $router(...$this->entry);
-					}
-					else
+					try
 					{
-						if ($tracert->isUserDefined() === FALSE)
-						{
-							break;
+						if (($router = is_string($this->router)
+								&& ($method = new $this->router($this))::class === $this->router
+									? $method : $this->router)::class === 'Closure') {
+							$status = $router(...$this->entry);
 						}
-						if (preg_match_all('/\,(\w+)(?:\:([\%\+\-\.\/\=\w]*))?/',
-							$this['request_query'], $pattern, PREG_SET_ORDER | PREG_UNMATCHED_AS_NULL)) {
-							$parameters = array_column($pattern, 2, 1);
-							foreach (array_slice($tracert->getParameters(), intval($router === $this)) as $parameter)
+						else
+						{
+							if ($tracert->isUserDefined() === FALSE)
 							{
-								if (array_key_exists($parameter->name, $parameters))
+								break;
+							}
+							if (preg_match_all('/\,(\w+)(?:\:([\%\+\-\.\/\=\w]*))?/',
+								$this['request_query'], $pattern, PREG_SET_ORDER | PREG_UNMATCHED_AS_NULL)) {
+								$parameters = array_column($pattern, 2, 1);
+								foreach (array_slice($tracert->getParameters(), intval($router === $this)) as $parameter)
 								{
-									$this->entry[$parameter->name] ??= match ((string)$parameter->getType())
+									if (array_key_exists($parameter->name, $parameters))
 									{
-										'int' => intval($parameters[$parameter->name]),
-										'float' => floatval($parameters[$parameter->name]),
-										'string' => $parameters[$parameter->name] ?? '',
-										default => $parameters[$parameter->name]
-									};
-									continue;
-								}
-								if ($parameter->isOptional() === FALSE)
-								{
-									break 2;
+										$this->entry[$parameter->name] ??= match ((string)$parameter->getType())
+										{
+											'int' => intval($parameters[$parameter->name]),
+											'float' => floatval($parameters[$parameter->name]),
+											'string' => $parameters[$parameter->name] ?? '',
+											default => $parameters[$parameter->name]
+										};
+										continue;
+									}
+									if ($parameter->isOptional() === FALSE)
+									{
+										break 2;
+									}
 								}
 							}
-						}
-						if ($tracert->getNumberOfRequiredParameters() > count($this->entry))
-						{
-							break;
-						}
-						try
-						{
+							if ($tracert->getNumberOfRequiredParameters() > count($this->entry))
+							{
+								break;
+							}
 							$status = $tracert->invoke($router, ...$this->entry);
 						}
-						catch (Throwable $error)
-						{
-							$this->app = $error;
-							$status = 500;
-						}
+					}
+					catch (Throwable $error)
+					{
+						$this->headers['Content-Type'] = "text/plain; charset={$this['app_charset']}";
+						$this->app = $error;
+						$status = 500;
 					}
 					$tracing = property_exists($this, 'app') ? $this->app : $method ?? $router;
 					if ($tracing !== $this && $tracing instanceof Stringable)
@@ -389,16 +392,16 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 		}
 		return NULL;
 	}
-	final function __invoke(object $object, string $errors = 'errors'):object
+	final function __invoke(object $object):object
 	{
 		$object->webapp ??= $this;
 		if ($object instanceof ArrayAccess)
 		{
-			$object[$errors] = &$this->errors;
+			$object['errors'] = &$this->errors;
 		}
 		else
 		{
-			$object->{$errors} = &$this->errors;
+			$object->errors = &$this->errors;
 		}
 		return $object;
 	}
@@ -422,13 +425,13 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	{
 		return property_exists($this, 'buffer') ? ftell($this->buffer) : 0;
 	}
-	final function &errors():array
+	function error(string $message):string
 	{
-		return $this->errors;
+		return $this->errors[] = $message;
 	}
-	final function app(string $name, mixed ...$params):?object
+	final function app(string $name, mixed ...$params):object
 	{
-		return class_exists($name, FALSE) ? $this->app = new $name($this, ...$params) : NULL;
+		return $this($this->app = new $name($this, ...$params));
 	}
 	final function break(Closure $router, mixed ...$params):void
 	{

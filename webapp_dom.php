@@ -69,7 +69,7 @@ class webapp_xml extends SimpleXMLElement
 	}
 	function iter(iterable $contents, Closure $iterator = NULL, ...$params):static
 	{
-		// $doc = $this[0]->dom()->ownerDocument;
+		// $doc = $this->dom()->ownerDocument;
 		// $iterator ? $doc->iter = [$iterator, $params] : [$iterator, $params] = $doc->iter;
 		if ($iterator === NULL)
 		{
@@ -88,7 +88,7 @@ class webapp_xml extends SimpleXMLElement
 		}
 		foreach ($contents as $value)
 		{
-			$iterator->call($this[0], $value, ...$params);
+			$iterator->call($this, $value, ...$params);
 		}
 		return $this;
 	}
@@ -164,14 +164,14 @@ class webapp_xml extends SimpleXMLElement
 	{
 		foreach ($values as $key => $value)
 		{
-			$node = &$this[0]->{$key}[];
+			$node = $this->append($key);
 			if (is_iterable($value))
 			{
 				$node->import($value);
 			}
 			else
 			{
-				$node[0] = $value;
+				$node->text($value);
 			}
 		}
 		return $this;
@@ -304,21 +304,18 @@ class webapp_html extends webapp_xml
 {
 	function template(iterable $struct, array|string $attr = []):static
 	{
-		return $this[0]->append('template')->iter($struct)->setattr(is_array($attr) ? $attr : ['id' => $attr]);
+		return $this->append('template')->iter($struct)->setattr(is_array($attr) ? $attr : ['id' => $attr]);
 	}
 	function progress(float $value = 0, float $max = 1):static
 	{
-		$node = &$this[0]->progress[];
-		$node['value'] = $value;
-		$node['max'] = $max;
-		return $node;
+		return $this->append('progress', ['value' => $value, 'max' => $max]);
 	}
 	function anchor(string $href)
 	{}
 	function fieldset(string $legend = NULL):static
 	{
 		//An optional <legend> element, followed by flow content.
-		$node = &$this[0]->fieldset[];
+		$node = $this->append('fieldset');
 		if ($legend !== NULL)
 		{
 			$node->legend = $legend;
@@ -328,7 +325,7 @@ class webapp_html extends webapp_xml
 	function details(string $summary = NULL):static
 	{
 		//One <summary> element followed by flow content.
-		$node = &$this[0]->details[];
+		$node = $this->append('details');
 		if ($summary !== NULL)
 		{
 			$node->summary = $summary;
@@ -351,7 +348,7 @@ class webapp_html extends webapp_xml
 	// }
 	function labelinput(string $name, string $type, float|string $value, string $comment):static
 	{
-		$node = &$this[0]->label[];
+		$node = $this->append('label');
 		$node->append('input', ['type' => $type, 'name' => $name, 'value' => $value]);
 		$node->text($comment);
 		return $node;
@@ -398,7 +395,7 @@ class webapp_html extends webapp_xml
 		{
 			$node = $this->append('select');
 			$node->options($options);
-			//return $this[0]->append('select')->options($options);
+			//return $this->append('select')->options($options);
 		}
 		return $node;
 	}
@@ -431,13 +428,13 @@ class webapp_html extends webapp_xml
 	}
 	// function section(string $title, int $level = 1):static
 	// {
-	// 	$node = &$this[0]->section[];
+	// 	$node = &$this->section[];
 	// 	$node->{'h' . max(1, min(6, $level))} = $title;
 	// 	return $node;
 	// }
 	// function ulselect(string $name, iterable $options, bool $multiple = FALSE):static
 	// {
-	// 	$node = $this[0]->append('ul', ['class' => 'webapp-select']);
+	// 	$node = $this->append('ul', ['class' => 'webapp-select']);
 	// 	if ($multiple)
 	// 	{
 	// 		$name .= '[]';
@@ -458,7 +455,7 @@ class webapp_html extends webapp_xml
 
 	// function detailed(string $name, iterable $options, bool $multiple = FALSE):static
 	// {
-	// 	$node = $this[0]->details('');
+	// 	$node = $this->details('');
 	// 	$node->ulselect($name, $options, $multiple);
 	// 	$node['class'] = 'webapp-button';
 	// 	return $node;
@@ -466,9 +463,9 @@ class webapp_html extends webapp_xml
 
 	function atree(iterable $link, bool $fold = FALSE)
 	{
-		return $this[0]->append('ul')->iter($link, function(array $link, bool $fold):void
+		return $this->append('ul')->iter($link, function(array $link, bool $fold):void
 		{
-			$node = &$this->li[];
+			$node = $this->append('li');
 			if (is_iterable($link[1]))
 			{
 				if ($fold)
@@ -490,7 +487,7 @@ class webapp_html extends webapp_xml
 	}
 	function cond(array $fields, ?string $action = NULL):static
 	{
-		$form = $this[0]->form($action);
+		$form = $this->form($action);
 
 
 		$form->xml['class'] .= '-cond';
@@ -521,11 +518,11 @@ class webapp_html extends webapp_xml
 
 	function form(?string $action = NULL):webapp_form
 	{
-		return new webapp_form($this[0], $action);
+		return new webapp_form($this, $action);
 	}
 	function table(iterable $contents = [], Closure $output = NULL, mixed ...$params):webapp_table
 	{
-		return new webapp_table($this[0], $contents, $output, ...$params);
+		return new webapp_table($this, $contents, $output, ...$params);
 	}
 }
 class webapp_document extends DOMDocument implements Stringable
@@ -667,7 +664,7 @@ class webapp_form implements ArrayAccess
 		}
 		return $this;
 	}
-	function fetch(?array &$data):bool
+	function fetch(?array &$data, &$error = NULL):bool
 	{
 		do
 		{
@@ -677,11 +674,12 @@ class webapp_form implements ArrayAccess
 			}
 			if (is_array($this->context))
 			{
+				$errors = [];
 				$input = $this->context;
 			}
 			else
 			{
-				$error ??= $this->context;
+				$errors = &($this->context)(new stdClass)->errors;
 				$input = $this->context->request_content((string)$this->xml['enctype']);
 				if (isset($this->captcha) && (isset($input['captcha_encrypt'], $input['captcha_decrypt'])
 					&& is_string($input['captcha_encrypt']) && is_string($input['captcha_decrypt'])
@@ -722,145 +720,24 @@ class webapp_form implements ArrayAccess
 			}
 			return TRUE;
 		} while (0);
-		//var_dump("Form input[{$field}] invalid");
-		//$errors[] = "Form input[{$field}] invalid";
+		$errors[] = $error = "Form input[{$field}] invalid";
 		return FALSE;
 	}
 	//
-	function __invoke(array $values = []):NULL|array|static
-	{
-		do
-		{
-			if ($this->echo)
-			{
-				return $this->setdefault($values);
-			}
-			if (is_array($this->context))
-			{
-				$errors = &$this->errors;
-				$input = $this->context;
-			}
-			else
-			{
-				$errors = &($this->context)(new stdclass)->errors;
-				$input = $this->context->request_content((string)$this->xml['enctype']);
-				if (isset($this->captcha))
-				{
-					if (array_key_exists('captcha_encrypt', $input)
-						&& array_key_exists('captcha_decrypt', $input)
-						&& $this->context->captcha_verify($input['captcha_encrypt'], $input['captcha_decrypt'])) {
-						unset($input['captcha_encrypt'], $input['captcha_decrypt']);
-					}
-					else
-					{
-						$name = 'captcha';
-						break;
-					}
-				}
-				// foreach ($this->files as $name => $node)
-				// {
-				// 	$uploadedfile = $this->context->request_uploadedfile($name);
-				// 	if ((isset($node['required']) > $uploadedfile->count())
-				// 		|| (isset($node['accept']) && $uploadedfile->detect($node['accept']) === FALSE)
-				// 		|| (isset($node['data-maxfile']) && $uploadedfile->count() > intval($node['data-maxfile']))
-				// 		|| (isset($node['data-maxsize']) && $uploadedfile->size() > intval($node['data-maxsize']))) {
-				// 		break 2;
-				// 	}
-				// 	continue;
-				// }
-			}
-			$values = [];
-			foreach ($this->fields as $name => $node)
-			{
-				$tagname = $node->getName();
-				// if (isset($input[$name]) === FALSE)
-				// {
-				// 	switch ($tagname)
-				// 	{
-				// 		case 'div':
-				// 			foreach ($node->xpath('label/input[@name]') as $input)
-				// 			{
-				// 				if (isset($input['required']))
-				// 				{
-				// 					break 4;
-				// 				}
-				// 			}
-				// 			break;
-				// 		default:
-				// 			if (isset($node['required']))
-				// 			{
-				// 				break 3;
-				// 			}
-				// 			break;
-				// 	}
-				// 	$values[$name] = NULL;
-				// 	continue;
-				// }
-				//数据输入检查
-				$value = $input[$name] ?? NULL;
-				switch ($tagname)
-				{
-					case 'fieldset':
-						break;
-					case 'select':
-						if ($tagname === 'div')
-						{
-							$nodename = 'label/input';
-							$multiple = (string)$node['data-type'] === 'checkbox';
-						}
-						else
-						{
-							$nodename = 'option';
-							$multiple = isset($node['multiple']);
-						}
-						$sourcedata = [];
-						foreach ($node->xpath("{$nodename}[@value]") as $children)
-						{
-							$sourcedata[] = (string)$children['value'];
-						}
-						if ($multiple)
-						{
-							if (is_array($value) === FALSE || array_diff($value, $sourcedata))
-							{
-								break 3;
-							}
-						}
-						else
-						{
-							if (in_array($value, $sourcedata, TRUE) === FALSE)
-							{
-								break 3;
-							}
-						}
-						break;
-					default:
-						if ((is_scalar($value) && static::validate($node, $value)) === FALSE)
-						{
-							break 3;
-						}
-				}
-				$values[$name] = $value;
-			}
-			return $values;
-		} while (0);
-		$errors[] = "Form input[{$name}] invalid";
-		return NULL;
-		
-	}
-	
-	function files(string $name):ArrayObject
-	{
 
-	}
+	// function files(string $name):ArrayObject
+	// {
+
+	// }
 	function fieldset(string $name = NULL):webapp_html
 	{
 		return $this->fieldset = $this->xml->fieldset($name);
 	}
-	function legend(string $name):webapp_html
-	{
-		$this->fieldset->legend = $name;
-		return $this->fieldset->legend;
-	}
+	// function legend(string $name):webapp_html
+	// {
+	// 	$this->fieldset->legend = $name;
+	// 	return $this->fieldset->legend;
+	// }
 	function progress():webapp_html
 	{
 		return $this->fieldset->progress();
@@ -970,7 +847,7 @@ class webapp_table
 	{
 		[$this->paging, $this->xml, $this->tbody] = [
 			is_object($data) && property_exists($data, 'paging') && is_array($data->paging) ? $data->paging : [],
-			$root = &$node->table[],
+			$root = $node->append('table'),
 			&$root->tbody];
 		$root['class'] = 'webapp';
 		$output ??= fn($contents) => $this->row()->{is_iterable($contents) ? 'appends' : 'append'}('td', $contents);
