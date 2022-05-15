@@ -36,10 +36,10 @@ class webapp_router_admin extends webapp_echo_html
 	}
 	function okay(string $goto):int
 	{
-		$this->webapp->response_location($this->webapp->request_referer() ?? $goto);
+		$this->webapp->response_location($goto);
 		return 302;
 	}
-	function form_admin($ctx)
+	function form_admin($ctx):webapp_form
 	{
 		$form = new webapp_form($ctx);
 
@@ -57,7 +57,7 @@ class webapp_router_admin extends webapp_echo_html
 
 		$form->fieldset();
 		$form->button('提交', 'submit');
-		return $form();
+		return $form;
 	}
 	function post_home()
 	{
@@ -113,7 +113,7 @@ class webapp_router_admin extends webapp_echo_html
 		$form = new webapp_form($ctx);
 
 		$form->fieldset('站点');
-		$form->field('site', 'select', ['options' => $this->webapp['app_site']]);
+		$form->field('site', 'select', ['options' => $this->webapp['app_site'], 'required' => NULL]);
 
 		$form->fieldset('图片');
 		$form->field('pic', 'file', ['accept' => 'image/*']);
@@ -123,9 +123,9 @@ class webapp_router_admin extends webapp_echo_html
 		$form->field('goto', 'url', ['placeholder' => '跳转地址', 'required' => NULL]);
 
 		$form->fieldset('有效时间段，每天展示时间段');
-		$form->field('timestart', 'datetime-local', ['value' => date('Y-m-d\T00:00')],
+		$form->field('timestart', 'datetime-local', ['value' => date('Y-m-d\T00:00'), 'required' => NULL],
 			fn($v,$i)=>$i?strtotime($v):date('Y-m-d\TH:i',$v));
-		$form->field('timeend', 'datetime-local', ['value' => date('Y-m-d\T23:59')],
+		$form->field('timeend', 'datetime-local', ['value' => date('Y-m-d\T23:59'), 'required' => NULL],
 			fn($v,$i)=>$i?strtotime($v):date('Y-m-d\TH:i',$v));
 
 		$form->fieldset('每周几显示，空为时间内展示');
@@ -133,11 +133,11 @@ class webapp_router_admin extends webapp_echo_html
 			'星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六']],
 			fn($v,$i)=>$i?join(',',$v):explode(',',$v));
 		$form->field('seat', 'checkbox', ['options' => [
-			'位置0', '位置1', '位置2', '位置3', '位置4', '位置5', '位置7', '位置8', '位置9'
-		]]);
+			'位置0', '位置1', '位置2', '位置3', '位置4', '位置5', '位置7', '位置8', '位置9',]],
+			fn($v,$i)=>$i?join(',',$v):explode(',',$v));
 
 		$form->fieldset('展示方式：小于0点击次数，大于0展示次数');
-		$form->field('count', 'number', ['value' => 0]);
+		$form->field('count', 'number', ['value' => 0, 'required' => NULL]);
 
 		
 
@@ -167,9 +167,17 @@ class webapp_router_admin extends webapp_echo_html
 	}
 	function post_ad_new()
 	{
-		$data = $this->form_ad($this->webapp);
-		print_r($data->fetch());
-		print_r($this->webapp->request_content());
+		if ($this->form_ad($this->webapp)->fetch($data))
+		{
+			print_r(['hash' => $this->webapp->randhash(),
+			'time' => $this->webapp->time,
+			'click' => 0,
+			'view' => 0,] + $data);
+		}
+
+
+		
+
 
 
 

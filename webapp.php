@@ -316,12 +316,20 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 						{
 							break;
 						}
-						$status = $tracert->invoke($router, ...$this->entry);
+						try
+						{
+							$status = $tracert->invoke($router, ...$this->entry);
+						}
+						catch (Throwable $error)
+						{
+							$this->app = $error;
+							$status = 500;
+						}
 					}
-					$traceroute = property_exists($this, 'app') ? $this->app : $method ?? $router;
-					if ($traceroute !== $this && $traceroute instanceof Stringable)
+					$tracing = property_exists($this, 'app') ? $this->app : $method ?? $router;
+					if ($tracing !== $this && $tracing instanceof Stringable)
 					{
-					 	$this->echo((string)$traceroute);
+					 	$this->echo((string)$tracing);
 					}
 					break 2;
 				} while (0);
@@ -361,22 +369,6 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	{
 		return stream_get_contents($this->buffer, -rewind($this->buffer));
 	}
-	// function __debugInfo():array
-	// {
-	// 	return $this->errors;
-	// }
-	function app(string $name, mixed ...$params):?object
-	{
-		return class_exists($name, FALSE) ? $this->app = new $name($this, ...$params) : NULL;
-	}
-	final function entry(array $params):void
-	{
-		$this->entry = $params + $this->entry;
-	}
-	final function break(Closure $router, mixed ...$params):void
-	{
-		[$this->route[0], $this->route[1], $this->entry] = [$router, '__invoke', $params];
-	}
 	// function __call(string $name, array $params):mixed
 	// {
 	// 	return property_exists($this, 'app') && method_exists($this->app, $name) ? $this->app->{$name}(...$params) : NULL;
@@ -395,15 +387,11 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 				return $this->{$name} = $loader->invoke($this);
 			}
 		}
-		//return $this->app->?{$name};
-		// return match (TRUE)
-		// {
-		// 	property_exists($this, 'app') && property_exists($this->app, $name) => $this->app->{$name}
-		// }; ? $this->app->{$name} : NULL;
+		return NULL;
 	}
 	final function __invoke(object $object, string $errors = 'errors'):object
 	{
-		$object->webapp = $this;
+		$object->webapp ??= $this;
 		if ($object instanceof ArrayAccess)
 		{
 			$object[$errors] = &$this->errors;
@@ -424,7 +412,6 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	}
 	final function offsetSet(mixed $key, mixed $value):void
 	{
-		$this->errors[] = (string)$value;
 		//$this->configs[$key] = $value;
 	}
 	final function offsetUnset(mixed $key):void
@@ -435,6 +422,23 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	{
 		return property_exists($this, 'buffer') ? ftell($this->buffer) : 0;
 	}
+	final function &errors():array
+	{
+		return $this->errors;
+	}
+	final function app(string $name, mixed ...$params):?object
+	{
+		return class_exists($name, FALSE) ? $this->app = new $name($this, ...$params) : NULL;
+	}
+	final function break(Closure $router, mixed ...$params):void
+	{
+		[$this->route[0], $this->route[1], $this->entry] = [$router, '__invoke', $params];
+	}
+	final function entry(array $params):void
+	{
+		$this->entry = $params + $this->entry;
+	}
+
 	final function buffer():mixed
 	{
 		return fopen('php://memory', 'r+');
@@ -737,16 +741,12 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 		return $this->io->response_sendfile($filename);
 	}
 	//append function
-	function allowed(string ...$methods):bool
-	{
-		return in_array($this->method, ['get_captcha', 'get_qrcode', 'get_scss', ...$methods], TRUE);
-	}
 	final function init_admin_sign_in(array $config = [], webapp_io $io = new webapp_stdio):bool
 	{
 		self::__construct($config, $io);
 		if (method_exists(...$this->route))
 		{
-			if ($this->router === $this && in_array($this->method, ['get_captcha', 'get_qrcode', 'get_scss'], TRUE)) return TRUE;
+			if ($this->router === $this && in_array($this->method, ['get_captcha', 'get_qrcode'], TRUE)) return TRUE;
 			if ($this->admin) return FALSE;
 			$this->response_status(403);
 		}
@@ -755,12 +755,12 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 			if ($this['request_method'] === 'post')
 			{
 				$this->app('webapp_echo_json', ['errors' => &$this->errors, 'signature' => NULL]);
-				if ($input = webapp_echo_html::form_sign_in($this))
+				if (webapp_echo_html::form_sign_in($this)->fetch($admin))
 				{
-					if ($this->admin($signature = $this->signature($input['username'], $input['password'])))
+					if ($this->admin($signature = $this->signature($admin['username'], $admin['password'])))
 					{
-						$this->response_refresh(0);
 						$this->response_cookie($this['admin_cookie'], $this->app['signature'] = $signature);
+						$this->response_refresh(0);
 					}
 					else
 					{

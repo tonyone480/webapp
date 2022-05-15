@@ -112,8 +112,7 @@ class webapp_echo_html extends webapp_document
 	{
 		return iterator_to_array((new DOMXPath($this))->evaluate($expression));
 	}
-
-	static function form_sign_in(array|webapp|webapp_html $context, ?string $authurl = NULL):NULL|array|webapp_form
+	static function form_sign_in(array|webapp|webapp_html $context, ?string $authurl = NULL):webapp_form
 	{
 		$form = new webapp_form($context, $authurl);
 		$form->fieldset('Username');
@@ -123,7 +122,7 @@ class webapp_echo_html extends webapp_document
 		$form->captcha('Captcha');
 		$form->fieldset();
 		$form->button('Sign In', 'submit');
-		return $form();
+		return $form;
 	}
 }
 class webapp_echo_json extends ArrayObject implements Stringable

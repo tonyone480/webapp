@@ -375,8 +375,10 @@ class webapp_html extends webapp_xml
 	{
 		if ($name)
 		{
+			$node = ($root = $placeholder ? $this->details($placeholder) : $this)->append('ul');
 			if ($multiple)
 			{
+				($placeholder ? $root : $node)->setattr(['data-multiple' => NULL]);
 				$name .= '[]';
 				$type = 'checkbox';
 			}
@@ -384,7 +386,6 @@ class webapp_html extends webapp_xml
 			{
 				$type = 'radio';
 			}
-			$node = ($placeholder ? $this->details($placeholder) : $this)->append('ul');
 			foreach ($options as $value => $content)
 			{
 				$node->append('li')->labelinput($name, $type, $value, $content);
@@ -640,9 +641,6 @@ class webapp_form implements ArrayAccess
 				array_key_exists('data-multiple', $attr), $name, $attr['data-placeholder'] ?? NULL)->setattr($attr),
 			'select' => $this->fieldset->select($attr['options'] ?? [])
 				->setattr(['name' => array_key_exists('multiple', $attr) ? "{$alias}[]" : $alias] + $attr),
-
-
-
 			'textarea' => $this->fieldset->append('textarea', ['name' => $alias] + $attr),
 			default => $this->fieldset->append('input', ['type' => $type, 'name' => $alias] + $attr)
 		};
@@ -669,7 +667,7 @@ class webapp_form implements ArrayAccess
 		}
 		return $this;
 	}
-	function fetch(&$error = NULL):array
+	function fetch(?array &$data):bool
 	{
 		do
 		{
@@ -692,86 +690,41 @@ class webapp_form implements ArrayAccess
 					break;
 				}
 			}
-			$contents = [];
 			foreach ($this->fields as $field => $node)
 			{
-				switch ($node->getName())
+				switch ($type = $node->getName())
 				{
 					case 'ul':
 					case 'details':
-						$value = array_key_exists($field, $input)
-						? (isset($node['data-multiple']) && is_array($input[$field]) ? array_filter($input[$field], is_scalar(...)) : $input[$field])
-						: (isset($node['data-multiple']) ? [] : NULL);
-						
-
-						if ((isset($node['data-required']) && empty($value))
-							|| (isset($node['data-multiple'])
-							? (is_array($value) && empty(array_diff($value, $node->selectable())))
-							: (is_null($value) || in_array($value, $node->selectable(), TRUE))) === FALSE
-							)
-						{
-							var_dump($value);
-							break 3;
-						};
-						break;
 					case 'select':
+						[$multiple, $required] = $type === 'select'
+							? ['multiple', 'required']
+							: ['data-multiple', 'data-required'];
 						$value = array_key_exists($field, $input)
-							? (isset($node['multiple']) && is_array($input[$field]) ? array_filter($input[$field], is_scalar(...)) : $input[$field])
-							: (isset($node['multiple']) ? [] : '');
-						if ((isset($node['required']) && empty($value))
-							|| (isset($node['multiple'])
-							? (is_array($value) && empty(array_diff($value, $node->selectable())))
-							: (is_string($value) && in_array($value, $node->selectable()))) === FALSE
-							)
-						{
+							? (isset($node[$multiple]) && is_array($input[$field])
+								? array_filter($input[$field], is_scalar(...)) : $input[$field])
+							: (isset($node[$multiple]) ? [] : '');
+						if ((isset($node[$required]) && strlen($value) === 0) || (isset($node[$multiple])
+							? (is_array($value) && count(array_diff($value, $node->selectable())) === 0)
+							: (in_array($value, $node->selectable(), TRUE))) === FALSE) {
+								var_dump($value);
 							break 3;
 						};
 						break;
 					default:
 						$value = $input[$field] ?? '';
-						if ((isset($node['required']) && empty($value))
+						if ((isset($node['required']) && strlen($value) === 0)
 							|| static::validate($node, $value) === FALSE) {
 							break 3;
 						}
 				}
-				$contents[$field] = $this->format[$field]($value, TRUE);
-				// [$required] = match ($node->getName())
-				// {
-				// 	//array_intersect
-				// 	'ul',
-				// 	'details' => [isset($node['data-required'])],
-				// 	'select' => [isset($node['required'])],
-				// 	default => [isset($node['required'])]
-				// };
-				
-				// echo "------------------------\n";
-				// var_dump($required);
-
-
-				// if ($this->required[$field])
-				// switch ($node->getName())
-				// {
-				// 	case 'ul':
-				// 	case 'select':
-						
-				// 		print_r( $node->selectable() );
-				// 		var_dump($field);
-
-
-				// 		continue 2;
-				// 	default:
-				// 		if (static::validate($node, $contents[$field] = $input[$field] ?? '') === FALSE)
-				// 		{
-				// 			break 3;
-				// 		}
-				// }
+				$data[$field] = $this->format[$field]($value, TRUE);
 			}
-			PRINT_R($contents);
-			return $contents;
+			return TRUE;
 		} while (0);
-		var_dump("Form input[{$field}] invalid");
+		//var_dump("Form input[{$field}] invalid");
 		//$errors[] = "Form input[{$field}] invalid";
-		return [];
+		return FALSE;
 	}
 	//
 	function __invoke(array $values = []):NULL|array|static
