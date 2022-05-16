@@ -838,13 +838,15 @@ class webapp_form implements ArrayAccess
 	// 	return $form();
 	// }
 }
-class webapp_table
+class webapp_table// extends ArrayObject
 {
 	public readonly array $paging;
 	public readonly webapp_html $xml, $tbody;
+	private array $rows = [];
 	private array $column = [];
 	function __construct(webapp_html $node, iterable $data = [], Closure $output = NULL, mixed ...$params)
 	{
+		//parent::__construct([], ArrayObject::STD_PROP_LIST);
 		[$this->paging, $this->xml, $this->tbody] = [
 			is_object($data) && property_exists($data, 'paging') && is_array($data->paging) ? $data->paging : [],
 			$root = $node->append('table'),
@@ -871,10 +873,22 @@ class webapp_table
 			default		=> NULL
 		};
 	}
-	function row():webapp_html
+	function echo(NULL|string ...$values):webapp_html
 	{
-		return $this->row = $this->tbody->append('tr');
+		$row = $this->row();
+		foreach ($values as $value)
+		{
+			$row->append('td', $value === NULL ? ['data-null' => NULL] : $value);
+		}
+		return $row;
 	}
+
+	function row(int $index = 0):webapp_html
+	{
+		return $this->row = $this->rows[$index] ??= $this->tbody->append('tr');
+	}
+
+
 	function cell(NULL|string|array $contents = NULL, string $method = 'setattr'):webapp_html
 	{
 		return is_iterable($contents)

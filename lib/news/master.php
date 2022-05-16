@@ -4,6 +4,7 @@ class webapp_router_admin extends webapp_echo_html
 	function __construct(news_master $webapp)
 	{
 		parent::__construct($webapp);
+		$this->title('Admin');
 		if (!$webapp->admin)
 		{
 			if (str_ends_with($webapp->method, 't_home'))
@@ -63,9 +64,55 @@ class webapp_router_admin extends webapp_echo_html
 	{
 		var_dump($this->form_admin($this->webapp) );
 	}
-	function get_home()
+	function get_home(string $ym = '')
 	{
-		$this->form_admin($this->main);
+		[$y, $m] = preg_match('/^\d{4}(?=(\d{2}))?/', $ym, $pattren) ? $pattren : explode(',', date('Y,m'));
+		$t = (int)date('t', mktime(0, 0, 0, $m, 1, $y));
+		$stats = $this->webapp->mysql->unitstats('where year=?s and month=?s order by day asc', $y, $m);
+
+		$index = 0;
+		$units = [];
+		$rows = [];
+
+		$fields = [
+			'pv' => ['页面访问', '#F2D7D5'],
+			'ua' => ['唯一地址', '#EBDEF0'],
+			'lu' => ['登录用户', '#D4E6F1'],
+			'ru' => ['注册用户', '#D4EFDF'],
+			'dc' => ['下载数量', '#FCF3CF'],
+			'ia' => ['激活数量', '#FDEBD0'],
+			'oc' => ['订单数量', '#FAE5D3'],
+			'op' => ['支付数量', '#F6DDCC'],
+			'ov' => ['订单金额', '#F2F3F4'],
+			'oi' => ['支付金额', '#E5E8E8']
+		];
+
+		$table = $this->main->table();
+		$table->fieldset('单位', '统计', ...range(1, $t));
+		$table->header("{$y}年，{$m}月");
+		foreach ($stats as $stat)
+		{
+			if (isset($units[$stat['unit']]) === FALSE)
+			{
+				$row = $units[$stat['unit']]['node'] = $table->row();
+				$row->append('td', [$stat['unit'], 'rowspan' => 11]);
+				$units[$stat['unit']]['index'] = ++$index;
+	
+				foreach ($fields as $field => $ctx)
+				{
+					$node = $row->append('tr', ['style' => "background:{$ctx[1]}"]);
+					$node->append('td', $ctx[0]);
+					for ($i = 1; $i <= $t; ++$i)
+					{
+						$units[$stat['unit']][$i][] = $node->append('td', ['data-field' => $field]);
+					}
+				}
+			}
+			foreach ($units[$stat['unit']][$stat['day']] as $node)
+			{
+				$node->text(number_format($stat[(string)$node['data-field']]));
+			}
+		}
 	}
 	function get_accounts(string $uid = NULL, int $page = 1)
 	{
@@ -152,18 +199,20 @@ class webapp_router_admin extends webapp_echo_html
 	{
 		$this->main->append('div', ['style' => 'margin-bottom: 1rem'])->append('a', ['Create Ad', 'href' => '?admin/ad-new']);
 
-		$ads = $this->webapp->mysql->ads->result($fields);
-		$table = $this->main->table($ads, function($ad)
-		{
-			$this->row();
-			$this->cell([
-				['a', 'Del', 'href' => "?admin/ad-del,hash:{$ad['hash']}"],
-				['apsn', '|'],
-				['a', 'Edit', 'href' => "?admin/ad-upd,hash:{$ad['hash']}"]
-			], 'iter');
-			$this->cells($ad);
-		});
-		$table->fieldset('#', ...$fields);
+		$table = $this->main->table($this->webapp->mysql->ads->result($fields));
+
+
+		// $table = $this->main->table($ads, function($ad)
+		// {
+		// 	$this->row();
+		// 	$this->cell([
+		// 		['a', 'Del', 'href' => "?admin/ad-del,hash:{$ad['hash']}"],
+		// 		['apsn', '|'],
+		// 		['a', 'Edit', 'href' => "?admin/ad-upd,hash:{$ad['hash']}"]
+		// 	], 'iter');
+		// 	$this->cells($ad);
+		// });
+		// $table->fieldset('#', ...$fields);
 	}
 	function post_ad_new()
 	{
@@ -183,7 +232,16 @@ class webapp_router_admin extends webapp_echo_html
 		$this->form_ad($this->main);
 	}
 	function post_ad_upd(string $hash)
-	{}
+	{
+		$ad = $this->webapp->mysql->ads('where hash=?s', $hash)->array();
+		if ($ad
+			&& $this->form_ad($this->webapp)->fetch($ad, $error)
+			&& $this->webapp->call($ad['site'], 'saveAd', [$this->webapp->ad_xml($ad)])
+			&& $this->webapp->mysql->ads('where hash=?s', $ad['hash'])->update($ad)) {
+			return $this->okay('?admin/ads');
+		}
+		$this->warn("广告跟新失败，{$error}！");
+	}
 	function get_ad_upd(string $hash)
 	{
 		$this->form_ad($this->main)->echo($this->webapp->mysql->ads('WHERE hash=?s', $hash)->array());

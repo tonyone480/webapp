@@ -271,7 +271,6 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 			: [[$this['app_router'] . $track, sprintf('%s_%s', $this['request_method'],
 				count($entry) > 1 ? strtr($entry[1], '-', '_') : $this['app_index'])], []];
 		[&$this->router, &$this->method] = $this->route;
-		#set_exception_handler(fn($error) => $io->response_status(500, $io->response_content((string)$error)));
 	}
 	function __destruct()
 	{
@@ -281,53 +280,44 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 			{
 				do
 				{
-					try
+					if (($router = is_string($this->router)
+							&& ($method = new $this->router($this))::class === $this->router
+								? $method : $this->router)::class === 'Closure') {
+						$status = $router(...$this->entry);
+					}
+					else
 					{
-						if (($router = is_string($this->router)
-								&& ($method = new $this->router($this))::class === $this->router
-									? $method : $this->router)::class === 'Closure') {
-							$status = $router(...$this->entry);
-						}
-						else
+						if ($tracert->isUserDefined() === FALSE)
 						{
-							if ($tracert->isUserDefined() === FALSE)
+							break;
+						}
+						if (preg_match_all('/\,(\w+)(?:\:([\%\+\-\.\/\=\w]*))?/',
+							$this['request_query'], $pattern, PREG_SET_ORDER | PREG_UNMATCHED_AS_NULL)) {
+							$parameters = array_column($pattern, 2, 1);
+							foreach (array_slice($tracert->getParameters(), intval($router === $this)) as $parameter)
 							{
-								break;
-							}
-							if (preg_match_all('/\,(\w+)(?:\:([\%\+\-\.\/\=\w]*))?/',
-								$this['request_query'], $pattern, PREG_SET_ORDER | PREG_UNMATCHED_AS_NULL)) {
-								$parameters = array_column($pattern, 2, 1);
-								foreach (array_slice($tracert->getParameters(), intval($router === $this)) as $parameter)
+								if (array_key_exists($parameter->name, $parameters))
 								{
-									if (array_key_exists($parameter->name, $parameters))
+									$this->entry[$parameter->name] ??= match ((string)$parameter->getType())
 									{
-										$this->entry[$parameter->name] ??= match ((string)$parameter->getType())
-										{
-											'int' => intval($parameters[$parameter->name]),
-											'float' => floatval($parameters[$parameter->name]),
-											'string' => $parameters[$parameter->name] ?? '',
-											default => $parameters[$parameter->name]
-										};
-										continue;
-									}
-									if ($parameter->isOptional() === FALSE)
-									{
-										break 2;
-									}
+										'int' => intval($parameters[$parameter->name]),
+										'float' => floatval($parameters[$parameter->name]),
+										'string' => $parameters[$parameter->name] ?? '',
+										default => $parameters[$parameter->name]
+									};
+									continue;
+								}
+								if ($parameter->isOptional() === FALSE)
+								{
+									break 2;
 								}
 							}
-							if ($tracert->getNumberOfRequiredParameters() > count($this->entry))
-							{
-								break;
-							}
-							$status = $tracert->invoke($router, ...$this->entry);
 						}
-					}
-					catch (Throwable $error)
-					{
-						$this->headers['Content-Type'] = "text/plain; charset={$this['app_charset']}";
-						$this->app = $error;
-						$status = 500;
+						if ($tracert->getNumberOfRequiredParameters() > count($this->entry))
+						{
+							break;
+						}
+						$status = $tracert->invoke($router, ...$this->entry);
 					}
 					$tracing = property_exists($this, 'app') ? $this->app : $method ?? $router;
 					if ($tracing !== $this && $tracing instanceof Stringable)
@@ -757,7 +747,7 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 		{
 			if ($this['request_method'] === 'post')
 			{
-				$this->app('webapp_echo_json', ['errors' => &$this->errors, 'signature' => NULL]);
+				$this->app('webapp_echo_json', ['signature' => NULL]);
 				if (webapp_echo_html::form_sign_in($this)->fetch($admin))
 				{
 					if ($this->admin($signature = $this->signature($admin['username'], $admin['password'])))
