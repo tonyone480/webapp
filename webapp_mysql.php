@@ -364,12 +364,15 @@ abstract class webapp_mysql_table implements IteratorAggregate, Countable, Strin
 	{
 		return ($this->mysql)('SELECT ?? FROM ?a??', $this->fields, $this->tablename, (string)$this);
 	}
-	function result(&$fields = NULL, bool $detailed = FALSE):mysqli_result
+	function result(array|string $fields = '*'):mysqli_result
 	{
-		$result = $this->getIterator()->getIterator();
-		$fields = $detailed ? $result->fetch_fields() : array_column($result->fetch_fields(), 'name');
+		$result = $this->select($fields)->getIterator()->getIterator();
 		$result->paging = $this->paging;
 		return $result;
+		// $result = $this->getIterator()->getIterator();
+		// $fields = $detailed ? $result->fetch_fields() : array_column($result->fetch_fields(), 'name');
+		// $result->paging = $this->paging;
+		// return $result;
 	}
 	function object(string $class = 'stdClass', array $constructor_args = []):object
 	{

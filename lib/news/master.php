@@ -4,14 +4,13 @@ class webapp_router_admin extends webapp_echo_html
 	function __construct(news_master $webapp)
 	{
 		parent::__construct($webapp);
-		$this->title('Admin');
 		if (!$webapp->admin)
 		{
 			if (str_ends_with($webapp->method, 't_home'))
 			{
 				if ($webapp->method === 'post_home'
-					&& ($input = webapp_echo_html::form_sign_in($webapp))
-					&& $webapp->admin($signature = $webapp->signature($input['username'], $input['password']))) {
+					&& webapp_echo_html::form_sign_in($webapp)->fetch($admin)
+					&& $webapp->admin($signature = $webapp->signature($admin['username'], $admin['password']))) {
 					$webapp->response_cookie($webapp['admin_cookie'], $signature);
 					$webapp->response_refresh(0);
 				}
@@ -24,12 +23,14 @@ class webapp_router_admin extends webapp_echo_html
 			$this->main->setattr(['Unauthorized', 'style' => 'font-size:2rem']);
 			return $webapp->response_status(401);
 		}
+		$this->title($this->webapp->site);
 		$this->nav([
 			['Admin', '?admin'],
 			['Accounts', '?admin/accounts'],
-			['Payments', '?admin/payments'],
-			['Ads', '?admin/ads']
-		]);
+			['Ads', '?admin/ads'],
+			['Payments', '?admin/payments']
+		])->ul->insert('li', 'first')->setattr(['style' => 'margin-left:1rem'])->select($this->webapp['app_site'])->selected($this->webapp->site)->setattr(['onchange' => 'location.reload(document.cookie=`app_site=${this.value}`)']);
+		$this->xml->head->append('script', ['type' => 'text/javascript', 'src' => '/webapp/lib/news/functions.js']);
 	}
 	function warn(string $text)
 	{
@@ -40,40 +41,12 @@ class webapp_router_admin extends webapp_echo_html
 		$this->webapp->response_location($goto);
 		return 302;
 	}
-	function form_admin($ctx):webapp_form
-	{
-		$form = new webapp_form($ctx);
-
-		$form->fieldset('站点');
-		$form->field('site', 'number');
-
-		$form->fieldset('站点名称');
-		$form->field('name', 'text');
-
-		$form->fieldset('站点账号');
-		$form->field('uid', 'number');
-
-		$form->fieldset('站点密码');
-		$form->field('pwd', 'text');
-
-		$form->fieldset();
-		$form->button('提交', 'submit');
-		return $form;
-	}
 	function post_home()
 	{
-		var_dump($this->form_admin($this->webapp) );
 	}
 	function get_home(string $ym = '')
 	{
-		[$y, $m] = preg_match('/^\d{4}(?=(\d{2}))?/', $ym, $pattren) ? $pattren : explode(',', date('Y,m'));
-		$t = (int)date('t', mktime(0, 0, 0, $m, 1, $y));
-		$stats = $this->webapp->mysql->unitstats('where year=?s and month=?s order by day asc', $y, $m);
-
-		$index = 0;
-		$units = [];
-		$rows = [];
-
+		[$y, $m] = preg_match('/^\d{4}(?=\-(\d{2}))/', $ym, $pattren) ? $pattren : explode(',', date('Y,m'));
 		$fields = [
 			'pv' => ['页面访问', '#F2D7D5'],
 			'ua' => ['唯一地址', '#EBDEF0'],
@@ -86,67 +59,124 @@ class webapp_router_admin extends webapp_echo_html
 			'ov' => ['订单金额', '#F2F3F4'],
 			'oi' => ['支付金额', '#E5E8E8']
 		];
-
-		$table = $this->main->table();
-		$table->fieldset('单位', '统计', ...range(1, $t));
-		$table->header("{$y}年，{$m}月");
-		foreach ($stats as $stat)
+		$stats = ['汇总' => [$types = ['pv' => 0, 'ua' => 0, 'lu' => 0, 'ru' => 0, 'dc' => 0, 'ia' => 0, 'oc' => 0, 'op' => 0, 'ov' => 0, 'oi' => 0]]];
+		foreach ($this->webapp->mysql->unitstats('where site=?i and year=?s and month=?s order by oi desc', $this->webapp->site, $y, $m) as $stat)
 		{
-			if (isset($units[$stat['unit']]) === FALSE)
-			{
-				$row = $units[$stat['unit']]['node'] = $table->row();
-				$row->append('td', [$stat['unit'], 'rowspan' => 11]);
-				$units[$stat['unit']]['index'] = ++$index;
-	
-				foreach ($fields as $field => $ctx)
-				{
-					$node = $row->append('tr', ['style' => "background:{$ctx[1]}"]);
-					$node->append('td', $ctx[0]);
-					for ($i = 1; $i <= $t; ++$i)
-					{
-						$units[$stat['unit']][$i][] = $node->append('td', ['data-field' => $field]);
-					}
-				}
-			}
-			foreach ($units[$stat['unit']][$stat['day']] as $node)
-			{
-				$node->text(number_format($stat[(string)$node['data-field']]));
+			$stats['汇总'][$stat['day']] ??= $types;
+			$stats[$stat['unit']][0] ??= $types;
+			foreach ($stats[$stat['unit']][$stat['day']] = [
+				'pv' => $stat['pv'],
+				'ua' => $stat['ua'],
+				'lu' => $stat['lu'],
+				'ru' => $stat['ru'],
+				'dc' => $stat['dc'],
+				'ia' => $stat['ia'],
+				'oc' => $stat['oc'],
+				'op' => $stat['op'],
+				'ov' => $stat['ov'],
+				'oi' => $stat['oi']] as $k => $v) {
+				$stats['汇总'][0][$k] += $v;
+				$stats['汇总'][$stat['day']][$k] += $v;
+				$stats[$stat['unit']][0][$k] += $v;
 			}
 		}
-	}
-	function get_accounts(string $uid = NULL, int $page = 1)
-	{
-
-		$accounts = $this->webapp->mysql->accounts
-		->select('uid,site,time,expire,balance,lasttime,device,name,gender')
-		->paging($page)
-		->result($fields);
-
-		
-		$table = $this->main->table($accounts, function(array $acc)
+		// print_r($stats);
+		// return;
+		$t = (int)date('t', mktime(0, 0, 0, $m, 1, $y));
+		$table = $this->main->table();
+		$table->fieldset('单位', '统计', '总计', ...range(1, $t));
+		$table->header->append('input', ['type' => 'month', 'value' => "{$y}-{$m}", 'onchange' => 'g({ym:this.value})']);
+		foreach ($stats as $unit => $stat)
 		{
-			$this->row();
-			$this->cell([['a', $acc['uid'], 'href' => "?admin/accounts,uid:{$acc['uid']}"]], 'iter');
-			$this->cell($acc['site']);
-			$this->cell(date('Y-m-d H:i:s', $acc['time']));
-			$this->cell(date('Y-m-d H:i:s', $acc['expire']));
-			$this->cell($acc['balance']);
-			$this->cell(date('Y-m-d H:i:s', $acc['lasttime']));
-			$this->cell($acc['device']);
-			$this->cell($acc['name']);
-			$this->cell($acc['gender']);
+			$row = $table->row();
+			//$table->cell([$unit, 'rowspan' => 11])
+			$row->append('td', [$unit, 'rowspan' => 11, 'style' => 'background:silver']);
+			$node = [];
+			foreach ($fields as $name => $ctx)
+			{
+				$row = $table->row()->setattr(['style' => "background:{$ctx[1]}"]);
+				$row->append('td', $ctx[0]);
+				for ($i = 0; $i <= $t; ++$i)
+				{
+					$node[$i][$name] = $row->append('td', 0);
+				}
+			}
+			foreach ($stat as $day => $value)
+			{
+				foreach ($value as $field => $count)
+				{
+					$node[$day][$field][0] = number_format($count);
+				}
+			}
+		}
 
+	}
+	function form_account($ctx):webapp_form
+	{
+		$form = new webapp_form($ctx);
 
+		$form->fieldset('name / password');
+		$form->field('name', 'text');
+		$form->field('pwd', 'text');
 
+		$form->fieldset('expire / balance');
+		$form->field('expire', 'date', [],
+			fn($v, $i)=>$i?strtotime($v):date('Y-m-d', $v));
+		$form->field('balance', 'number', ['min' => 0]);
 
+		$form->fieldset();
+		$form->button('Submit', 'submit');
+		return $form;
+	}
+	function post_account_update(string $uid)
+	{
+		$acc = $this->webapp->mysql->accounts('where uid=?s', $uid)->array();
+		if ($acc
+			&& $this->form_account($this->webapp)->fetch($acc)
+			&& $this->webapp->mysql->accounts('where uid=?s', $uid)->update($acc)
+			&& $this->webapp->call('saveUser', $this->webapp->account_xml($acc))) {
+			return $this->okay('?admin/accounts');
+		}
+		$this->warn('账户更新失败！');
+	}
+	function get_account_update(string $uid)
+	{
+		$this->form_account($this->main)->echo($this->webapp->mysql->accounts('where uid=?s', $uid)->array());
+	}
+	function get_accounts($search = NULL, int $page = 1)
+	{
+		$cond = ['where site=?i', $this->webapp->site];
+		if ($search)
+		{
+			$search = urldecode($search);
+			$cond[0] .= ' and (uid=?s or phone=?s)';
+			array_push($cond, $search, $search);
+		}
+		$cond[0] .= ' order by time desc';
 
-
-			//$this->cells(...array_slice($acc, 1));
+		$table = $this->main->table($this->webapp->mysql
+			->accounts(...$cond)
+			//->select('uid,site,time,expire,balance,lasttime,device,name,gender')
+			->paging($page)
+			->result(), function($table, $acc) {
+			$table->row();
+			$table->cell()->append('a', [$acc['uid'], 'href' => "?admin/account-update,uid:{$acc['uid']}"]);
+			$table->cell(date('Y-m-d', $acc['time']));
+			$table->cell(date('Y-m-d', $acc['expire']));
+			$table->cell(number_format($acc['balance']));
+			$table->cell(date('Y-m-d', $acc['lasttime']));
+			$table->cell($this->webapp->hexip($acc['lastip']));
+			$table->cell($acc['device']);
+			$table->cell($acc['phone']);
 		});
-
-		$table->fieldset(...$fields);
+		$table->fieldset('uid', 'time', 'expire', 'balance', 'lasttime', 'lastip', 'device', 'phone');
+		$table->header('Found ' . $table->count() . ' item');
+		$table->bar->append('input', [
+			'type' => 'search',
+			'value' => $search,
+			'placeholder' => 'Type search keywords',
+			'onkeydown' => 'event.keyCode==13&&g({search:this.value?urlencode(this.value):null})']);
 		$table->paging('?admin/accounts,page:');
-		// print_r($table);
 	}
 	function get_payments()
 	{
@@ -158,9 +188,6 @@ class webapp_router_admin extends webapp_echo_html
 	function form_ad($ctx):webapp_form
 	{
 		$form = new webapp_form($ctx);
-
-		$form->fieldset('站点');
-		$form->field('site', 'select', ['options' => $this->webapp['app_site'], 'required' => NULL]);
 
 		$form->fieldset('图片');
 		$form->field('pic', 'file', ['accept' => 'image/*']);
@@ -197,61 +224,62 @@ class webapp_router_admin extends webapp_echo_html
 
 	function get_ads()
 	{
-		$this->main->append('div', ['style' => 'margin-bottom: 1rem'])->append('a', ['Create Ad', 'href' => '?admin/ad-new']);
 
-		$table = $this->main->table($this->webapp->mysql->ads->result($fields));
-
-
-		// $table = $this->main->table($ads, function($ad)
-		// {
-		// 	$this->row();
-		// 	$this->cell([
-		// 		['a', 'Del', 'href' => "?admin/ad-del,hash:{$ad['hash']}"],
-		// 		['apsn', '|'],
-		// 		['a', 'Edit', 'href' => "?admin/ad-upd,hash:{$ad['hash']}"]
-		// 	], 'iter');
-		// 	$this->cells($ad);
-		// });
-		// $table->fieldset('#', ...$fields);
+		$table = $this->main->table($this->webapp->mysql->ads('where site=?i', $this->webapp->site), function($table, $ad)
+		{
+			$table->row();
+			$table->cell()->append('a', ['delete', 'href' => "?admin/ad-delete,hash:{$ad['hash']}"]);
+			$table->cell()->append('a', [$ad['hash'], 'href' => "?admin/ad-update,hash:{$ad['hash']}"]);
+			$table->cell($ad['name']);
+			$table->cell($ad['seat']);
+			$table->cell(date('Y-m-d\TH:i:s', $ad['timestart']) . ' - ' . date('Y-m-d\TH:i:s', $ad['timeend']));
+			$table->cell($ad['weekset']);
+			$table->cell($ad['count']);
+			$table->cell($ad['click']);
+			$table->cell($ad['view']);
+			$table->cell()->append('a', [$ad['goto'], 'href' => $ad['goto'], 'target' => '_blank']);
+		});
+		$table->fieldset('delete', 'hash', 'name', 'seat', 'timestart - timeend', 'weekset', 'count', 'click', 'view', 'goto');
+		$table->header('Found ' . $this->webapp->mysql->ads->count() . ' item');
+		$table->bar->append('button', ['Create Ad', 'onclick' => 'location.href="?admin/ad-create"']);
 	}
-	function post_ad_new()
+	function post_ad_create()
 	{
 		if ($this->form_ad($this->webapp)->fetch($ad, $error)
-			&& $this->webapp->call($ad['site'], 'saveAd', [$this->webapp->ad_xml($ad += [
+			&& $this->webapp->mysql->ads->insert($ad += [
 				'hash' => $this->webapp->randhash(),
+				'site' => $this->webapp->site,
 				'time' => $this->webapp->time,
 				'click' => 0,
-				'view' => 0])])
-			&& $this->webapp->mysql->ads->insert($ad)) {
+				'view' => 0])
+			&& $this->webapp->call('saveAd', $this->webapp->ad_xml($ad))) {
 			return $this->okay('?admin/ads');
 		}
 		$this->warn("广告新建失败, {$error}！");
 	}
-	function get_ad_new()
+	function get_ad_create()
 	{
 		$this->form_ad($this->main);
 	}
-	function post_ad_upd(string $hash)
+	function post_ad_update(string $hash)
 	{
 		$ad = $this->webapp->mysql->ads('where hash=?s', $hash)->array();
 		if ($ad
 			&& $this->form_ad($this->webapp)->fetch($ad, $error)
-			&& $this->webapp->call($ad['site'], 'saveAd', [$this->webapp->ad_xml($ad)])
+			&& $this->webapp->call('saveAd', $this->webapp->ad_xml($ad))
 			&& $this->webapp->mysql->ads('where hash=?s', $ad['hash'])->update($ad)) {
 			return $this->okay('?admin/ads');
 		}
 		$this->warn("广告跟新失败，{$error}！");
 	}
-	function get_ad_upd(string $hash)
+	function get_ad_update(string $hash)
 	{
 		$this->form_ad($this->main)->echo($this->webapp->mysql->ads('WHERE hash=?s', $hash)->array());
 	}
-	function get_ad_del(string $hash)
+	function get_ad_delete(string $hash)
 	{
-		$ad = $this->webapp->mysql->ads('WHERE hash=?s', $hash)->array();
-		if ($ad
-			&& $this->webapp->call($ad['site'], 'delAd', [$ad['hash']])
-			&& $this->webapp->mysql->ads->delete('WHERE hash=?s', $ad['hash'])) {
+		if ($this->webapp->call('delAd', $hash)
+			&& $this->webapp->mysql->ads->delete('WHERE hash=?s', $hash)) {
 			return $this->okay('?admin/ads');
 		}
 		$this->warn('广告删除失败！');
@@ -267,14 +295,14 @@ class news_master extends webapp
 	{
 		return $this->iphex($this->clientip);
 	}
-	function sync(int $site):webapp_client_http
+	function sync():webapp_client_http
 	{
-		return (new webapp_client_http("http://{$this['app_site'][$site]}/", ['autoretry' => 2]))->headers([
+		return $this->sync[$this->site] ??= (new webapp_client_http("http://{$this['app_site'][$this->site]}/", ['autoretry' => 2]))->headers([
 			'Authorization' => 'Bearer ' . $this->signature($this['admin_username'], $this['admin_password']),
 			'X-Client-IP' => $this->clientip
 		]);
 	}
-	function call(int $site, string $method, array $params = []):bool|string|array|webapp_xml
+	function call(string $method, ...$params):bool|string|array|webapp_xml
 	{
 		foreach ($params as &$value)
 		{
@@ -283,16 +311,16 @@ class news_master extends webapp
 				$value = $value->asXML();
 			}
 		}
-		$sync = $this->sync($site);
+		$sync = $this->sync();
 		return is_string($content = $sync->goto("{$sync->path}?sync/{$method}", [
 			'method' => 'POST',
 			'type' => 'application/json',
 			'data' => $params
 		])->content()) && preg_match('/^(SUCCESS|OK)/i', $content) ? TRUE : $content;
 	}
-	function pull(int $site, string $router):iterable
+	function pull(string $router):iterable
 	{
-		$sync = $this->sync($site);
+		$sync = $this->sync();
 		$max = NULL;
 		do
 		{
@@ -317,8 +345,9 @@ class news_master extends webapp
 		{
 			foreach ($this['app_site'] as $id => $ip)
 			{
+				$this->site = $id;
 				var_dump($ip);
-				foreach ($this->pull($id, 'incr-res') as $res)
+				foreach ($this->pull('incr-res') as $res)
 				{
 					print_r($res);
 				}
@@ -429,7 +458,8 @@ class news_master extends webapp
 	}
 	function get_resources(string $tag = NULL, int $page = 1, int $size = 1000)
 	{
-		$cond = ['WHERE FIND_IN_SET(?i,sites) AND checked=1', $this->site];
+		//$cond = ['WHERE FIND_IN_SET(?i,sites) AND checked=1', $this->site];
+		$cond = ['WHERE FIND_IN_SET(?i,sites)', $this->site];
 		if ($tag)
 		{
 			$cond[0] .= ' AND FIND_IN_SET(?s,tags)';
@@ -488,6 +518,7 @@ class news_master extends webapp
 		]);
 		$node->append('favorites')->cdata($account['favorites']);
 		$node->append('historys')->cdata($account['historys']);
+		return $node;
 	}
 	function get_register()
 	{

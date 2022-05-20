@@ -1,11 +1,6 @@
 <?php
 class news_driver extends webapp
 {
-	function aa(webapp_xml $a)
-	{
-		print_r($a);
-		return TRUE;
-	}
 	//控制端远程调用接口（请勿非本地调用）
 	function post_sync(string $method)
 	{
