@@ -123,11 +123,6 @@ class news_driver extends webapp
 	{
 		return is_object($play = $this->get("play/{$resource}{$signature}")) && isset($play->play) ? $play->play->getattr() : [];
 	}
-	function favorite(string $resource, string $signature, bool $append = TRUE):array
-	{
-		return is_object($favorite = $this->{$append ? 'post' : 'delete'}("favorite/{$resource}{$signature}")) && isset($favorite->favorite)
-			? [...$favorite->favorite->getattr(), 'favorites' => strlen($favorite->favorite) ? str_split($favorite->favorite, 12) : []] : [];
-	}
 	function payment(string $signature, array $data)
 	{
 		print_r( $this->post("payment/{$signature}", $data) );

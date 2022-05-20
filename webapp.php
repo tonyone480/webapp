@@ -453,7 +453,14 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 		return fputcsv($this->buffer, $values, $delimiter, $enclosure);
 	}
 
-
+	function at(array $params, string $router = NULL):string
+	{
+		$replace = array_reverse($params + (preg_match_all('/\,(\w+)(?:\:([\%\+\-\.\/\=\w]*))?/', $this['request_query'],
+			$pattern, PREG_SET_ORDER | PREG_UNMATCHED_AS_NULL) ? array_column($pattern, 2, 1) : []), TRUE);
+		return array_reduce(array_keys($replace), fn($carry, $key) => is_scalar($replace[$key])
+			? (is_bool($replace[$key]) ? $carry : "{$carry},{$key}:{$replace[$key]}")
+			: "{$carry},{$key}", $router ?? strstr("?{$this['request_query']},", ',', TRUE));
+	}
 	function admin(?string $signature = NULL):mixed
 	{
 		return static::authorize(func_num_args() ? $signature : $this->request_cookie($this['admin_cookie']),
@@ -533,24 +540,20 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	{
 		return $this->io->request_ip();
 	}
-	function request_query(string $name):?string
-	{
-		return preg_match('/^\w+$/', $name) && preg_match('/\,' . $name . '\:([\%\+\-\.\/\=\w]+)/', $this['request_query'], $query) ? $query[1] : NULL;
-	}
-	function request_cond(string $name = 'cond'):array
-	{
-		$cond = [];
-		preg_match_all('/(\w+\.(?:eq|ne|gt|ge|lt|le|lk|nl|in|ni))(?:\.([^\/]*))?/', $this->request_query($name), $values, PREG_SET_ORDER);
-		foreach ($values as $value)
-		{
-			$cond[$value[1]] = array_key_exists(2, $value) ? urldecode($value[2]) : NULL;
-		}
-		return $cond;
-	}
-	function request_replace(string $name, bool $append = FALSE):string
-	{
-		return '?'. (preg_match('/^\w+$/', $name) ? preg_replace('/\,'. $name .'\:(?:[\%\+\-\.\/\=\w]+)/', '', $this['request_query']) : $this['request_query']) . ($append ? ",{$name}:" : '');
-	}
+	// function request_query(string $name):?string
+	// {
+	// 	return preg_match('/^\w+$/', $name) && preg_match('/\,' . $name . '\:([\%\+\-\.\/\=\w]+)/', $this['request_query'], $query) ? $query[1] : NULL;
+	// }
+	// function request_cond(string $name = 'cond'):array
+	// {
+	// 	$cond = [];
+	// 	preg_match_all('/(\w+\.(?:eq|ne|gt|ge|lt|le|lk|nl|in|ni))(?:\.([^\/]*))?/', $this->request_query($name), $values, PREG_SET_ORDER);
+	// 	foreach ($values as $value)
+	// 	{
+	// 		$cond[$value[1]] = array_key_exists(2, $value) ? urldecode($value[2]) : NULL;
+	// 	}
+	// 	return $cond;
+	// }
 	function request_cookie(string $name):?string
 	{
 		return $this->io->request_cookie($name);
