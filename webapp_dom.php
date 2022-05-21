@@ -856,7 +856,7 @@ class webapp_table implements Countable
 		{
 			foreach ($data as $item)
 			{
-				$echo($this, $item);
+				$echo($this, $item, ...$params);
 			}
 		}
 		else
@@ -875,10 +875,9 @@ class webapp_table implements Countable
 			'colgroup'	=> $this->colgroup = $this->xml->colgroup ?? $this->caption->insert('colgroup', 'after'),
 			'fieldset'	=> $this->fieldset = $this->tbody->insert('tr', 'first'),
 			'thead'		=> $this->thead = $this->xml->thead ?? $this->tbody->insert('thead', 'before'),
-			'header'	=> $this->header(),
 			'tfoot'		=> $this->tfoot = $this->xml->tfoot ?? $this->tbody->insert('tfoot', 'after'),
-			'row'		=> $this->row(),
-			'bar'		=> $this->maxspan($this->bar = $this->thead->append('tr')->append('td'))
+			'header'	=> $this->header = $this->maxspan($this->thead->insert('tr', 'first')->append('td')),
+			'bar'		=> $this->bar = $this->maxspan($this->thead->append('tr')->append('td'))
 								->append('div')->setattr(['class' => 'webapp-bar merge']),
 			default		=> NULL
 		};
@@ -952,9 +951,17 @@ class webapp_table implements Countable
 		}
 		return $cell;
 	}
-	function header(?string $caption = NULL):webapp_html
+	function header(string $format, ...$value):webapp_html
 	{
-		return $this->header = $this->maxspan($this->thead->insert('tr', 'first')->append('td', [$caption]));
+		return $this->header->setattr([sprintf($format, ...$value)]);
+	}
+	// function button(string $name, array $attributes = []):webapp_html
+	// {
+	// 	return $this->bar->append('button', [$name, ...$attributes]);
+	// }
+	function search(array $attributes = []):webapp_html
+	{
+		return $this->bar->append('input', $attributes + ['type' => 'search', 'placeholder' => 'Type search keywords']);
 	}
 	function footer(?string $content = NULL):webapp_html
 	{

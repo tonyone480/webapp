@@ -26,9 +26,8 @@ class webapp_router_admin extends webapp_echo_html
 		$this->title($this->webapp->site);
 		$this->nav([
 			['Admin', '?admin'],
-			['Reports', '?admin/reports'],
 			['Unitstats', '?admin/unitstats'],
-			['Payments', '?admin/payments'],
+			['Tags', '?admin/tags'],
 			['Resources', '?admin/resources'],
 			['Accounts', '?admin/accounts'],
 			['Ads', '?admin/ads']
@@ -47,74 +46,41 @@ class webapp_router_admin extends webapp_echo_html
 	function post_home()
 	{
 	}
-	function get_home(int $page = 1)
+	function get_home(string $search = NULL, int $page = 1)
 	{
-		$cond = ['where site=?i order by time desc', $this->webapp->site];
+		$cond = ['where site=?i', $this->webapp->site];
+		if (is_string($search))
+		{
+			if (strlen($search) === 10 && trim($search, webapp::key) === '')
+			{
+				$cond[0] .= ' and account=?s';
+				$cond[] = $search;
+			}
+			else
+			{
+				$search = urldecode($search);
+				$cond[0] .= ' and `describe` like ?s';
+				$cond[] = "%{$search}%";
+			}
+		}
+		$cond[0] .= ' order by time desc';
 		$table = $this->main->table($this->webapp->mysql->reports(...$cond)->paging($page), function($table, $rep)
 		{
 			$table->row();
-			$table->cell($rep['hash']);
+			$node = $table->cell();
+			
+			
+			$node->append('a', ['rejected', 'href' => "?admin/resolve,hash:{$rep['hash']}", 'style' => 'color:red']);
+			$node->append('span', ' | ');
+			$node->append('a', ['resolved', 'href' => "?admin/resolve,hash:{$rep['hash']}"]);
+			
 			$table->cell(date('Y-m-d\\TH:i:s', $rep['time']));
 			$table->cell()->append('a', [$rep['account'], 'href' => "?admin/accounts,search:{$rep['account']}"]);
 			$table->cell($rep['describe']);
 		});
-		$table->header('');
-		$table->fieldset('hash', 'time', 'account', 'describe');
-		$table->paging($this->webapp->at(['page' => '']));
-	}
-	//资源
-	function form_resource($ctx):webapp_form
-	{
-		$form = new webapp_form($ctx);
-		$form->fieldset('封面图片');
-		$form->field('cover', 'file');
-		$form->fieldset('name');
-		$form->field('name', 'text', ['style' => 'width:42rem', 'required' => NULL]);
-		$form->fieldset('tags');
-		$form->field('tags', 'text', ['style' => 'width:42rem', 'required' => NULL]);
-		$form->fieldset('require(免费0、会员1、金币大于1)');
-		$form->field('require', 'number', ['min' => 0, 'required' => NULL]);
-		$form->fieldset();
-		$form->button('Update', 'submit');
-		return $form;
-	}
-	function get_resource_update(string $hash)
-	{
-		if ($resource = $this->webapp->mysql->resources('where FIND_IN_SET(?s,sites) and hash=?s', $this->webapp->site, $hash)->array())
-		{
-			$this->form_resource($this->main)->echo($resource);
-		}
-	}
-	function get_resources(string $search = NULL, int $page = 1)
-	{
-		$cond = ['WHERE FIND_IN_SET(?s,sites)', $this->webapp->site];
-		if ($search)
-		{
-			$search = urldecode($search);
-			$cond[0] .= ' AND (hash=?s or name like ?s)';
-			array_push($cond, $search, "%$search%");
-		}
-		$cond[0] .= ' ORDER BY time DESC';
-		
-		$table = $this->main->table($this->webapp->mysql->resources(...$cond)->paging($page), function($table, $res)
-		{
-			$table->row();
-			$table->cell()->append('a', [$res['hash'], 'href' => "?admin/resource-update,hash:{$res['hash']}"]);
-			$table->cell(date('Y-m-d', $res['time']));
-			$table->cell('-');
-			$table->cell(date('G:i:s', $res['duration'] + 57600));
-			$table->cell(number_format($res['favorite']));
-			$table->cell(number_format($res['view']));
-			$table->cell(number_format($res['like']));
-			$table->cell()->append('a', [$res['name'], 'href' => 'javascript:;']);
-		});
-		$table->header('Found ' . $table->count() . ' item');
-		$table->fieldset('hash', 'time', 'require', 'duration', 'favorite', 'view', 'like', 'name');
-		$table->bar->append('input', [
-			'type' => 'search',
-			'value' => $search,
-			'placeholder' => 'Type search keywords',
-			'onkeydown' => 'event.keyCode==13&&g({search:this.value?urlencode(this.value):null,page:null})']);
+		$table->fieldset('promise', 'time', 'account', 'describe');
+		$table->header('Reports, Found %d item', $table->count());
+		$table->search(['value' => $search, 'onkeydown' => 'event.keyCode==13&&g({search:this.value?urlencode(this.value):null,page:null})']);
 		$table->paging($this->webapp->at(['page' => '']));
 	}
 	//统计
@@ -184,10 +150,132 @@ class webapp_router_admin extends webapp_echo_html
 			}
 		}
 	}
-	function get_payments()
+	//标签
+	function form_tag($ctx):webapp_form
 	{
-	}
+		$form = new webapp_form($ctx);
+		$form->fieldset('name / level / count / click');
+		$form->field('name', 'text', ['required' => NULL]);
+		$form->field('level', 'number', ['style' => 'width:8rem', 'min' => 0, 'required' => NULL]);
+		$form->field('count', 'number', ['style' => 'width:8rem', 'min' => 0, 'required' => NULL]);
+		$form->field('click', 'number', ['style' => 'width:8rem', 'min' => 0, 'required' => NULL]);
 
+		$form->fieldset('alias');
+		$form->field('alias', 'text', ['style' => 'width:42rem', 'required' => NULL]);
+
+		$form->fieldset();
+		$form->button('Submit', 'submit');
+		return $form;
+	}
+	function post_tag_update(string $hash)
+	{
+		$tag = $this->webapp->mysql->tags('where hash=?s', $hash)->array();
+		if ($tag
+			&& $this->form_tag($this->webapp)->fetch($tag)
+			&& $this->webapp->mysql->tags('where hash=?s', $hash)->update($tag)
+			&& $this->webapp->call('saveTag', $this->webapp->tag_xml($tag))) {
+			return $this->okay("?admin/tags,search:{$hash}");
+		}
+		$this->warn('标签更新失败！');
+	}
+	function get_tag_update(string $hash)
+	{
+		$this->form_tag($this->main)->echo($this->webapp->mysql->tags('where hash=?s', $hash)->array());
+	}
+	function get_tags(string $search = NULL, int $page = 1)
+	{
+		$cond = [];
+		if (is_string($search))
+		{
+			strlen($search) === 4 && trim($search, webapp::key) === ''
+				? array_push($cond, 'where hash=?s ??', $search)
+				: array_push($cond, 'where name=?s or alias like ?s ??', $search = urldecode($search), "%{$search}%");
+		}
+		else
+		{
+			$cond[] = '??';
+		}
+		$cond[] = 'order by level asc,click desc,count desc';
+		$table = $this->main->table($this->webapp->mysql->tags(...$cond)->paging($page), function($table, $tag)
+		{
+			$table->row();
+			$table->cell()->append('a', [$tag['hash'], 'href' => "?admin/tag-update,hash:{$tag['hash']}"]);
+			$table->cell($tag['level']);
+			$table->cell(number_format($tag['count']));
+			$table->cell(number_format($tag['click']));
+			$table->cell()->append('a', [$tag['name'], 'href' => "?admin/resources,search:{$tag['hash']}"]);
+			$table->cell($tag['alias']);
+		});
+		$table->fieldset('hash', 'level', 'count', 'click', 'name', 'alias');
+		$table->header('Found %d item', $table->count());
+		$table->search(['value' => $search, 'onkeydown' => 'event.keyCode==13&&g({search:this.value?urlencode(this.value):null,page:null})']);
+		$table->paging($this->webapp->at(['page' => '']));
+	}
+	//资源
+	function form_resource($ctx):webapp_form
+	{
+		$form = new webapp_form($ctx);
+		$form->fieldset('封面图片');
+		$form->field('cover', 'file');
+		$form->fieldset('name');
+		$form->field('name', 'text', ['style' => 'width:42rem', 'required' => NULL]);
+		$form->fieldset('tags');
+		$form->field('tags', 'text', ['style' => 'width:42rem', 'required' => NULL]);
+		$form->fieldset('require(免费0、会员1、金币大于1)');
+		$form->field('require', 'number', ['min' => 0, 'required' => NULL]);
+		$form->fieldset();
+		$form->button('Update Resource', 'submit');
+		return $form;
+	}
+	function post_resource_update(string $hash)
+	{
+		$res = $this->webapp->mysql->resources('where FIND_IN_SET(?s,sites) and hash=?s', $this->webapp->site, $hash)->array();
+		if ($res
+			&& $this->form_resource($this->webapp)->fetch($res)
+			&& $this->webapp->mysql->resources('where hash=?s', $hash)->update($res)
+			&& $this->webapp->call('saveRes', $this->webapp->resource_xml($res))) {
+			return $this->okay("?admin/resources,search:{$hash}");
+		}
+		$this->warn('资源更新失败！');
+	}
+	function get_resource_update(string $hash)
+	{
+		$this->form_resource($this->main)->echo($this->webapp->mysql->resources('where FIND_IN_SET(?s,sites) and hash=?s', $this->webapp->site, $hash)->array());
+	}
+	function get_resources(string $search = NULL, int $page = 1)
+	{
+		$cond = ['WHERE FIND_IN_SET(?s,sites)', $this->webapp->site];
+		if (is_string($search))
+		{
+			if (strlen($search) === 4 && trim($search, webapp::key) === '')
+			{
+				$cond[0] .= ' AND FIND_IN_SET(?s,tags)';
+				$cond[] = $search;
+			}
+			else
+			{
+				$cond[0] .= ' AND (hash=?s or name like ?s)';
+				array_push($cond, $search = urldecode($search), "%{$search}%");
+			}
+		}
+		$cond[0] .= ' ORDER BY time DESC';
+		$table = $this->main->table($this->webapp->mysql->resources(...$cond)->paging($page), function($table, $res)
+		{
+			$table->row();
+			$table->cell()->append('a', [$res['hash'], 'href' => "?admin/resource-update,hash:{$res['hash']}"]);
+			$table->cell(date('Y-m-d', $res['time']));
+			$table->cell('-');
+			$table->cell(date('G:i:s', $res['duration'] + 57600));
+			$table->cell(number_format($res['favorite']));
+			$table->cell(number_format($res['view']));
+			$table->cell(number_format($res['like']));
+			$table->cell()->append('a', [$res['name'], 'href' => 'javascript:;']);
+		});
+		$table->fieldset('hash', 'time', 'require', 'duration', 'favorite', 'view', 'like', 'name');
+		$table->header('Found %d item', $table->count());
+		$table->search(['value' => $search, 'onkeydown' => 'event.keyCode==13&&g({search:this.value?urlencode(this.value):null,page:null})']);
+		$table->paging($this->webapp->at(['page' => '']));
+	}
 	//账户
 	function form_account($ctx):webapp_form
 	{
@@ -203,7 +291,7 @@ class webapp_router_admin extends webapp_echo_html
 		$form->field('balance', 'number', ['min' => 0]);
 
 		$form->fieldset();
-		$form->button('Submit', 'submit');
+		$form->button('Update Account', 'submit');
 		return $form;
 	}
 	function post_account_update(string $uid)
@@ -224,19 +312,14 @@ class webapp_router_admin extends webapp_echo_html
 	function get_accounts($search = NULL, int $page = 1)
 	{
 		$cond = ['where site=?i', $this->webapp->site];
-		if ($search)
+		if (is_string($search))
 		{
-			$search = urldecode($search);
-			$cond[0] .= ' and (uid=?s or phone=?s)';
-			array_push($cond, $search, $search);
+			$cond[0] .= is_numeric($search) ? ' and phone=?s' : ' and uid=?s';
+			$cond[] = $search;
 		}
 		$cond[0] .= ' order by time desc';
-
-		$table = $this->main->table($this->webapp->mysql
-			->accounts(...$cond)
-			//->select('uid,site,time,expire,balance,lasttime,device,name,gender')
-			->paging($page)
-			->result(), function($table, $acc) {
+		$table = $this->main->table($this->webapp->mysql->accounts(...$cond)->paging($page), function($table, $acc)
+		{
 			$table->row();
 			$table->cell()->append('a', [$acc['uid'], 'href' => "?admin/account-update,uid:{$acc['uid']}"]);
 			$table->cell(date('Y-m-d', $acc['time']));
@@ -248,12 +331,8 @@ class webapp_router_admin extends webapp_echo_html
 			$table->cell($acc['phone']);
 		});
 		$table->fieldset('uid', 'time', 'expire', 'balance', 'lasttime', 'lastip', 'device', 'phone');
-		$table->header('Found ' . $table->count() . ' item');
-		$table->bar->append('input', [
-			'type' => 'search',
-			'value' => $search,
-			'placeholder' => 'Type search keywords',
-			'onkeydown' => 'event.keyCode==13&&g({search:this.value?urlencode(this.value):null,page:null})']);
+		$table->header('Found %d item', $table->count());
+		$table->search(['value' => $search, 'onkeydown' => 'event.keyCode==13&&g({search:this.value?urlencode(this.value):null,page:null})']);
 		$table->paging($this->webapp->at(['page' => '']));
 	}
 	//广告
@@ -261,12 +340,11 @@ class webapp_router_admin extends webapp_echo_html
 	{
 		$form = new webapp_form($ctx);
 
-		$form->fieldset('图片');
 		$form->field('pic', 'file', ['accept' => 'image/*']);
 
 		$form->fieldset('名称跳转');
-		$form->field('name', 'text', ['placeholder' => '广告名称']);
-		$form->field('goto', 'url', ['placeholder' => '跳转地址', 'required' => NULL]);
+		$form->field('name', 'text', ['style' => 'width:8rem', 'placeholder' => '广告名称']);
+		$form->field('goto', 'url', ['style' => 'width:42rem', 'placeholder' => '跳转地址', 'required' => NULL]);
 
 		$form->fieldset('有效时间段，每天展示时间段');
 		$form->field('timestart', 'datetime-local', ['value' => date('Y-m-d\T00:00'), 'required' => NULL],
@@ -286,13 +364,13 @@ class webapp_router_admin extends webapp_echo_html
 		$form->field('count', 'number', ['value' => 0, 'required' => NULL]);
 
 		$form->fieldset();
-		$form->button('提交', 'submit');
+		$form->button('Submit', 'submit');
 
 		return $form;
 	}
 	function get_ads()
 	{
-		$table = $this->main->table($this->webapp->mysql->ads('where site=?i', $this->webapp->site), function($table, $ad)
+		$table = $this->main->table($this->webapp->mysql->ads('where site=?i', $this->webapp->site), function($table, $ad, $week)
 		{
 			$table->row();
 			$table->cell()->append('a', ['delete', 'href' => "?admin/ad-delete,hash:{$ad['hash']}"]);
@@ -300,19 +378,19 @@ class webapp_router_admin extends webapp_echo_html
 			$table->cell($ad['name']);
 			$table->cell($ad['seat']);
 			$table->cell(date('Y-m-d\TH:i:s', $ad['timestart']) . ' - ' . date('Y-m-d\TH:i:s', $ad['timeend']));
-			$table->cell($ad['weekset']);
+			$table->cell($ad['weekset'] ? join(',', array_map(fn($v)=>"周{$week[$v]}", explode(',', $ad['weekset']))) : '时间段');
 			$table->cell($ad['count']);
-			$table->cell($ad['click']);
-			$table->cell($ad['view']);
-			$table->cell()->append('a', [$ad['goto'], 'href' => $ad['goto'], 'target' => '_blank']);
-		});
+			$table->cell(number_format($ad['click']));
+			$table->cell(number_format($ad['view']));
+			$table->cell()->append('a', [$ad['goto'], 'href' => $ad['goto'], 'target' => 'ad']);
+		}, ['日', '一', '二', '三', '四', '五', '六']);
 		$table->fieldset('delete', 'hash', 'name', 'seat', 'timestart - timeend', 'weekset', 'count', 'click', 'view', 'goto');
 		$table->header('Found ' . $this->webapp->mysql->ads->count() . ' item');
 		$table->bar->append('button', ['Create Ad', 'onclick' => 'location.href="?admin/ad-create"']);
 	}
 	function post_ad_create()
 	{
-		if ($this->form_ad($this->webapp)->fetch($ad, $error)
+		if ($this->form_ad($this->webapp)->fetch($ad)
 			&& $this->webapp->mysql->ads->insert($ad += [
 				'hash' => $this->webapp->randhash(),
 				'site' => $this->webapp->site,
@@ -322,7 +400,7 @@ class webapp_router_admin extends webapp_echo_html
 			&& $this->webapp->call('saveAd', $this->webapp->ad_xml($ad))) {
 			return $this->okay('?admin/ads');
 		}
-		$this->warn("广告新建失败, {$error}！");
+		$this->warn("广告创建失败！");
 	}
 	function get_ad_create()
 	{
@@ -332,12 +410,12 @@ class webapp_router_admin extends webapp_echo_html
 	{
 		$ad = $this->webapp->mysql->ads('where hash=?s', $hash)->array();
 		if ($ad
-			&& $this->form_ad($this->webapp)->fetch($ad, $error)
-			&& $this->webapp->call('saveAd', $this->webapp->ad_xml($ad))
-			&& $this->webapp->mysql->ads('where hash=?s', $ad['hash'])->update($ad)) {
+			&& $this->form_ad($this->webapp)->fetch($ad)
+			&& $this->webapp->mysql->ads('where hash=?s', $ad['hash'])->update($ad)
+			&& $this->webapp->call('saveAd', $this->webapp->ad_xml($ad))) {
 			return $this->okay('?admin/ads');
 		}
-		$this->warn("广告跟新失败，{$error}！");
+		$this->warn("广告更新失败！");
 	}
 	function get_ad_update(string $hash)
 	{

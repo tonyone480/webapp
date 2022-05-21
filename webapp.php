@@ -540,10 +540,10 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	{
 		return $this->io->request_ip();
 	}
-	// function request_query(string $name):?string
-	// {
-	// 	return preg_match('/^\w+$/', $name) && preg_match('/\,' . $name . '\:([\%\+\-\.\/\=\w]+)/', $this['request_query'], $query) ? $query[1] : NULL;
-	// }
+	function request_query(string $name):?string
+	{
+		return preg_match('/^\w+$/', $name) && preg_match('/\,' . $name . '\:([\%\+\-\.\/\=\w]+)/', $this['request_query'], $query) ? $query[1] : NULL;
+	}
 	// function request_cond(string $name = 'cond'):array
 	// {
 	// 	$cond = [];
