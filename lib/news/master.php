@@ -51,24 +51,51 @@ class news_master extends webapp
 	}
 	function get_pull()
 	{
-		if (PHP_SAPI !== 'cli' || $this->request_ip() !== '127.0.0.1')
+		// if (PHP_SAPI !== 'cli' || $this->request_ip() !== '127.0.0.1')
+		// {
+		// 	$this->echo('Please run at the local command line');
+		// 	return;
+		// }
+		foreach ($this['app_site'] as $site => $ip)
 		{
-			$this->echo('Please run at the local command line');
-			return;
-		}
-		for (;;)
-		{
-			foreach ($this['app_site'] as $id => $ip)
+			$this->site = $site;
+			echo "\n-------- PULL TAGS --------\n";
+			foreach ($this->pull('incr-tag') as $tag)
 			{
-				$this->site = $id;
-				var_dump($ip);
-				foreach ($this->pull('incr-res') as $res)
-				{
-					print_r($res);
-				}
-				
+				echo $tag['hash'], ' - ', 
+					$this->mysql->tags('WHERE hash=?s LIMIT 1', $tag['hash'])
+						->update('`click`=`click`+?i', $tag['click']) ? 'OK' : 'NO',
+					"\n";
 			}
-			sleep(5);
+
+			echo "\n-------- PULL RESOURCES --------\n";
+			foreach ($this->pull('incr-res') as $resource)
+			{
+				echo $resource['hash'], ' - ', 
+					$this->mysql->resources('WHERE FIND_IN_SET(?s,sites) AND hash=?s LIMIT 1', $site, $resource['hash'])
+						->update('`favorite`=`favorite`+?i,`view`=`view`+?i,`like`=`like`+?i',
+						$resource['favorite'], $resource['view'], $resource['like']) ? 'OK' : 'NO',
+					"\n";
+			}
+
+			echo "\n-------- PULL AD --------\n";
+			foreach ($this->pull('incr-ad') as $ad)
+			{
+				echo $ad['hash'], ' - ', 
+					$this->mysql->ads('WHERE site=?i AND hash=?s LIMIT 1', $site, $ad['hash'])
+						->update('`click`=`click`+?i,`view`=`view`+?i', $ad['click'], $ad['view']) ? 'OK' : 'NO',
+					"\n";
+			}
+
+			echo "\n-------- PULL COMMENTS --------\n";
+			foreach ($this->pull('comments') as $comment)
+			{
+				echo $comment['hash'], ' - ', 
+					$this->mysql->comments->insert($comment->getattr() + ['site' => $site, 'content' => (string)$comment]) ? 'OK' : 'NO',
+					"\n";
+
+			}
+			break;
 		}
 	}
 	function maskfile(string $src, string $dst):bool
@@ -97,13 +124,25 @@ class news_master extends webapp
 
 	function get_test()
 	{
-
-		foreach ($this->pull(0, 'incr-res') as $res)
-		{
-			print_r($res);
+		$status = [
+			'os_http_connected' => intval(shell_exec('netstat -ano | find ":80" /c'))
+		];
+		foreach ($this->mysql('SELECT * FROM performance_schema.GLOBAL_STATUS WHERE VARIABLE_NAME IN(?S)', [
+			'Aborted_clients',
+			'Aborted_connects',//接到MySQL服务器失败的次数
+			'Queries',//总查询
+			'Slow_queries',//慢查询
+			'max_connections',//最大连接数
+			'Threads_cached',
+			'Threads_connected',//打开的连接数
+			'Threads_created',//创建过的线程数
+			'Threads_running',//激活的连接数
+			'Uptime',//已经运行的时长
+		]) as $stat) {
+			$status['mysql_' . strtolower($stat['VARIABLE_NAME'])] = $stat['VARIABLE_VALUE'];
 		}
-		
-		//var_dump( $this->call(0, 'aa', [webapp::xml('<xml><a>222</a></xml>')]) );
+
+		print_r( $status );
 	}
 	function get_home()
 	{
@@ -162,6 +201,7 @@ class news_master extends webapp
 			'batch' => $resource['batch'],
 			'require' => $resource['require'],
 			'duration' => $resource['duration'],
+			'favorite' => $resource['favorite'],
 			'view' => $resource['view'],
 			'like' => $resource['like'],
 			'tags' => $resource['tags'],
@@ -221,7 +261,7 @@ class news_master extends webapp
 	function account(string $signature, &$account):bool
 	{
 		return boolval($account = $this->authorize($signature, fn(string $uid, string $pwd):array
-			=> $this->mysql->accounts('WHERE uid=?s AND site=?i AND pwd=?s LIMIT 1', $uid, $this->site, $pwd)->array()));
+			=> $this->mysql->accounts('WHERE site=?i AND uid=?s AND pwd=?s LIMIT 1', $this->site, $uid, $pwd)->array()));
 	}
 	function account_xml(array $account, string $signature = NULL):webapp_xml
 	{
@@ -340,6 +380,21 @@ class news_master extends webapp
 				: $resource)) {
 			$this->mysql->resources('WHERE hash=?s LIMIT 1', $resource)->update('view=view+1');
 			$this->app->xml->append('history', ['signature' => $signature])->cdata($history);
+		}
+	}
+	//评论
+	function get_comments(string $resource)
+	{
+
+		foreach ($this->mysql->comments('WHERE site=?i AND resource=?s ORDER BY time DESC LIMIT 500', $this->site, $resource) as $comment)
+		{
+			$this->xml->append('comment', [
+				'hash' => $comment['hash'],
+				'time' => $comment['time'],
+				'face' => 12,//-----------------------
+				'name' => 'asdasdawdawd'//----------------------------
+				//'account' => $comment['account']
+			])->cdata($comment['content']);
 		}
 	}
 	//支付

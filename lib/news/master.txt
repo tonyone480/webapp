@@ -15,10 +15,12 @@ GET ?play/{资源+签名（如：001V4BE4R1TRiYWoyVI14OfIuxgn_cFHs_wC7_vyKQeVz7j
 ##GET ?favorite/{资源+签名} 增加或者删除收藏这个资源
 ##GET ?history/{资源+签名} 增加观看历史记录
 
-
 评论相关
-POST ?comment/{资源+签名} BODY(评论内容) 提交评论
-GET ?comments 获取评论
+GET ?comments/{资源（如：001V4BE4R1TR）} 获取某个资源的评论
+
+
+
+
 
 付款相关
 POST ?payment/{签名} 创建一条付款记录

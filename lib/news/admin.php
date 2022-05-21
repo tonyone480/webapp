@@ -33,7 +33,7 @@ class webapp_router_admin extends webapp_echo_html
 			['Accounts', '?admin/accounts'],
 			['Ads', '?admin/ads']
 		]);
-		if ($webapp->admin[0] === $webapp['admin_username'])
+		if ($webapp->admin[2])
 		{
 			$this->title($this->webapp->site);
 			$nav->ul->insert('li', 'first')->setattr(['style' => 'margin-left:1rem'])->select($this->webapp['app_site'])->selected($this->webapp->site)->setattr(['onchange' => 'location.reload(document.cookie=`app_site=${this.value}`)']);
@@ -54,6 +54,7 @@ class webapp_router_admin extends webapp_echo_html
 		}
 		if ($admin = $this->webapp->admin($signature))
 		{
+			$admin[2] = TRUE;
 			$this->webapp->admin = $admin;
 			return $admin;
 		}
@@ -62,19 +63,11 @@ class webapp_router_admin extends webapp_echo_html
 			if ($st > $this->webapp->time(-$this->webapp['admin_expire'])
 				&& ($admin = $this->webapp->mysql->admin('WHERE uid=?s AND pwd=?s LIMIT 1', $uid, $pwd)->array())) {
 					$this->webapp->site = $admin['site'];
-					$this->webapp->admin = [$admin['uid'], $admin['pwd']];
+					$this->webapp->admin = [$admin['uid'], $admin['pwd'], FALSE];
 					return $admin;
 			}
 			return [];
 		});
-
-		// $this->webapp->admin()
-		// return static::authorize(func_num_args() ? $signature : $this->request_cookie($this['admin_cookie']),
-		// fn(string $username, string $password, int $signtime, string $additional):array =>
-		// 	$signtime > static::time(-$this['admin_expire'])
-		// 	&& $username === $this['admin_username']
-		// 	&& $password === $this['admin_password']
-		// 		? [$username, $password, $additional] : []);
 	}
 	function warn(string $text)
 	{
@@ -211,12 +204,13 @@ class webapp_router_admin extends webapp_echo_html
 	{
 		$tag = $this->webapp->mysql->tags('where hash=?s', $hash)->array();
 		if ($tag
+			&& $this->webapp->admin[2]
 			&& $this->form_tag($this->webapp)->fetch($tag)
 			&& $this->webapp->mysql->tags('where hash=?s', $hash)->update($tag)
 			&& $this->webapp->call('saveTag', $this->webapp->tag_xml($tag))) {
 			return $this->okay("?admin/tags,search:{$hash}");
 		}
-		$this->warn('标签更新失败！');
+		$this->warn($this->webapp->admin[2] ? '标签更新失败！' : '需要全局管理权限！');
 	}
 	function get_tag_update(string $hash)
 	{
@@ -383,7 +377,7 @@ class webapp_router_admin extends webapp_echo_html
 		$form->field('pic', 'file', ['accept' => 'image/*']);
 
 		$form->fieldset('名称跳转');
-		$form->field('name', 'text', ['style' => 'width:8rem', 'placeholder' => '广告名称']);
+		$form->field('name', 'text', ['style' => 'width:8rem', 'placeholder' => '广告名称', 'required' => NULL]);
 		$form->field('goto', 'url', ['style' => 'width:42rem', 'placeholder' => '跳转地址', 'required' => NULL]);
 
 		$form->fieldset('有效时间段，每天展示时间段');
@@ -413,7 +407,10 @@ class webapp_router_admin extends webapp_echo_html
 		$table = $this->main->table($this->webapp->mysql->ads('where site=?i', $this->webapp->site), function($table, $ad, $week)
 		{
 			$table->row();
-			$table->cell()->append('a', ['delete', 'href' => "?admin/ad-delete,hash:{$ad['hash']}"]);
+			$table->cell()->append('a', ['❌',
+				'href' => "?admin/ad-delete,hash:{$ad['hash']}",
+				'onclick' => 'return confirm(`Delete Ad ${this.dataset.uid}`)',
+				'data-uid' => $ad['name']]);
 			$table->cell()->append('a', [$ad['hash'], 'href' => "?admin/ad-update,hash:{$ad['hash']}"]);
 			$table->cell($ad['name']);
 			$table->cell($ad['seat']);
@@ -424,7 +421,7 @@ class webapp_router_admin extends webapp_echo_html
 			$table->cell(number_format($ad['view']));
 			$table->cell()->append('a', [$ad['goto'], 'href' => $ad['goto'], 'target' => 'ad']);
 		}, ['日', '一', '二', '三', '四', '五', '六']);
-		$table->fieldset('delete', 'hash', 'name', 'seat', 'timestart - timeend', 'weekset', 'count', 'click', 'view', 'goto');
+		$table->fieldset('❌', 'hash', 'name', 'seat', 'timestart - timeend', 'weekset', 'count', 'click', 'view', 'goto');
 		$table->header('Found ' . $this->webapp->mysql->ads->count() . ' item');
 		$table->bar->append('button', ['Create Ad', 'onclick' => 'location.href="?admin/ad-create"']);
 	}
@@ -470,18 +467,66 @@ class webapp_router_admin extends webapp_echo_html
 		$this->warn('广告删除失败！');
 	}
 	//Admin
+	function form_admin($ctx):webapp_form
+	{
+		$form = new webapp_form($ctx);
+		$form->fieldset('uid:pwd');
+
+		$form->field('uid', 'number', ['min' => 1000, 'required' => NULL]);
+		$form->field('pwd', 'text', ['required' => NULL]);
+		if ($form->echo)
+		{
+			$form->echo([
+				'uid' => random_int(1000, 9999),
+				'pwd' => random_int(100000, 999999)
+			]);
+		}
+
+		$form->fieldset();
+		$form->button('Create Administrator', 'submit');
+		return $form;
+	}
+	function post_admin_create()
+	{
+		if ($this->form_admin($this->webapp)->fetch($admin)
+			&& $this->webapp->mysql->admin->insert([
+				'site' => $this->webapp->site,
+				'time' => $this->webapp->time,
+				'lasttime' => $this->webapp->time,
+				'lastip' => $this->webapp->iphex('127.0.0.1')
+			] + $admin)) {
+			return $this->okay('?admin/admin');
+		}
+		$this->warn('管理员创建失败！');
+	}
+	function get_admin_create()
+	{
+		$this->form_admin($this->main);
+	}
+	function get_admin_delete(string $uid)
+	{
+		$this->webapp->mysql->admin->delete('WHERE uid=?s LIMIT 1', $uid);
+		$this->okay('?admin/admin');
+	}
 	function get_admin(int $page = 1)
 	{
 		$cond = ['WHERE site=?i', $this->webapp->site];
 		$table = $this->main->table($this->webapp->mysql->admin(...$cond)->paging($page), function($table, $admin)
 		{
 			$table->row();
-			$table->cell($admin['uid']);
-			$table->cell($admin['pwd']);
-			$table->cell($admin['uid']);
-			$table->cell($admin['uid']);
+			$table->cell()->append('a', ['❌',
+				'href' => "?admin/admin-delete,uid:{$admin['uid']}",
+				'onclick' => 'return confirm(`Delete Admin ${this.dataset.uid}`)',
+				'data-uid' => $admin['uid']]);
+			$table->cell("{$admin['uid']}:{$admin['pwd']}");
+			$table->cell(date('Y-m-d\\TH:i:s', $admin['time']));
+			$table->cell(date('Y-m-d\\TH:i:s', $admin['lasttime']));
+			$table->cell($this->webapp->hexip($admin['lastip']));
 		});
-		$table->fieldset('uid', 'pwd' );
+		$table->fieldset('❌', 'uid:pwd', 'time', 'lasttime', 'lastip' );
+		$table->header('Found ' . $table->count() . ' item');
+		$table->bar->append('button', ['Create Admin', 'onclick' => 'location.href="?admin/admin-create"']);
+		$table->paging($this->webapp->at(['page' => '']));
 	}
 	//密码
 	function form_setpwd($ctx):webapp_form

@@ -362,10 +362,10 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	{
 		return stream_get_contents($this->buffer, -rewind($this->buffer));
 	}
-	// function __call(string $name, array $params):mixed
-	// {
-	// 	return property_exists($this, 'app') && method_exists($this->app, $name) ? $this->app->{$name}(...$params) : NULL;
-	// }
+	function __call(string $tablename, array $conditionals):webapp_mysql_table
+	{
+		return $this->mysql->{$tablename}(...$conditionals);
+	}
 	function __get(string $name):mixed
 	{
 		if ($this->offsetExists($name))
