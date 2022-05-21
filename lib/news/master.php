@@ -213,10 +213,15 @@ class news_master extends webapp
 
 
 	//账号操作
-	function account(string $signature):array
+	// function uid(string $signature, &$uid):bool
+	// {
+	// 	return is_string($uid = $this->authorize($signature, fn(string $uid):?string
+	// 		=> strlen($uid) === 10 && trim($uid, webapp::key) === '' ? $uid : NULL));
+	// }
+	function account(string $signature, &$account):bool
 	{
-		return $this->authorize($signature, fn(string $uid, string $pwd):array
-			=> $this->mysql->accounts('WHERE uid=?s AND site=?i AND pwd=?s LIMIT 1', $uid, $this->site, $pwd)->array());
+		return boolval($account = $this->authorize($signature, fn(string $uid, string $pwd):array
+			=> $this->mysql->accounts('WHERE uid=?s AND site=?i AND pwd=?s LIMIT 1', $uid, $this->site, $pwd)->array()));
 	}
 	function account_xml(array $account, string $signature = NULL):webapp_xml
 	{
@@ -265,14 +270,35 @@ class news_master extends webapp
 	}
 	function get_account(string $signature)
 	{
-		if ($account = $this->account($signature))
+		if ($this->account($signature, $account))
 		{
 			$this->account_xml($account, $signature);
 		}
 	}
+	function post_report(string $signature)
+	{
+		if ($this->account($signature, $account)
+			&& is_string($describe = $this->request_content())
+			&& strlen($describe) > 2
+			&& strlen($describe) < 128
+			&& $this->mysql->reports->insert($report = [
+				'hash' => $this->randhash(TRUE),
+				'site' => $this->site,
+				'time' => $this->time,
+				'ip' => $this->clientiphex(),
+				'promise' => 'waiting',
+				'account' => $account['uid'],
+				'describe' => $describe])) {
+			$this->xml->append('report', [
+				'hash' => $report['hash'],
+				'time' => $report['time'],
+				'promise' => $report['promise']
+			])->cdata($describe);
+		}
+	}
 	function get_play(string $resource_signature)
 	{
-		if ($account = $this->account($signature = substr($resource_signature, 12)))
+		if ($this->account($signature = substr($resource_signature, 12), $account))
 		{
 			$require = $this->mysql->resources('WHERE hash=?s LIMIT 1', $resource = substr($resource_signature, 0, 12))->array()['require'] ?? 0;
 			if ($require > 0 && $this->mysql->accounts('WHERE uid=?s LIMIT 1', $account['uid'])->update('balance=balance-?i', $require) === 1)
@@ -284,7 +310,7 @@ class news_master extends webapp
 	function get_favorite(string $resource_signature)
 	{
 		$resource = substr($resource_signature, 0, 12);
-		if ($account = $this->account($signature = substr($resource_signature, 12)))
+		if ($this->account($signature = substr($resource_signature, 12), $account))
 		{
 			$favorite = $account['favorite'] ? str_split(substr($account['favorite'], -384), 12) : [];
 			$offset = array_search($resource, $favorite, TRUE);
@@ -308,7 +334,7 @@ class news_master extends webapp
 	function get_history(string $resource_signature)
 	{
 		$resource = substr($resource_signature, 0, 12);
-		if (($account = $this->account($signature = substr($resource_signature, 12)))
+		if ($this->account($signature = substr($resource_signature, 12), $account)
 			&& $this->mysql->accounts('WHERE uid=?s LIMIT 1', $account['uid'])->update('history=?s', $history = $account['history']
 				? join(array_unique(str_split(substr($account['history'] . $resource, -384), 12)))
 				: $resource)) {
@@ -319,7 +345,7 @@ class news_master extends webapp
 	//支付
 	function post_payment(string $signature)
 	{
-		if ($account = $this->account($signature))
+		if ($this->account($signature, $account))
 		{
 			//print_r($account);
 			print_r($this->request_content());
@@ -331,7 +357,7 @@ class news_master extends webapp
 	}
 	function get_payments(string $signature)
 	{
-		if ($account = $this->account($signature))
+		if ($this->account($signature, $account))
 		{
 			$payments = $this->mysql->payments('WHERE site=?i AND account=?s', $this->site, $account['uid']);
 			foreach ($payments as $pay)

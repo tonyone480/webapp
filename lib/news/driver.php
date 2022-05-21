@@ -24,6 +24,11 @@ class news_driver extends webapp
 		}
 		return 401;
 	}
+	//随机散列
+	function randhash(bool $care = FALSE):string
+	{
+		return $this->hash($this->random(16), $care);
+	}
 	//获取客户端IP
 	function clientip():string
 	{

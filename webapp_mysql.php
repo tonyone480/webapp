@@ -5,16 +5,15 @@ class webapp_mysql extends mysqli implements IteratorAggregate
 	public array $errors = [];
 	function __construct(string $hostname = 'p:127.0.0.1:3306', string $username = 'root', string $password = NULL, string $database = NULL, private string $maptable = 'webapp_maptable_')
 	{
-		//$this->init();
-		//ini_set('mysqli.reconnect', TRUE);
-		//$this->options(MYSQLI_OPT_CONNECT_TIMEOUT, 1);
-		//$this->real_connect($host, $user, $password, $database);
 		try
 		{
+			//ini_set('mysqli.reconnect', TRUE);
 			mysqli_report(MYSQLI_REPORT_STRICT);
 			parent::__construct();
+			parent::options(MYSQLI_OPT_INT_AND_FLOAT_NATIVE, 1);
+			//parent::options(MYSQLI_OPT_CONNECT_TIMEOUT, 1);
 			parent::real_connect($hostname, $username, $password, $database, flags: MYSQLI_CLIENT_FOUND_ROWS | MYSQLI_CLIENT_INTERACTIVE);
-			parent::ping();
+			//parent::ping();
 		}
 		catch (mysqli_sql_exception)
 		{
@@ -23,7 +22,7 @@ class webapp_mysql extends mysqli implements IteratorAggregate
 	}
 	function __destruct()
 	{
-		$this->close();
+		//$this->close();
 	}
 	function __get(string $name):webapp_mysql_table
 	{
@@ -50,7 +49,7 @@ class webapp_mysql extends mysqli implements IteratorAggregate
 	{
 		return $this->use_result()->fetch_array($mode) ?? [];
 	}
-	function value(int $index = 0):?string
+	function value(int $index = 0):NULL|int|float|string
 	{
 		return $this->array(MYSQLI_NUM)[$index];
 	}

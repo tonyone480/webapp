@@ -4,18 +4,19 @@ class webapp_router_admin extends webapp_echo_html
 	function __construct(news_master $webapp)
 	{
 		parent::__construct($webapp);
-		if (!$webapp->admin)
+		if (empty($this->admin()))
 		{
 			if (str_ends_with($webapp->method, 't_home'))
 			{
 				if ($webapp->method === 'post_home'
 					&& webapp_echo_html::form_sign_in($webapp)->fetch($admin)
-					&& $webapp->admin($signature = $webapp->signature($admin['username'], $admin['password']))) {
+					&& $this->admin($signature = $webapp->signature($admin['username'], $admin['password']))) {
 					$webapp->response_cookie($webapp['admin_cookie'], $signature);
 					$webapp->response_refresh(0);
 				}
 				else
 				{
+					
 					webapp_echo_html::form_sign_in($this->main);
 				}
 				return $webapp->response_status(200);
@@ -23,16 +24,57 @@ class webapp_router_admin extends webapp_echo_html
 			$this->main->setattr(['Unauthorized', 'style' => 'font-size:2rem']);
 			return $webapp->response_status(401);
 		}
-		$this->title($this->webapp->site);
-		$this->nav([
-			['Admin', '?admin'],
+		$this->xml->head->append('script', ['type' => 'text/javascript', 'src' => '/webapp/lib/news/admin.js']);
+		$nav = $this->nav([
+			['Home', '?admin'],
 			['Unitstats', '?admin/unitstats'],
 			['Tags', '?admin/tags'],
 			['Resources', '?admin/resources'],
 			['Accounts', '?admin/accounts'],
 			['Ads', '?admin/ads']
-		])->ul->insert('li', 'first')->setattr(['style' => 'margin-left:1rem'])->select($this->webapp['app_site'])->selected($this->webapp->site)->setattr(['onchange' => 'location.reload(document.cookie=`app_site=${this.value}`)']);
-		$this->xml->head->append('script', ['type' => 'text/javascript', 'src' => '/webapp/lib/news/admin.js']);
+		]);
+		if ($webapp->admin[0] === $webapp['admin_username'])
+		{
+			$this->title($this->webapp->site);
+			$nav->ul->insert('li', 'first')->setattr(['style' => 'margin-left:1rem'])->select($this->webapp['app_site'])->selected($this->webapp->site)->setattr(['onchange' => 'location.reload(document.cookie=`app_site=${this.value}`)']);
+			$nav->ul->append('li')->append('a', ['Admin', 'href' => '?admin/admin']);
+		}
+		else
+		{
+			$this->title('Admin');
+			$nav->ul->append('li')->append('a', ['Setpwd', 'href' => '?admin/setpwd']);
+		}
+		$nav->ul->append('li')->append('a', ['Logout', 'href' => "javascript:void(document.cookie='{$webapp['admin_cookie']}=0',location.href='?admin');", 'style' => 'color:darkred']);
+	}
+	function admin(?string $signature = NULL)
+	{
+		if (func_num_args() === 0)
+		{
+			$signature = $this->webapp->request_cookie($this->webapp['admin_cookie']);
+		}
+		if ($admin = $this->webapp->admin($signature))
+		{
+			$this->webapp->admin = $admin;
+			return $admin;
+		}
+		return $this->webapp->authorize($signature, function(string $uid, string $pwd, int $st):array
+		{
+			if ($st > $this->webapp->time(-$this->webapp['admin_expire'])
+				&& ($admin = $this->webapp->mysql->admin('WHERE uid=?s AND pwd=?s LIMIT 1', $uid, $pwd)->array())) {
+					$this->webapp->site = $admin['site'];
+					$this->webapp->admin = [$admin['uid'], $admin['pwd']];
+					return $admin;
+			}
+			return [];
+		});
+
+		// $this->webapp->admin()
+		// return static::authorize(func_num_args() ? $signature : $this->request_cookie($this['admin_cookie']),
+		// fn(string $username, string $password, int $signtime, string $additional):array =>
+		// 	$signtime > static::time(-$this['admin_expire'])
+		// 	&& $username === $this['admin_username']
+		// 	&& $password === $this['admin_password']
+		// 		? [$username, $password, $additional] : []);
 	}
 	function warn(string $text)
 	{
@@ -67,18 +109,16 @@ class webapp_router_admin extends webapp_echo_html
 		$table = $this->main->table($this->webapp->mysql->reports(...$cond)->paging($page), function($table, $rep)
 		{
 			$table->row();
-			$node = $table->cell();
-			
-			
-			$node->append('a', ['rejected', 'href' => "?admin/resolve,hash:{$rep['hash']}", 'style' => 'color:red']);
-			$node->append('span', ' | ');
-			$node->append('a', ['resolved', 'href' => "?admin/resolve,hash:{$rep['hash']}"]);
-			
+			$table->cell()->append('a', [$rep['promise'],
+				'href' => "?admin/resolve,hash:{$rep['hash']}",
+				'style' => "color:red"]);
+
 			$table->cell(date('Y-m-d\\TH:i:s', $rep['time']));
+			$table->cell($this->webapp->hexip($rep['ip']));
 			$table->cell()->append('a', [$rep['account'], 'href' => "?admin/accounts,search:{$rep['account']}"]);
 			$table->cell($rep['describe']);
 		});
-		$table->fieldset('promise', 'time', 'account', 'describe');
+		$table->fieldset('promise', 'time', 'ip', 'account', 'describe');
 		$table->header('Reports, Found %d item', $table->count());
 		$table->search(['value' => $search, 'onkeydown' => 'event.keyCode==13&&g({search:this.value?urlencode(this.value):null,page:null})']);
 		$table->paging($this->webapp->at(['page' => '']));
@@ -221,18 +261,18 @@ class webapp_router_admin extends webapp_echo_html
 		$form->field('name', 'text', ['style' => 'width:42rem', 'required' => NULL]);
 		$form->fieldset('tags');
 		$form->field('tags', 'text', ['style' => 'width:42rem', 'required' => NULL]);
-		$form->fieldset('require(免费0、会员1、金币大于1)');
-		$form->field('require', 'number', ['min' => 0, 'required' => NULL]);
+		$form->fieldset('require(会员：-1、免费：0、金币)');
+		$form->field('require', 'number', ['min' => -1, 'required' => NULL]);
 		$form->fieldset();
 		$form->button('Update Resource', 'submit');
 		return $form;
 	}
 	function post_resource_update(string $hash)
 	{
-		$res = $this->webapp->mysql->resources('where FIND_IN_SET(?s,sites) and hash=?s', $this->webapp->site, $hash)->array();
+		$res = $this->webapp->mysql->resources('WHERE FIND_IN_SET(?s,sites) AND hash=?s', $this->webapp->site, $hash)->array();
 		if ($res
 			&& $this->form_resource($this->webapp)->fetch($res)
-			&& $this->webapp->mysql->resources('where hash=?s', $hash)->update($res)
+			&& $this->webapp->mysql->resources('WHERE FIND_IN_SET(?s,sites) AND hash=?s', $this->webapp->site, $hash)->update($res)
 			&& $this->webapp->call('saveRes', $this->webapp->resource_xml($res))) {
 			return $this->okay("?admin/resources,search:{$hash}");
 		}
@@ -240,7 +280,7 @@ class webapp_router_admin extends webapp_echo_html
 	}
 	function get_resource_update(string $hash)
 	{
-		$this->form_resource($this->main)->echo($this->webapp->mysql->resources('where FIND_IN_SET(?s,sites) and hash=?s', $this->webapp->site, $hash)->array());
+		$this->form_resource($this->main)->echo($this->webapp->mysql->resources('WHERE FIND_IN_SET(?s,sites) AND hash=?s', $this->webapp->site, $hash)->array());
 	}
 	function get_resources(string $search = NULL, int $page = 1)
 	{
@@ -264,7 +304,7 @@ class webapp_router_admin extends webapp_echo_html
 			$table->row();
 			$table->cell()->append('a', [$res['hash'], 'href' => "?admin/resource-update,hash:{$res['hash']}"]);
 			$table->cell(date('Y-m-d', $res['time']));
-			$table->cell('-');
+			$table->cell($res['require'] ? ($res['require'] === -1 ? '会员' : $res['require']) : '免费');
 			$table->cell(date('G:i:s', $res['duration'] + 57600));
 			$table->cell(number_format($res['favorite']));
 			$table->cell(number_format($res['view']));
@@ -296,10 +336,10 @@ class webapp_router_admin extends webapp_echo_html
 	}
 	function post_account_update(string $uid)
 	{
-		$acc = $this->webapp->mysql->accounts('where uid=?s', $uid)->array();
+		$acc = $this->webapp->mysql->accounts('where site=?i and uid=?s', $this->webapp->site, $uid)->array();
 		if ($acc
 			&& $this->form_account($this->webapp)->fetch($acc)
-			&& $this->webapp->mysql->accounts('where uid=?s', $uid)->update($acc)
+			&& $this->webapp->mysql->accounts('where site=?i and uid=?s', $this->webapp->site, $uid)->update($acc)
 			&& $this->webapp->call('saveUser', $this->webapp->account_xml($acc))) {
 			return $this->okay('?admin/accounts');
 		}
@@ -307,7 +347,7 @@ class webapp_router_admin extends webapp_echo_html
 	}
 	function get_account_update(string $uid)
 	{
-		$this->form_account($this->main)->echo($this->webapp->mysql->accounts('where uid=?s', $uid)->array());
+		$this->form_account($this->main)->echo($this->webapp->mysql->accounts('where site=?i and uid=?s', $this->webapp->site, $uid)->array());
 	}
 	function get_accounts($search = NULL, int $page = 1)
 	{
@@ -408,10 +448,10 @@ class webapp_router_admin extends webapp_echo_html
 	}
 	function post_ad_update(string $hash)
 	{
-		$ad = $this->webapp->mysql->ads('where hash=?s', $hash)->array();
+		$ad = $this->webapp->mysql->ads('where site=?i and hash=?s', $this->webapp->site, $hash)->array();
 		if ($ad
 			&& $this->form_ad($this->webapp)->fetch($ad)
-			&& $this->webapp->mysql->ads('where hash=?s', $ad['hash'])->update($ad)
+			&& $this->webapp->mysql->ads('where site=?i and hash=?s', $this->webapp->site, $hash)->update($ad)
 			&& $this->webapp->call('saveAd', $this->webapp->ad_xml($ad))) {
 			return $this->okay('?admin/ads');
 		}
@@ -419,14 +459,70 @@ class webapp_router_admin extends webapp_echo_html
 	}
 	function get_ad_update(string $hash)
 	{
-		$this->form_ad($this->main)->echo($this->webapp->mysql->ads('WHERE hash=?s', $hash)->array());
+		$this->form_ad($this->main)->echo($this->webapp->mysql->ads('where site=?i and hash=?s', $this->webapp->site, $hash)->array());
 	}
 	function get_ad_delete(string $hash)
 	{
 		if ($this->webapp->call('delAd', $hash)
-			&& $this->webapp->mysql->ads->delete('WHERE hash=?s', $hash)) {
+			&& $this->webapp->mysql->ads->delete('where site=?i and hash=?s', $this->webapp->site, $hash)) {
 			return $this->okay('?admin/ads');
 		}
 		$this->warn('广告删除失败！');
+	}
+	//Admin
+	function get_admin(int $page = 1)
+	{
+		$cond = ['WHERE site=?i', $this->webapp->site];
+		$table = $this->main->table($this->webapp->mysql->admin(...$cond)->paging($page), function($table, $admin)
+		{
+			$table->row();
+			$table->cell($admin['uid']);
+			$table->cell($admin['pwd']);
+			$table->cell($admin['uid']);
+			$table->cell($admin['uid']);
+		});
+		$table->fieldset('uid', 'pwd' );
+	}
+	//密码
+	function form_setpwd($ctx):webapp_form
+	{
+		$form = new webapp_form($ctx);
+		$form->fieldset('Old Password');
+		$form->field('old', 'password', ['required' => NULL]);
+
+		$form->fieldset('New Password');
+		$form->field('new', 'password', ['required' => NULL]);
+
+		$form->fieldset('Confirm Password');
+		$form->field('ack', 'password', ['required' => NULL]);
+
+		$form->fieldset();
+		$form->button('Change Password', 'submit');
+
+		return $form;
+	}
+	function post_setpwd()
+	{
+		if ($this->form_setpwd($this->webapp)->fetch($pwd))
+		{
+			if ($pwd['new'] === $pwd['ack'])
+			{
+				if ($pwd['old'] === $this->webapp->admin[1])
+				{
+					if ($this->webapp->mysql->admin('WHERE uid=?s LIMIT 1', $this->webapp->admin[0])->update('pwd=?s', $pwd['new']))
+					{
+						return $this->okay('?admin');
+					}
+					$this->warn('新密码设置失败！');
+				}
+				else $this->warn('老密码不正确！');
+			}
+			else $this->warn('新密码不一致！');
+			$this->form_setpwd($this->main)->echo($pwd);
+		}
+	}
+	function get_setpwd()
+	{
+		$this->form_setpwd($this->main);
 	}
 }
