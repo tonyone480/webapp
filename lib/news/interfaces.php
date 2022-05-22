@@ -1,6 +1,6 @@
 <?php
 require 'admin.php';
-class news_master extends webapp
+class interfaces extends webapp
 {
 	function clientip():string
 	{
@@ -118,11 +118,7 @@ class news_master extends webapp
 	{
 		return $this->hash($this->site . $this->time . join($contents), TRUE);
 	}
-
-	//-----------------------------------------------------------------------------------------------------
-
-
-	function get_test()
+	function runstatus():array
 	{
 		$status = [
 			'os_http_connected' => intval(shell_exec('netstat -ano | find ":80" /c'))
@@ -132,7 +128,8 @@ class news_master extends webapp
 			'Aborted_connects',//接到MySQL服务器失败的次数
 			'Queries',//总查询
 			'Slow_queries',//慢查询
-			'max_connections',//最大连接数
+			'Max_used_connections',//高峰连接数量
+			'Max_used_connections_time',//高峰连接时间
 			'Threads_cached',
 			'Threads_connected',//打开的连接数
 			'Threads_created',//创建过的线程数
@@ -141,12 +138,18 @@ class news_master extends webapp
 		]) as $stat) {
 			$status['mysql_' . strtolower($stat['VARIABLE_NAME'])] = $stat['VARIABLE_VALUE'];
 		}
+		return $status;
+	}
+	//-----------------------------------------------------------------------------------------------------
 
-		print_r( $status );
+
+	function get_test()
+	{
+		print_r( $this->runstatus() );
 	}
 	function get_home()
 	{
-		$this->app->xml->comment(file_get_contents(__DIR__.'/master.txt'));
+		$this->app->xml->comment(file_get_contents(__DIR__.'/interfaces.txt'));
 	}
 	//同步资源
 	function get_pushdata(string $batch)

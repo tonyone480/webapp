@@ -1,7 +1,7 @@
 <?php
 class webapp_router_admin extends webapp_echo_html
 {
-	function __construct(news_master $webapp)
+	function __construct(interfaces $webapp)
 	{
 		parent::__construct($webapp);
 		if (empty($this->admin()))
@@ -27,6 +27,7 @@ class webapp_router_admin extends webapp_echo_html
 		$this->xml->head->append('script', ['type' => 'text/javascript', 'src' => '/webapp/lib/news/admin.js']);
 		$nav = $this->nav([
 			['Home', '?admin'],
+			['Reports', '?admin/reports'],
 			['Unitstats', '?admin/unitstats'],
 			['Tags', '?admin/tags'],
 			['Resources', '?admin/resources'],
@@ -81,7 +82,52 @@ class webapp_router_admin extends webapp_echo_html
 	function post_home()
 	{
 	}
-	function get_home(string $search = NULL, int $page = 1)
+	function get_home()
+	{
+		$table = $this->main->table();
+		$table->fieldset('Name', 'Value');
+		$table->header('Front app running status');
+		$table->xml->setattr(['style' => 'margin-right:1rem']);
+		$sync = $this->webapp->sync();
+		if (is_object($status = $sync->goto("{$sync->path}?pull/runstatus")->content()))
+		{
+			foreach ($status->getattr() as $name => $value)
+			{
+				$table->row();
+				$table->cell($name);
+				$table->cell($value);
+			}
+		}
+
+		if ($this->webapp->admin[2])
+		{
+			$table = $this->main->table();
+			$table->fieldset('Name', 'Value');
+			$table->header('Data synchronize running status');
+			$table->row();
+			$table->cell('os_http_connections');
+			$table->cell(intval(shell_exec('netstat -ano | find ":80" /c')));
+			
+			foreach ($this->webapp->mysql('SELECT * FROM performance_schema.GLOBAL_STATUS WHERE VARIABLE_NAME IN(?S)', [
+				//'Aborted_clients',
+				//'Aborted_connects',//接到MySQL服务器失败的次数
+				'Queries',//总查询
+				'Slow_queries',//慢查询
+				'Max_used_connections',//高峰连接数量
+				'Max_used_connections_time',//高峰连接时间
+				'Threads_cached',
+				'Threads_connected',//打开的连接数
+				'Threads_created',//创建过的线程数
+				'Threads_running',//激活的连接数
+				'Uptime',//已经运行的时长
+			]) as $stat) {
+				$table->row();
+				$table->cell('mysql_' . strtolower($stat['VARIABLE_NAME']));
+				$table->cell($stat['VARIABLE_VALUE']);
+			}
+		}
+	}
+	function get_reports(string $search = NULL, int $page = 1)
 	{
 		$cond = ['where site=?i', $this->webapp->site];
 		if (is_string($search))
@@ -200,6 +246,37 @@ class webapp_router_admin extends webapp_echo_html
 		$form->button('Submit', 'submit');
 		return $form;
 	}
+	function post_tag_create()
+	{
+		if ($this->webapp->admin[2]
+			&& $this->form_tag($this->webapp)->fetch($tag)
+			&& $this->webapp->mysql->tags->insert($tag += ['hash' => substr($this->webapp->randhash(TRUE), 6)])
+			&& $this->webapp->call('saveTag', $this->webapp->tag_xml($tag))) {
+			return $this->okay("?admin/tags,search:{$tag['hash']}");
+		}
+		$this->warn($this->webapp->admin[2] ? '标签创建失败！' : '需要全局管理权限！');
+	}
+	function get_tag_create()
+	{
+		$this->form_tag($this->main)->echo([
+			'level' => 0,
+			'count' => 0,
+			'click' => 0
+		]);
+	}
+	function get_tag_delete(string $hash)
+	{
+		if ($this->webapp->mysql->resources('WHERE FIND_IN_SET(?s,tags)', $hash)->count())
+		{
+			return $this->warn('该标签存在资源，无法删除！');
+		}
+		if ($this->webapp->admin[2]
+			&& $this->webapp->call('delTag', $hash)
+			&& $this->webapp->mysql->tags->delete('WHERE hash=?s', $hash)) {
+			return $this->okay("?admin/tags");
+		}
+		$this->warn($this->webapp->admin[2] ? '标签删除失败！' : '需要全局管理权限！');
+	}
 	function post_tag_update(string $hash)
 	{
 		$tag = $this->webapp->mysql->tags('where hash=?s', $hash)->array();
@@ -233,6 +310,10 @@ class webapp_router_admin extends webapp_echo_html
 		$table = $this->main->table($this->webapp->mysql->tags(...$cond)->paging($page), function($table, $tag)
 		{
 			$table->row();
+			$table->cell()->append('a', ['❌',
+				'href' => "?admin/tag-delete,hash:{$tag['hash']}",
+				'onclick' => 'return confirm(`Delete Tag ${this.dataset.name}`)',
+				'data-name' => $tag['name']]);
 			$table->cell()->append('a', [$tag['hash'], 'href' => "?admin/tag-update,hash:{$tag['hash']}"]);
 			$table->cell($tag['level']);
 			$table->cell(number_format($tag['count']));
@@ -240,8 +321,9 @@ class webapp_router_admin extends webapp_echo_html
 			$table->cell()->append('a', [$tag['name'], 'href' => "?admin/resources,search:{$tag['hash']}"]);
 			$table->cell($tag['alias']);
 		});
-		$table->fieldset('hash', 'level', 'count', 'click', 'name', 'alias');
+		$table->fieldset('❌', 'hash', 'level', 'count', 'click', 'name', 'alias');
 		$table->header('Found %d item', $table->count());
+		$table->button('Create Tag', ['onclick' => 'location.href="?admin/tag-create"']);
 		$table->search(['value' => $search, 'onkeydown' => 'event.keyCode==13&&g({search:this.value?urlencode(this.value):null,page:null})']);
 		$table->paging($this->webapp->at(['page' => '']));
 	}
@@ -276,6 +358,28 @@ class webapp_router_admin extends webapp_echo_html
 	{
 		$this->form_resource($this->main)->echo($this->webapp->mysql->resources('WHERE FIND_IN_SET(?s,sites) AND hash=?s', $this->webapp->site, $hash)->array());
 	}
+	function post_resource_upload()
+	{
+		return $this->okay("?admin/resource-upload");
+	}
+	function get_resource_upload()
+	{
+		$form = $this->main->form();
+		$form->xml['onsubmit'] = 'return upres(this)';
+		$form->progress()->setattr(['style' => 'width:100%']);
+		$form->fieldset('资源文件');
+		$form->field('uploadfile', 'file', ['accept' => 'video/mp4', 'required' => NULL]);
+		$form->button('Cancel', 'button', ['onclick' => 'xhr.abort()']);
+		$form->fieldset('name');
+		$form->field('name', 'text', ['value' => '0000', 'style' => 'width:42rem', 'required' => NULL]);
+		$form->fieldset('tags');
+		$form->field('tags', 'text', ['value' => '0000', 'style' => 'width:42rem', 'required' => NULL]);
+		$form->fieldset('require(会员：-1、免费：0、金币)');
+		$form->field('require', 'number', ['value' => 0, 'min' => -1, 'required' => NULL]);
+		$form->fieldset();
+		$form->button('Upload Resource', 'submit');
+		
+	}
 	function get_resources(string $search = NULL, int $page = 1)
 	{
 		$cond = ['WHERE FIND_IN_SET(?s,sites)', $this->webapp->site];
@@ -307,6 +411,7 @@ class webapp_router_admin extends webapp_echo_html
 		});
 		$table->fieldset('hash', 'time', 'require', 'duration', 'favorite', 'view', 'like', 'name');
 		$table->header('Found %d item', $table->count());
+		$table->button('Upload Resources', ['onclick' => 'location.href="?admin/resource-upload"']);
 		$table->search(['value' => $search, 'onkeydown' => 'event.keyCode==13&&g({search:this.value?urlencode(this.value):null,page:null})']);
 		$table->paging($this->webapp->at(['page' => '']));
 	}

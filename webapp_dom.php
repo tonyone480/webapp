@@ -955,10 +955,10 @@ class webapp_table implements Countable
 	{
 		return $this->header->setattr([sprintf($format, ...$value)]);
 	}
-	// function button(string $name, array $attributes = []):webapp_html
-	// {
-	// 	return $this->bar->append('button', [$name, ...$attributes]);
-	// }
+	function button(string $name, array $attributes = []):webapp_html
+	{
+		return $this->bar->append('button', [$name, 'type' => 'button', ...$attributes]);
+	}
 	function search(array $attributes = []):webapp_html
 	{
 		return $this->bar->append('input', $attributes + ['type' => 'search', 'placeholder' => 'Type search keywords']);

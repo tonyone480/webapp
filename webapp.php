@@ -28,15 +28,14 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	public readonly self $webapp;
 	public readonly object|string $router;
 	public readonly string $method;
+	public readonly array $params;
 	private array $errors = [], $cookies = [], $headers = [], $uploadedfiles, $configs, $route, $entry;
-	protected static array $interfaces = [];
-	static function __callStatic(string $name, array $arguments):mixed
+	private static array $libary = [];
+	static function lib(string $filename)
 	{
-		return (self::$interfaces[$name] ??= require __DIR__ . "/lib/{$name}/interface.php")(...$arguments);
-	}
-	static function res(string $filename = NULL):string
-	{
-		return "/webapp/res/{$filename}";
+		return array_key_exists($name = strtolower($filename), static::$libary)
+			? static::$libary[$name]
+			: static::$libary[$name] = require __DIR__ . "/lib/{$name}";
 	}
 	static function random(int $length):string
 	{
@@ -271,6 +270,8 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 			: [[$this['app_router'] . $track, sprintf('%s_%s', $this['request_method'],
 				count($entry) > 1 ? strtr($entry[1], '-', '_') : $this['app_index'])], []];
 		[&$this->router, &$this->method] = $this->route;
+		$this->params = preg_match_all('/\,(\w+)(?:\:([\%\+\-\.\/\=\w]*))?/', $this['request_query'],
+			$pattern, PREG_SET_ORDER | PREG_UNMATCHED_AS_NULL) ? array_column($pattern, 2, 1) : [];
 	}
 	function __destruct()
 	{
@@ -291,23 +292,22 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 						{
 							break;
 						}
-						if (preg_match_all('/\,(\w+)(?:\:([\%\+\-\.\/\=\w]*))?/',
-							$this['request_query'], $pattern, PREG_SET_ORDER | PREG_UNMATCHED_AS_NULL)) {
-							$parameters = array_column($pattern, 2, 1);
-							foreach (array_slice($tracert->getParameters(), intval($router === $this)) as $parameter)
+						if ($this->params)
+						{
+							foreach (array_slice($tracert->getParameters(), intval($router === $this)) as $params)
 							{
-								if (array_key_exists($parameter->name, $parameters))
+								if (array_key_exists($params->name, $this->params))
 								{
-									$this->entry[$parameter->name] ??= match ((string)$parameter->getType())
+									$this->entry[$params->name] ??= match ((string)$params->getType())
 									{
-										'int' => intval($parameters[$parameter->name]),
-										'float' => floatval($parameters[$parameter->name]),
-										'string' => $parameters[$parameter->name] ?? '',
-										default => $parameters[$parameter->name]
+										'int' => intval($this->params[$params->name]),
+										'float' => floatval($this->params[$params->name]),
+										'string' => $this->params[$params->name] ?? '',
+										default => $this->params[$params->name]
 									};
 									continue;
 								}
-								if ($parameter->isOptional() === FALSE)
+								if ($params->isOptional() === FALSE)
 								{
 									break 2;
 								}
@@ -352,7 +352,8 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 						['level' => $this['gzip_level'], 'window' => 31, 'memory' => 9])) {
 					$this->io->response_header('Content-Encoding: gzip');
 				}
-				//Content-Length: 
+				// $this->io->response_header('Content-Length: ' . strlen($data = (string)$this));
+				// $this->io->response_content($data);
 				$this->io->response_content((string)$this);
 				unset($this->buffer);
 			}
@@ -362,16 +363,13 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	{
 		return stream_get_contents($this->buffer, -rewind($this->buffer));
 	}
-	function __call(string $tablename, array $conditionals):webapp_mysql_table
-	{
-		return $this->mysql->{$tablename}(...$conditionals);
-	}
+	// function __call(string $tablename, array $conditionals):webapp_mysql_table
+	// {
+	//	//和静态魔术调用方法冲突
+	// 	return $this->mysql->{$tablename}(...$conditionals);
+	// }
 	function __get(string $name):mixed
 	{
-		if ($this->offsetExists($name))
-		{
-			return $this[$name];
-		}
 		if (method_exists($this, $name))
 		{
 			$loader = new ReflectionMethod($this, $name);
@@ -380,7 +378,7 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 				return $this->{$name} = $loader->invoke($this);
 			}
 		}
-		return NULL;
+		return $this->mysql->{$name};
 	}
 	final function __invoke(object $object):object
 	{
@@ -415,10 +413,6 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	{
 		return property_exists($this, 'buffer') ? ftell($this->buffer) : 0;
 	}
-	function error(string $message):string
-	{
-		return $this->errors[] = $message;
-	}
 	final function app(string $name, mixed ...$params):object
 	{
 		return $this($this->app = new $name($this, ...$params));
@@ -431,7 +425,6 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	{
 		$this->entry = $params + $this->entry;
 	}
-
 	final function buffer():mixed
 	{
 		return fopen('php://memory', 'r+');
@@ -452,7 +445,6 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	{
 		return fputcsv($this->buffer, $values, $delimiter, $enclosure);
 	}
-
 	function at(array $params, string $router = NULL):string
 	{
 		$replace = array_reverse($params + (preg_match_all('/\,(\w+)(?:\:([\%\+\-\.\/\=\w]*))?/', $this['request_query'],
@@ -540,10 +532,6 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	{
 		return $this->io->request_ip();
 	}
-	function request_query(string $name):?string
-	{
-		return preg_match('/^\w+$/', $name) && preg_match('/\,' . $name . '\:([\%\+\-\.\/\=\w]+)/', $this['request_query'], $query) ? $query[1] : NULL;
-	}
 	// function request_cond(string $name = 'cond'):array
 	// {
 	// 	$cond = [];
@@ -594,7 +582,7 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	{
 		return intval($this->request_header('Content-Length'));
 	}
-	function request_content(string $format = NULL):array|string|webapp_xml
+	function request_content(?string $format = NULL):array|string|webapp_xml
 	{
 		return match ($format ?? $this->request_content_type())
 		{
@@ -793,12 +781,21 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 		}
 		return 404;
 	}
+	function matchetag(string $data):bool
+	{
+		$this->response_header('Etag', $etag = '"' . static::hash($data) . '"');
+		return $this->request_header('If-None-Match') === $etag;
+	}
 	function get_qrcode(string $encode)
 	{
+		if ($this->matchetag($encode))
+		{
+			return 304;
+		}
 		if ($this['qrcode_echo'] && is_string($decode = $this->url64_decode($encode)) && strlen($decode) < $this['qrcode_maxdata'])
 		{
 			$this->response_content_type('image/png');
-			webapp_image::qrcode(static::qrcode($decode, $this['qrcode_ecc']), $this['qrcode_size'])->png($this->buffer);
+			webapp_image::qrcode(static::lib('qrcode/interface.php')($decode, $this['qrcode_ecc']), $this['qrcode_size'])->png($this->buffer);
 			return;
 		}
 		return 404;

@@ -290,6 +290,10 @@ class webapp_mysql extends mysqli implements IteratorAggregate
 	{
 		return $this('SHOW ' . $this->format(...$commands));
 	}
+	function status():array
+	{
+		return $this->show('status')->column('Value', 'Variable_name');
+	}
 	function tablestatus():static
 	{
 		return $this->show('TABLE STATUS');
@@ -475,4 +479,21 @@ abstract class webapp_mysql_table implements IteratorAggregate, Countable, Strin
 	{
 		return $this->mysql->real_query('DROP TABLE ?a', $this->tablename);
 	}
+	//field
+	// function fieldformat(string $fieldname, string $type, ):string
+	// {
+
+	// }
+	// function fieldappend(string $fieldname):bool
+	// {
+	// 	return $this->mysql->real_query('DROP TABLE ?a', $this->tablename);
+	// }
+	// function fieldchange(string $fieldname)
+	// {
+	// 	return $this->mysql->real_query('ALTER TABLE ?a CHANGE COLUMN ?a old json NULL', $this->tablename, $fieldname);
+	// }
+	// function fieldremove(string $fieldname):bool
+	// {
+	// 	return $this->mysql->real_query('ALTER TABLE ?a DROP COLUMN ?a', $this->tablename, $fieldname);	
+	// }
 }
