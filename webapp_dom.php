@@ -2,9 +2,9 @@
 declare(strict_types=1);
 class webapp_xml extends SimpleXMLElement
 {
-	static function escape(string $value):string
+	static function escape(float|string $value):string
 	{
-		return count($values = array_filter(preg_split('/(\'|")/', $value, flags:PREG_SPLIT_DELIM_CAPTURE))) > 1
+		return count($values = array_filter(preg_split('/(\'|")/', (string)$value, flags:PREG_SPLIT_DELIM_CAPTURE))) > 1
 			? 'concat(' . join(',', array_map(fn($value) => $value === '\'' ? "\"{$value}\"" : "'{$value}'", $values)) . ')'
 			: (str_contains($value, '"') ? "'{$value}'" : "\"{$value}\"");
 	}
