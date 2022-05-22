@@ -2,9 +2,9 @@
 declare(strict_types=1);
 class webapp_xml extends SimpleXMLElement
 {
-	static function escape(float|string $value):string
+	static function escape(string $value):string
 	{
-		return count($values = array_filter(preg_split('/(\'|")/', (string)$value, flags:PREG_SPLIT_DELIM_CAPTURE))) > 1
+		return count($values = array_filter(preg_split('/(\'|")/', $value, flags:PREG_SPLIT_DELIM_CAPTURE))) > 1
 			? 'concat(' . join(',', array_map(fn($value) => $value === '\'' ? "\"{$value}\"" : "'{$value}'", $values)) . ')'
 			: (str_contains($value, '"') ? "'{$value}'" : "\"{$value}\"");
 	}
@@ -117,11 +117,11 @@ class webapp_xml extends SimpleXMLElement
 		}
 		return $node;
 	}
-	function append(string $name, NULL|float|string|array $contents = NULL):static
+	function append(string $name, NULL|string|array $contents = NULL):static
 	{
 		return is_array($contents)
 			? $this->addChild($name)->setattr($contents)
-			: $this->addChild($name, (string)$contents);
+			: $this->addChild($name, $contents);
 	}
 	function appends(string $name, iterable $contents, string $keyattr = NULL):static
 	{
@@ -890,7 +890,7 @@ class webapp_table implements Countable
 	{
 		return $this->row = array_key_exists($index, $this->rows) ? $this->rows[$index] : $this->rows[] = $this->tbody->append('tr');
 	}
-	function cell(NULL|float|string|array $value = NULL):webapp_html
+	function cell(NULL|string|array $value = NULL):webapp_html
 	{
 		return $this->row->append('td', $value);
 	}
