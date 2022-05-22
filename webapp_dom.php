@@ -402,7 +402,7 @@ class webapp_html extends webapp_xml
 	function selected(...$values):static
 	{
 		if ($value = join(' or ', array_map(
-			fn($value) => '@value=' . static::escape($value),
+			fn($value) => '@value=' . static::escape((string)$value),
 			array_filter($values, is_scalar(...))))) {
 			[$selected, $selector] = match ($this->getName())
 			{
