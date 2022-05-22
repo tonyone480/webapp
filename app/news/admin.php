@@ -24,11 +24,17 @@ class webapp_router_admin extends webapp_echo_html
 			$this->main->setattr(['Unauthorized', 'style' => 'font-size:2rem']);
 			return $webapp->response_status(401);
 		}
-		$this->xml->head->append('script', ['type' => 'text/javascript', 'src' => '/webapp/lib/news/admin.js']);
+		$this->xml->head->append('script', ['type' => 'text/javascript', 'src' => '/webapp/app/news/admin.js']);
 		$nav = $this->nav([
 			['Home', '?admin'],
-			['Reports', '?admin/reports'],
-			['Unitstats', '?admin/unitstats'],
+			['Status', [
+				['Unitstats', '?admin/unitstats'],
+				['Runstatus', '?admin/runstatus']
+			]],
+			['Pending', [
+				['Reports', '?admin/reports'],
+				['Comments', '?admin/comments'],
+			]],
 			['Tags', '?admin/tags'],
 			['Resources', '?admin/resources'],
 			['Accounts', '?admin/accounts'],
@@ -82,52 +88,7 @@ class webapp_router_admin extends webapp_echo_html
 	function post_home()
 	{
 	}
-	function get_home()
-	{
-		$table = $this->main->table();
-		$table->fieldset('Name', 'Value');
-		$table->header('Front app running status');
-		$table->xml->setattr(['style' => 'margin-right:1rem']);
-		$sync = $this->webapp->sync();
-		if (is_object($status = $sync->goto("{$sync->path}?pull/runstatus")->content()))
-		{
-			foreach ($status->getattr() as $name => $value)
-			{
-				$table->row();
-				$table->cell($name);
-				$table->cell($value);
-			}
-		}
-
-		if ($this->webapp->admin[2])
-		{
-			$table = $this->main->table();
-			$table->fieldset('Name', 'Value');
-			$table->header('Data synchronize running status');
-			$table->row();
-			$table->cell('os_http_connections');
-			$table->cell(intval(shell_exec('netstat -ano | find ":80" /c')));
-			
-			foreach ($this->webapp->mysql('SELECT * FROM performance_schema.GLOBAL_STATUS WHERE VARIABLE_NAME IN(?S)', [
-				//'Aborted_clients',
-				//'Aborted_connects',//接到MySQL服务器失败的次数
-				'Queries',//总查询
-				'Slow_queries',//慢查询
-				'Max_used_connections',//高峰连接数量
-				'Max_used_connections_time',//高峰连接时间
-				'Threads_cached',
-				'Threads_connected',//打开的连接数
-				'Threads_created',//创建过的线程数
-				'Threads_running',//激活的连接数
-				'Uptime',//已经运行的时长
-			]) as $stat) {
-				$table->row();
-				$table->cell('mysql_' . strtolower($stat['VARIABLE_NAME']));
-				$table->cell($stat['VARIABLE_VALUE']);
-			}
-		}
-	}
-	function get_reports(string $search = NULL, int $page = 1)
+	function get_home(string $search = NULL, int $page = 1)
 	{
 		$cond = ['where site=?i', $this->webapp->site];
 		if (is_string($search))
@@ -228,6 +189,77 @@ class webapp_router_admin extends webapp_echo_html
 				}
 			}
 		}
+	}
+	function get_runstatus()
+	{
+		$table = $this->main->table();
+		$table->fieldset('Name', 'Value');
+		$table->header('Front app running status');
+		$table->xml->setattr(['style' => 'margin-right:1rem']);
+		$sync = $this->webapp->sync();
+		if (is_object($status = $sync->goto("{$sync->path}?pull/runstatus")->content()))
+		{
+			foreach ($status->getattr() as $name => $value)
+			{
+				$table->row();
+				$table->cell($name);
+				$table->cell($value);
+			}
+		}
+
+		if ($this->webapp->admin[2])
+		{
+			$table = $this->main->table();
+			$table->fieldset('Name', 'Value');
+			$table->header('Data synchronize running status');
+			$table->row();
+			$table->cell('os_http_connections');
+			$table->cell(intval(shell_exec('netstat -ano | find ":80" /c')));
+			
+			foreach ($this->webapp->mysql('SELECT * FROM performance_schema.GLOBAL_STATUS WHERE VARIABLE_NAME IN(?S)', [
+				//'Aborted_clients',
+				//'Aborted_connects',//接到MySQL服务器失败的次数
+				'Queries',//总查询
+				'Slow_queries',//慢查询
+				'Max_used_connections',//高峰连接数量
+				'Max_used_connections_time',//高峰连接时间
+				'Threads_cached',
+				'Threads_connected',//打开的连接数
+				'Threads_created',//创建过的线程数
+				'Threads_running',//激活的连接数
+				'Uptime',//已经运行的时长
+			]) as $stat) {
+				$table->row();
+				$table->cell('mysql_' . strtolower($stat['VARIABLE_NAME']));
+				$table->cell($stat['VARIABLE_VALUE']);
+			}
+		}
+	}
+	//评论
+	function get_comments(string $search = NULL, int $page = 1)
+	{
+		$cond = ['WHERE site=?i', $this->webapp->site];
+		$cond[0] .= ' ORDER BY time DESC';
+		$table = $this->main->table($this->webapp->mysql->comments(...$cond)->paging($page, 12), function($table, $comm)
+		{
+			$table->row();
+			$table->cell()->append('a', ['❌', 'href' => "#"]);
+			$table->cell(date('Y-m-d\\Th:i:s', $comm['time']));
+			$table->cell()->append('a', [$comm['resource'], 'href' => "?admin/resources,search:{$comm['resource']}"]);
+			$table->cell()->append('a', [$comm['account'], 'href' => "?admin/accounts,search:{$comm['account']}"]);
+			$table->cell()->append('a', ['✅', 'href' => "#"]);
+			$table->row();
+			$table->cell(['colspan' => 5])->append('pre', [$comm['content'], 'style' => 'margin:0']);
+
+		});
+		$table->fieldset('❌', 'time', 'resource', 'account', '✅');
+		$table->header('Found %d item', $table->count());
+		$table->bar->select([
+			'' => '全部评论',
+			'等待审核',
+			'审核通过'
+		])->setattr(['onchange' => 'g({status:this.value?this.value:null})'])->selected($this->webapp->params['status'] ?? '');
+		$table->paging($this->webapp->at(['page' => '']));
 	}
 	//标签
 	function form_tag($ctx):webapp_form

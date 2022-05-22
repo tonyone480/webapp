@@ -117,11 +117,11 @@ class webapp_xml extends SimpleXMLElement
 		}
 		return $node;
 	}
-	function append(string $name, NULL|string|array $contents = NULL):static
+	function append(string $name, NULL|float|string|array $contents = NULL):static
 	{
 		return is_array($contents)
 			? $this->addChild($name)->setattr($contents)
-			: $this->addChild($name, $contents);
+			: $this->addChild($name, (string)$contents);
 	}
 	function appends(string $name, iterable $contents, string $keyattr = NULL):static
 	{
@@ -890,7 +890,7 @@ class webapp_table implements Countable
 	{
 		return $this->row = array_key_exists($index, $this->rows) ? $this->rows[$index] : $this->rows[] = $this->tbody->append('tr');
 	}
-	function cell(NULL|string|array $value = NULL):webapp_html
+	function cell(NULL|float|string|array $value = NULL):webapp_html
 	{
 		return $this->row->append('td', $value);
 	}
