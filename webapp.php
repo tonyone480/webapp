@@ -28,7 +28,7 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	public readonly self $webapp;
 	public readonly object|string $router;
 	public readonly string $method;
-	public readonly array $params;
+	public readonly array $query;
 	private array $errors = [], $cookies = [], $headers = [], $uploadedfiles, $configs, $route, $entry;
 	private static array $libary = [];
 	static function lib(string $filename)
@@ -270,7 +270,7 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 			: [[$this['app_router'] . $track, sprintf('%s_%s', $this['request_method'],
 				count($entry) > 1 ? strtr($entry[1], '-', '_') : $this['app_index'])], []];
 		[&$this->router, &$this->method] = $this->route;
-		$this->params = preg_match_all('/\,(\w+)(?:\:([\%\+\-\.\/\=\w]*))?/', $this['request_query'],
+		$this->query = preg_match_all('/\,(\w+)(?:\:([\%\+\-\.\/\=\w]*))?/', $this['request_query'],
 			$pattern, PREG_SET_ORDER | PREG_UNMATCHED_AS_NULL) ? array_column($pattern, 2, 1) : [];
 	}
 	function __destruct()
@@ -292,22 +292,22 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 						{
 							break;
 						}
-						if ($this->params)
+						if ($this->query)
 						{
-							foreach (array_slice($tracert->getParameters(), intval($router === $this)) as $params)
+							foreach (array_slice($tracert->getParameters(), intval($router === $this)) as $parameter)
 							{
-								if (array_key_exists($params->name, $this->params))
+								if (array_key_exists($parameter->name, $this->query))
 								{
-									$this->entry[$params->name] ??= match ((string)$params->getType())
+									$this->entry[$parameter->name] ??= match ((string)$parameter->getType())
 									{
-										'int' => intval($this->params[$params->name]),
-										'float' => floatval($this->params[$params->name]),
-										'string' => $this->params[$params->name] ?? '',
-										default => $this->params[$params->name]
+										'int' => intval($this->query[$parameter->name]),
+										'float' => floatval($this->query[$parameter->name]),
+										'string' => (string)$this->query[$parameter->name],
+										default => $this->query[$parameter->name]
 									};
 									continue;
 								}
-								if ($params->isOptional() === FALSE)
+								if ($parameter->isOptional() === FALSE)
 								{
 									break 2;
 								}
@@ -447,11 +447,10 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	}
 	function at(array $params, string $router = NULL):string
 	{
-		$replace = array_reverse($params + (preg_match_all('/\,(\w+)(?:\:([\%\+\-\.\/\=\w]*))?/', $this['request_query'],
-			$pattern, PREG_SET_ORDER | PREG_UNMATCHED_AS_NULL) ? array_column($pattern, 2, 1) : []), TRUE);
-		return array_reduce(array_keys($replace), fn($carry, $key) => is_scalar($replace[$key])
-			? (is_bool($replace[$key]) ? $carry : "{$carry},{$key}:{$replace[$key]}")
-			: "{$carry},{$key}", $router ?? strstr("?{$this['request_query']},", ',', TRUE));
+		return array_reduce(array_keys($replace = array_reverse($params + $this->query, TRUE)), 
+			fn($carry, $key) => is_scalar($replace[$key])
+				? (is_bool($replace[$key]) ? $carry : "{$carry},{$key}:{$replace[$key]}")
+				: "{$carry},{$key}", $router ?? strstr("?{$this['request_query']},", ',', TRUE));
 	}
 	function admin(?string $signature = NULL):array
 	{

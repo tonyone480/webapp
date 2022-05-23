@@ -77,6 +77,14 @@ class webapp_echo_html extends webapp_document
 	{
 		return $this->saveHTML($this);
 	}
+	// function script(string $context, string $type = ''):webapp_html
+	// {
+	// 	$script = $this->xml->head->append('script', ['type' => $type]);
+	// 	return match ($type)
+	// 	{
+	// 		'module' => $script->setattr(['src' => ])
+	// 	};
+	// }
 	function title(string $title):void
 	{
 		$this->xml->head->title = $title;

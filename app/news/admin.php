@@ -16,7 +16,53 @@ class webapp_router_admin extends webapp_echo_html
 				}
 				else
 				{
-					
+// 					$this->xml->head->append('style', <<<'STYLE'
+// html,body,body>div{
+// 	height:100%;
+// }
+// body>div,main::before{
+// 	background-image: url('/webapp/res/ps/kynny.original_5BMO6X9.jpg');
+// 	background-position: center top;
+// 	background-size: cover;
+// 	background-attachment: fixed;
+// 	background-repeat: repeat-x;
+// }
+// header{
+// 	display: none;
+// }
+// main::before{
+// 	content: '';
+// 	position: absolute;
+// 	top: 0;
+// 	left: 0;
+// 	right: 0;
+// 	bottom: 0;
+// 	filter: blur(.4rem);
+// 	z-index: -1;
+// 	margin: -4rem;
+// }
+// main{
+// 	position: relative;
+// 	padding: 2rem;
+// 	margin: auto auto !important;
+// 	box-shadow: 0 .5rem 2rem rgb(27, 31, 35);
+// 	border-radius: .4rem;
+// 	box-sizing: border-box;
+// 	overflow: hidden;
+// 	z-index: 1;
+
+// }
+// form{
+// 	min-width: 10rem !important;
+// }
+// form>fieldset>legend{
+// 	color: white;
+// 	padding-bottom: 1rem;
+// }
+// button{
+// 	width: 100%;
+// }
+// STYLE);
 					webapp_echo_html::form_sign_in($this->main);
 				}
 				return $webapp->response_status(200);
@@ -29,11 +75,12 @@ class webapp_router_admin extends webapp_echo_html
 			['Home', '?admin'],
 			['Status', [
 				['Unitstats', '?admin/unitstats'],
-				['Runstatus', '?admin/runstatus']
+				
 			]],
 			['Pending', [
 				['Reports', '?admin/reports'],
 				['Comments', '?admin/comments'],
+				['Runstatus', '?admin/runstatus']
 			]],
 			['Tags', '?admin/tags'],
 			['Resources', '?admin/resources'],
@@ -258,7 +305,7 @@ class webapp_router_admin extends webapp_echo_html
 			'' => '全部评论',
 			'等待审核',
 			'审核通过'
-		])->setattr(['onchange' => 'g({status:this.value?this.value:null})'])->selected($this->webapp->params['status'] ?? '');
+		])->setattr(['onchange' => 'g({status:this.value?this.value:null})'])->selected($this->webapp->query['status'] ?? '');
 		$table->paging($this->webapp->at(['page' => '']));
 	}
 	//标签
