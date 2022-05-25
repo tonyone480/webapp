@@ -137,6 +137,9 @@ class webapp_router_admin extends webapp_echo_html
 	}
 	function get_home(string $search = NULL, int $page = 1)
 	{
+		$svg = $this->main->svg();
+		$svg->test();
+		return;
 		$cond = ['where site=?i', $this->webapp->site];
 		if (is_string($search))
 		{

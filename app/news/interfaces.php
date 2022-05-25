@@ -287,6 +287,7 @@ class interfaces extends webapp
 	{
 		//这里也许要做频率限制
 		$rand = $this->random(16);
+		$device = $this->request_content();
 		if ($this->mysql->accounts->insert($account = [
 			'uid' => $this->hash($rand, TRUE),
 			'site' => $this->site,
@@ -294,8 +295,15 @@ class interfaces extends webapp
 			'expire' => $this->time,
 			'balance' => 0,
 			'lasttime' => $this->time,
-			'lastip' => $this->iphex('127.0.0.1'),
-			'device' => 'pc',
+			'lastip' => $this->clientiphex(),
+			'device' => match (1)
+			{
+				preg_match('/windows phone/i', $device) => 'wp',
+				preg_match('/pad/i', $device) => 'pad',
+				preg_match('/iphone/i', $device) => 'ios',
+				preg_match('/android/i', $device) => 'android',
+				default => 'pc'
+			},
 			'phone' => '',
 			'pwd' => random_int(100000, 999999),
 			'name' => $this->hash($rand),

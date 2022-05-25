@@ -172,8 +172,8 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 			for ($result = [$expire, '', [], []], $i = 0; $i < $length;)
 			{
 				$result[1] .= $values['code'][$i++];
-				$result[2][] = $values['size' . $i];
-				$result[3][] = $values['angle' . $i];
+				$result[2][] = $values["size{$i}"];
+				$result[3][] = $values["angle{$i}"];
 			}
 			return $result;
 		}

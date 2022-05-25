@@ -5,11 +5,6 @@ trait webapp_echo
 	public readonly webapp $webapp;
 	abstract function __construct(webapp $webapp);
 	abstract function __toString():string;
-	// static function __callStatic(string $name, array $arguments)
-	// {
-	// 	return webapp::$name(...$arguments);
-	// 	var_dump($name,  $arguments);
-	// }
 	// function __get(string $name):mixed
 	// {
 	// 	return $this->{$name} = &$this->webapp->{$name};
@@ -30,11 +25,13 @@ class webapp_echo_xml extends webapp_document
 class webapp_echo_svg extends webapp_document
 {
 	use webapp_echo;
-	const xmltype = 'webapp_svg';
+	public readonly webapp_svg $svg;
 	function __construct(public readonly webapp $webapp)
 	{
 		$webapp->response_content_type('image/svg+xml');
 		//<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+		$this->loadXML('<svg xmlns="http://www.w3.org/2000/svg"/>');
+		$this->svg = new webapp_svg($this->xml);
 	}
 }
 class webapp_echo_html extends webapp_document

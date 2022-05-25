@@ -297,9 +297,6 @@ class webapp_xml extends SimpleXMLElement
 	// 	return $this[0]->xpath(join($query));
 	// }
 }
-class webapp_svg extends webapp_xml
-{
-}
 class webapp_html extends webapp_xml
 {
 	function template(iterable $struct, array|string $attr = []):static
@@ -346,7 +343,11 @@ class webapp_html extends webapp_xml
 	// 	$node = &$this[0]->figure[];
 	// 	return $node;
 	// }
-	function labelinput(string $name, string $type, float|string $value, string $comment):static
+	// function style(array $values, bool $append = FALSE)
+	// {
+	// 	array_reduce(array_keys($values), fn($carry, $item) => "{$carry}{$values[$item]};", '')
+	// }
+	function labelinput(string $name, string $type, string $value, string $comment):static
 	{
 		$node = $this->append('label');
 		$node->append('input', ['type' => $type, 'name' => $name, 'value' => $value]);
@@ -515,7 +516,10 @@ class webapp_html extends webapp_xml
 		$form->button('Submit', 'submit')['class'] = 'primary';
 		return $form->xml;
 	}
-
+	function svg(array $attributes = []):webapp_svg
+	{
+		return new webapp_svg($this->append('svg', $attributes));
+	}
 	function form(?string $action = NULL):webapp_form
 	{
 		return new webapp_form($this, $action);
@@ -583,13 +587,25 @@ class webapp_document extends DOMDocument implements Stringable
 	// 	return $document;
 	// }
 }
+class webapp_svg
+{
+	function __construct(public readonly webapp_xml $xml, array $attributes = [])
+	{
+	}
+	function test()
+	{
+		$this->xml->append('polyline',[
+			'points'=>"20,20 40,40 60,40 80,120 120,140 200,180,100,100",
+			'style'=>"fill:none;stroke:black;stroke-width:1"
+		]);
+	}
+}
 class webapp_form implements ArrayAccess
 {
 	public readonly bool $echo;
 	public readonly ?webapp $webapp;
 	public readonly webapp_html $xml, $captcha;
 	public webapp_html $fieldset;
-	//private readonly array $input;
 	private array $files = [], $fields = [], $format = [];
 	function __construct(private readonly array|webapp|webapp_html $context, ?string $action = NULL)
 	{
