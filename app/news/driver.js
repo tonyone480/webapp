@@ -1,4 +1,4 @@
-function p(method, url, send)
+function request(method, url, send = null)
 {
     return new Promise(function(ok, no){
         const xhr = new XMLHttpRequest;
@@ -8,3 +8,5 @@ function p(method, url, send)
         xhr.send(send);
     });
 }
+
+
