@@ -5,5 +5,6 @@ function p(method, url, send)
         xhr.open(method, url);
         xhr.onload = ok;
         xhr.onerror = no;
+        xhr.send(send);
     });
 }
