@@ -2,12 +2,6 @@
 declare(strict_types=1);
 class webapp_xml extends SimpleXMLElement
 {
-	static function escape(string $value):string
-	{
-		return count($values = array_filter(preg_split('/(\'|")/', $value, flags:PREG_SPLIT_DELIM_CAPTURE))) > 1
-			? 'concat(' . join(',', array_map(fn($value) => $value === '\'' ? "\"{$value}\"" : "'{$value}'", $values)) . ')'
-			: (str_contains($value, '"') ? "'{$value}'" : "\"{$value}\"");
-	}
 	function webapp():?webapp
 	{
 		return $this->dom()->ownerDocument->webapp ?? NULL;
@@ -214,6 +208,12 @@ class webapp_xml extends SimpleXMLElement
 	static function from(DOMNode $node):?static
 	{
 		return simplexml_import_dom($node, static::class);
+	}
+	static function escape(string $value):string
+	{
+		return count($values = array_filter(preg_split('/(\'|")/', $value, flags:PREG_SPLIT_DELIM_CAPTURE))) > 1
+			? 'concat(' . join(',', array_map(fn($value) => $value === '\'' ? "\"{$value}\"" : "'{$value}'", $values)) . ')'
+			: (str_contains($value, '"') ? "'{$value}'" : "\"{$value}\"");
 	}
 	static function charsafe(string $content):string
 	{
@@ -534,13 +534,14 @@ class webapp_document extends DOMDocument implements Stringable
 	const xmltype = 'webapp_xml';
 	public readonly webapp $webapp;
 	public webapp_xml $xml;
+	function __construct(){}
 	function __toString():string
 	{
 		return $this->saveXML();
 	}
 	function __invoke(bool $loaded):bool
 	{
-		return $loaded && $this->xml = static::xmltype::from($this);
+		return $loaded && ($this->xml = static::xmltype::from($this)) !== NULL;
 	}
 	function load(string $source, int $options = 0):bool
 	{
@@ -589,9 +590,7 @@ class webapp_document extends DOMDocument implements Stringable
 }
 class webapp_svg
 {
-	function __construct(public readonly webapp_xml $xml, array $attributes = [])
-	{
-	}
+	function __construct(public readonly webapp_xml $xml){}
 	function test()
 	{
 		$this->xml->append('polyline',[

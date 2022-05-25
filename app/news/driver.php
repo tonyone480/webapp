@@ -24,6 +24,17 @@ class news_driver extends webapp
 		}
 		return 401;
 	}
+	function enbuff(string $data):string
+	{
+		$bin = random_bytes(8);
+		$key = array_map(ord(...), str_split($bin));
+		$len = strlen($data);
+		for ($i = 0; $i < $len; ++$i)
+		{
+			$data[$i] = chr(ord($data[$i]) ^ $key[$i % 8]);
+		}
+		return $bin . $data;
+	}
 	//随机散列
 	function randhash(bool $care = FALSE):string
 	{

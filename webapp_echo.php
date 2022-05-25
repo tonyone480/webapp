@@ -31,7 +31,10 @@ class webapp_echo_svg extends webapp_document
 		$webapp->response_content_type('image/svg+xml');
 		//<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
 		$this->loadXML('<svg xmlns="http://www.w3.org/2000/svg"/>');
-		$this->svg = new webapp_svg($this->xml);
+	}
+	function __invoke(bool $loaded):bool
+	{
+		return parent::__invoke($loaded) && $this->svg = new webapp_svg($this->xml);
 	}
 }
 class webapp_echo_html extends webapp_document
@@ -41,7 +44,6 @@ class webapp_echo_html extends webapp_document
 	public readonly webapp_html $header, $aside, $main, $footer;
 	function __construct(public readonly webapp $webapp)
 	{
-		//parent::__construct($webapp);
 		//https://validator.w3.org/nu/#textarea
 		$webapp->response_content_type("text/html; charset={$webapp['app_charset']}");
 		if (func_num_args() === 1)
@@ -51,8 +53,6 @@ class webapp_echo_html extends webapp_document
 			$this->xml->head->append('link', ['rel' => 'stylesheet', 'type' => 'text/css', 'href' => '/webapp/res/ps/webapp.css', 'media' => 'all']);
 			// $this->xml->head->append('style', ['type' => 'text/css', 'media' => 'print'])->cdata('body>div>*:not(main){display:none}');
 
-
-			
 			// $this->xml->head->append('link', ['rel' => 'stylesheet', 'type' => 'text/css', 'href' => $webapp->resroot('ps/font-awesome.css')]);
 			// $this->xml->head->append('link', ['rel' => 'stylesheet', 'type' => 'text/css', 'href' => $webapp->resroot('ps/font-awesome.css')]);
 			// $this->xml->head->append('script', ['type' => 'text/javascript', 'src' => '/webapp/res/js/webapp.js']);
