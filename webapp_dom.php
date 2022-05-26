@@ -529,40 +529,52 @@ class webapp_html extends webapp_xml
 		return new webapp_table($this, $contents, $output, ...$params);
 	}
 }
-class webapp_document extends DOMDocument implements Stringable
+class webapp_implementation extends DOMImplementation implements Stringable
 {
 	const xmltype = 'webapp_xml';
 	public readonly webapp $webapp;
+	public readonly DOMDocument $document;
 	public webapp_xml $xml;
-	function __construct(){}
-	function __toString():string
+	function __construct(string $root = 'html', string ...$params)
 	{
-		return $this->saveXML();
+		$this(($this->document = $this->createDocument(qualifiedName: $root, doctype: $root === 'html'
+			|| $params ? $this->createDocumentType($root, ...$params) : NULL)) !== FALSE);
+		if (isset($this->webapp))
+		{
+			$this->document->webapp = &$this->webapp;
+			$this->document->encoding = $this->webapp['app_charset'];
+		}
 	}
 	function __invoke(bool $loaded):bool
 	{
-		return $loaded && ($this->xml = static::xmltype::from($this)) !== NULL;
+		return $loaded && ($this->xml = static::xmltype::from($this->document)) !== NULL;
 	}
-	function load(string $source, int $options = 0):bool
+	function __toString():string
 	{
-		return $this(parent::load($source, $options));
+		return $this->document->doctype?->name === 'html'
+			? $this->document->saveHTML($this->document)
+			: $this->document->saveXML();
 	}
 	function loadXML(string $source, int $options = 0):bool
 	{
-		return $this(parent::loadXML($source, $options));
+		return $this($this->document->loadXML($source, $options));
 	}
 	function loadXMLFile(string $source, int $options = 0):bool
 	{
-		return $this->load($source, $options);
+		return $this($this->document->load($source, $options));
 	}
 	function loadHTML(string $source, int $options = 0):bool
 	{
-		return $this(parent::loadHTML($source, $options | LIBXML_NOWARNING | LIBXML_NOERROR));
+		return $this($this->document->loadHTML($source, $options | LIBXML_NOWARNING | LIBXML_NOERROR));
 	}
 	function loadHTMLFile(string $source, int $options = 0):bool
 	{
-		return $this(parent::loadHTMLFile($source, $options | LIBXML_NOWARNING | LIBXML_NOERROR));
+		return $this($this->document->loadHTMLFile($source, $options | LIBXML_NOWARNING | LIBXML_NOERROR));
 	}
+	// function xpath(string $expression):array
+	// {
+	// 	return iterator_to_array((new DOMXPath($this->document))->evaluate($expression));
+	// }
 	// function evaluate(string $expression, DOMNode $contextnode = NULL)
 	// {
 	// 	return (new DOMXPath($this))->evaluate($expression, $contextnode);
@@ -591,12 +603,16 @@ class webapp_document extends DOMDocument implements Stringable
 class webapp_svg
 {
 	function __construct(public readonly webapp_xml $xml){}
-	function test()
+	function favicon()
 	{
-		$this->xml->append('polyline',[
-			'points'=>"20,20 40,40 60,40 80,120 120,140 200,180,100,100",
-			'style'=>"fill:none;stroke:black;stroke-width:1"
+		$this->xml->append('style', 'path,line{fill:none;stroke:black;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;}');
+		$this->xml->append('path', [
+			'd' => 'M22,13L22,13c0-5-4-9-9-9h0c-5,0-9,4-9,9v6.1C4,24,8,28,12.9,28H22h7l-3.6-4.8C23.2,20.3,22,16.7,22,13z',
+			'style' => 'fill:none;stroke:black;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;'
 		]);
+		$this->xml->append('line', ['x1' => 9, 'y1' => 9, 'x2' => 9, 'y2' => 11]);
+		$this->xml->append('line', ['x1' => 13, 'y1' => 9, 'x2' => 13, 'y2' => 11]);
+		
 	}
 }
 class webapp_form implements ArrayAccess

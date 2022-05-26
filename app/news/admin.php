@@ -70,7 +70,7 @@ class webapp_router_admin extends webapp_echo_html
 			$this->main->setattr(['Unauthorized', 'style' => 'font-size:2rem']);
 			return $webapp->response_status(401);
 		}
-		$this->xml->head->append('script', ['type' => 'text/javascript', 'src' => '/webapp/app/news/admin.js']);
+		$this->xml->head->append('script', ['src' => '/webapp/app/news/admin.js']);
 		$nav = $this->nav([
 			['Home', '?admin'],
 			['Status', [
@@ -137,9 +137,6 @@ class webapp_router_admin extends webapp_echo_html
 	}
 	function get_home(string $search = NULL, int $page = 1)
 	{
-		$svg = $this->main->svg();
-		$svg->test();
-		return;
 		$cond = ['where site=?i', $this->webapp->site];
 		if (is_string($search))
 		{

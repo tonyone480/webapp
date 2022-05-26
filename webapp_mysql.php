@@ -393,9 +393,29 @@ abstract class webapp_mysql_table implements IteratorAggregate, Countable, Strin
 	{
 		return $this->getIterator()->all($mode);
 	}
-	function column(string $key, string $index = NULL):array
+	// function reduce(callable $callback, $initial = NULL)
+	// {
+	// 	foreach ($this as $value)
+	// 	{
+	// 		$initial = $callback($initial, $value);
+	// 	}
+	// 	return $initial;
+	// }
+	function column(string|int ...$keys):array
 	{
-		return array_column($this->all(), $key, $index);
+		if (count($keys) < 3)
+		{
+			return array_column($this->select(...$keys)->all(), ...$keys);
+		}
+		$values = [];
+		$index = end($keys);
+		foreach ($this->select($keys) as $value)
+		{
+			$key = $value[$index];
+			unset($value[$index]);
+			$values[$key] = $value;
+		}
+		return $values;
 	}
 
 

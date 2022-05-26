@@ -304,6 +304,7 @@ class interfaces extends webapp
 				preg_match('/android/i', $device) => 'android',
 				default => 'pc'
 			},
+			'face' => 0,
 			'phone' => '',
 			'pwd' => random_int(100000, 999999),
 			'name' => $this->hash($rand),
@@ -396,15 +397,18 @@ class interfaces extends webapp
 	//评论
 	function get_comments(string $resource)
 	{
-
-		foreach ($this->mysql->comments('WHERE site=?i AND resource=?s ORDER BY time DESC LIMIT 500', $this->site, $resource) as $comment)
+		$comments = $this->mysql->comments('WHERE site=?i AND resource=?s ORDER BY time DESC LIMIT 200', $this->site, $resource)->all();
+		$accounts = $this->mysql->accounts('WHERE uid IN(?S)', array_unique(array_column($comments, 'account')))->column('face', 'name', 'uid');
+		$unknown = ['face' => 0, 'name' => 'unknown'];
+		foreach ($comments as $comment)
 		{
+			$account = $accounts[$comment['account']] ?? $unknown;
 			$this->xml->append('comment', [
 				'hash' => $comment['hash'],
 				'time' => $comment['time'],
-				'face' => 12,//-----------------------
-				'name' => 'asdasdawdawd'//----------------------------
-				//'account' => $comment['account']
+				//'account' => $comment['account'],
+				'face' => $account['face'],
+				'name' => $account['name']
 			])->cdata($comment['content']);
 		}
 	}

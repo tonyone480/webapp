@@ -14,30 +14,31 @@ trait webapp_echo
 	// 	return $this->webapp->{$name}(...$params);
 	// }
 }
-class webapp_echo_xml extends webapp_document
+class webapp_echo_xml extends webapp_implementation
 {
 	use webapp_echo;
-	function __construct(public readonly webapp $webapp)
+	function __construct(public readonly webapp $webapp, string $root = 'webapp')
 	{
 		$webapp->response_content_type('application/xml');
+		parent::__construct($root);
 	}
 }
-class webapp_echo_svg extends webapp_document
+class webapp_echo_svg extends webapp_implementation
 {
 	use webapp_echo;
 	public readonly webapp_svg $svg;
-	function __construct(public readonly webapp $webapp)
+	function __construct(public readonly webapp $webapp, array $attributes = [])
 	{
 		$webapp->response_content_type('image/svg+xml');
-		//<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-		$this->loadXML('<svg xmlns="http://www.w3.org/2000/svg"/>');
+		parent::__construct('svg', '-//W3C//DTD SVG 1.1//EN', 'http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd');
+		$this->xml->setattr(['xmlns' => 'http://www.w3.org/2000/svg'] + $attributes);
 	}
 	function __invoke(bool $loaded):bool
 	{
 		return parent::__invoke($loaded) && $this->svg = new webapp_svg($this->xml);
 	}
 }
-class webapp_echo_html extends webapp_document
+class webapp_echo_html extends webapp_implementation
 {
 	use webapp_echo;
 	const xmltype = 'webapp_html';
@@ -46,33 +47,19 @@ class webapp_echo_html extends webapp_document
 	{
 		//https://validator.w3.org/nu/#textarea
 		$webapp->response_content_type("text/html; charset={$webapp['app_charset']}");
-		if (func_num_args() === 1)
-		{
-			$this->loadHTML("<!doctype html><html lang='en'><head><meta charset='{$webapp['app_charset']}'/></head><body/></html>");
-			$this->xml->head->append('meta', ['name' => 'viewport', 'content' => 'width=device-width,initial-scale=1']);
-			$this->xml->head->append('link', ['rel' => 'stylesheet', 'type' => 'text/css', 'href' => '/webapp/res/ps/webapp.css', 'media' => 'all']);
-			// $this->xml->head->append('style', ['type' => 'text/css', 'media' => 'print'])->cdata('body>div>*:not(main){display:none}');
-
-			// $this->xml->head->append('link', ['rel' => 'stylesheet', 'type' => 'text/css', 'href' => $webapp->resroot('ps/font-awesome.css')]);
-			// $this->xml->head->append('link', ['rel' => 'stylesheet', 'type' => 'text/css', 'href' => $webapp->resroot('ps/font-awesome.css')]);
-			// $this->xml->head->append('script', ['type' => 'text/javascript', 'src' => '/webapp/res/js/webapp.js']);
-			
-			$root = $this->xml->body->append('div', ['class' => 'webapp-grid']);
-			[$this->header, $this->aside, $this->main, $this->footer] = [
-				&$root->header, &$root->aside, &$root->main,
-				$root->append('footer', $webapp['copy_webapp'])];
-		}
-		else
-		{
-			if (is_string($data = func_get_arg(1)))
-			{
-				str_starts_with($data, '<') ? $this->loadHTML($data) : $this->loadHTMLFile($data);
-			}
-		}
-	}
-	function __toString():string
-	{
-		return $this->saveHTML($this);
+		parent::__construct();
+		$head = $this->xml->setattr(['lang' => 'en'])->append('head');
+		$head->append('meta', ['charset' => $this->document->encoding = $webapp['app_charset']]);
+		$head->append('meta', ['name' => 'viewport', 'content' => 'width=device-width,initial-scale=1']);
+		$head->append('link', ['rel' => 'icon', 'type' => 'image/svg+xml', 'href' => '?favicon']);
+		$head->append('link', ['rel' => 'stylesheet', 'type' => 'text/css', 'href' => '/webapp/res/ps/webapp.css', 'media' => 'all']);
+		//$head->append('script', ['type' => 'module', 'src' => '/webapp/res/js/webkit.js']);
+		//$head->append('script', ['src' => '/webapp/res/js/webapp.js']);
+		//$head->append('script')->cdata('console.log(window)');
+		$node = $this->xml->append('body')->append('div', ['class' => 'webapp-grid']);
+		[$this->header, $this->aside, $this->main, $this->footer] = [
+			&$node->header, &$node->aside, &$node->main,
+			$node->append('footer', $webapp['copy_webapp'])];
 	}
 	// function script(string $context, string $type = ''):webapp_html
 	// {
@@ -106,17 +93,6 @@ class webapp_echo_html extends webapp_document
 	}
 
 
-
-
-
-
-
-
-	
-	function xpath(string $expression):array
-	{
-		return iterator_to_array((new DOMXPath($this))->evaluate($expression));
-	}
 	static function form_sign_in(array|webapp|webapp_html $context, ?string $authurl = NULL):webapp_form
 	{
 		$form = new webapp_form($context, $authurl);
@@ -143,6 +119,7 @@ class webapp_echo_json extends ArrayObject implements Stringable
 		return json_encode($this->getArrayCopy(), JSON_UNESCAPED_UNICODE);
 	}
 }
+/*
 class webapp_echo_xls extends webapp_echo_xml
 {
 	function __construct(webapp $webapp)
@@ -192,3 +169,4 @@ class webapp_echo_xls extends webapp_echo_xml
 		return $this;
 	}
 }
+*/

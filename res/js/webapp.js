@@ -1,6 +1,5 @@
-"use strict";//em...
-import('./webkit.js').then(function({default: webapp})
+"use strict";
+import('./webkit.js').then(function({default: $})
 {
-	console.log(webapp.md5('dwdawdawd'))
-	console.log(webapp('a[href]'))
+	console.log($('footer'));
 });

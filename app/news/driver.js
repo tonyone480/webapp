@@ -1,4 +1,4 @@
-function debuff(data, binary = false)
+function unpack(data, binary = false)
 {
 	const key = new Uint8Array(data.slice(0, 8));
 	const buffer = new Uint8Array(data.slice(8));
@@ -14,7 +14,7 @@ function fetchpic(img)
 {
 	fetch(img.dataset.url).then(response => response.arrayBuffer()).then(function(data)
 	{
-		img.src = debuff(data, true);
+		img.src = unpack(data, true);
 	});
 }
 function request(method, url, body = null)
@@ -26,7 +26,7 @@ function request(method, url, body = null)
 		xhr.responseType = 'arraybuffer';
 		xhr.onload = () => resolve(JSON.parse(/json/.test(xhr.getResponseHeader('Content-Type'))
 			? (new TextDecoder('utf-8')).decode(new Uint8Array(xhr.response))
-			: debuff(xhr.response)));
+			: unpack(xhr.response)));
 		xhr.onerror = () => reject(xhr);
 		xhr.send(body);
 	});
