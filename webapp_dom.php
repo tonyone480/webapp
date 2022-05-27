@@ -531,14 +531,13 @@ class webapp_html extends webapp_xml
 }
 class webapp_implementation extends DOMImplementation implements Stringable
 {
-	const xmltype = 'webapp_xml';
 	public readonly webapp $webapp;
 	public readonly DOMDocument $document;
 	public webapp_xml $xml;
-	function __construct(string $root = 'html', string ...$params)
+	function __construct(string $type = 'html', string ...$params)
 	{
-		$this(($this->document = $this->createDocument(qualifiedName: $root, doctype: $root === 'html'
-			|| $params ? $this->createDocumentType($root, ...$params) : NULL)) !== FALSE);
+		$this(($this->document = $this->createDocument(qualifiedName: $type, doctype: $type === 'html'
+			|| $params ? $this->createDocumentType($type, ...$params) : NULL)) !== FALSE);
 		if (isset($this->webapp))
 		{
 			$this->document->webapp = &$this->webapp;
@@ -547,7 +546,8 @@ class webapp_implementation extends DOMImplementation implements Stringable
 	}
 	function __invoke(bool $loaded):bool
 	{
-		return $loaded && ($this->xml = static::xmltype::from($this->document)) !== NULL;
+		return $loaded && ($this->xml = ($this->document->doctype?->name === 'html'
+			? 'webapp_html' : 'webapp_xml')::from($this->document)) !== NULL;
 	}
 	function __toString():string
 	{

@@ -706,6 +706,10 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	{
 		$this->response_header('Refresh', $url === NULL ? (string)$second : "{$second}; url={$url}");
 	}
+	function response_last_modified(int $timestamp)
+	{
+		$this->response_header('Last-Modified', date(DateTimeInterface::RFC7231, $timestamp));
+	}
 	function response_cache_control(string $command):void
 	{
 		$this->response_header('Cache-Control', $command);
@@ -724,12 +728,16 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 		return $this->io->response_sendfile($filename);
 	}
 	//append function
+	function allow(string|self $router, string ...$methods):bool
+	{
+		return $this->router === $router && in_array($this->method, ['get_favicon', 'get_captcha', 'get_qrcode', ...$methods], TRUE);
+	}
 	final function init_admin_sign_in(array $config = [], webapp_io $io = new webapp_stdio):bool
 	{
 		self::__construct($config, $io);
 		if (method_exists(...$this->route))
 		{
-			if ($this->router === $this && in_array($this->method, ['get_captcha', 'get_qrcode'], TRUE)) return TRUE;
+			if ($this->allow($this)) return TRUE;
 			if ($this->admin) return FALSE;
 			$this->response_status(403);
 		}
@@ -760,17 +768,24 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 		}
 		return TRUE;
 	}
-	function allow(string|self $router, string ...$methods):bool
+	function nonematch(string $etag, bool $needhash = FALSE):bool
 	{
-		return $this->router === $router && in_array($this->method, ['get_favicon', 'get_captcha', 'get_qrcode', ...$methods], TRUE);
+		$this->response_header('Etag', $hash = '"' . static::hash($etag, TRUE) . '"');
+		return $this->request_header('If-None-Match') !== $hash;
 	}
 	function get_favicon()
 	{
-		$this->app('webapp_echo_svg', ['width' => 24, 'height' => 24, 'viewBox' => '0 0 24 24'])->xml->append('path', ['d' =>
-			'M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627'
-			.' 0 12 0zm.256 2.313c2.47.005 5.116 2.008 5.898 2.962l.244.3c1.64 1.994 3.569 4.34 3.569 6.966'
-			.' 0 3.719-2.98 5.808-6.158 7.508-1.433.766-2.98 1.508-4.748 1.508-4.543 0-8.366-3.569-8.366-8.112'
-			.' 0-.706.17-1.425.342-2.15.122-.515.244-1.033.307-1.549.548-4.539 2.967-6.795 8.422-7.408a4.29 4.29 0 0 1 .49-.026z']);
+		$this->response_cache_control('private, max-age=86400');
+		if ($this->nonematch($this->request_ip(), TRUE))
+		{
+			$this->app('webapp_echo_svg', ['width' => 24, 'height' => 24, 'viewBox' => '0 0 24 24'])->xml->append('path', ['d' =>
+				'M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627'
+				.' 0 12 0zm.256 2.313c2.47.005 5.116 2.008 5.898 2.962l.244.3c1.64 1.994 3.569 4.34 3.569 6.966'
+				.' 0 3.719-2.98 5.808-6.158 7.508-1.433.766-2.98 1.508-4.748 1.508-4.543 0-8.366-3.569-8.366-8.112'
+				.' 0-.706.17-1.425.342-2.15.122-.515.244-1.033.307-1.549.548-4.539 2.967-6.795 8.422-7.408a4.29 4.29 0 0 1 .49-.026z']);
+			return;
+		}
+		return 304;
 	}
 	function get_captcha(string $random = NULL)
 	{
@@ -792,23 +807,18 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 		}
 		return 404;
 	}
-	function matchetag(string $data):bool
-	{
-		$this->response_header('Etag', $etag = '"' . static::hash($data) . '"');
-		return $this->request_header('If-None-Match') === $etag;
-	}
 	function get_qrcode(string $encode)
 	{
-		if ($this->matchetag($encode))
+		if ($this->nonematch($encode, TRUE))
 		{
-			return 304;
+			if ($this['qrcode_echo'] && is_string($decode = $this->url64_decode($encode)) && strlen($decode) < $this['qrcode_maxdata'])
+			{
+				$this->response_content_type('image/png');
+				webapp_image::qrcode(static::lib('qrcode/interface.php')($decode, $this['qrcode_ecc']), $this['qrcode_size'])->png($this->buffer);
+				return;
+			}
+			return 404;
 		}
-		if ($this['qrcode_echo'] && is_string($decode = $this->url64_decode($encode)) && strlen($decode) < $this['qrcode_maxdata'])
-		{
-			$this->response_content_type('image/png');
-			webapp_image::qrcode(static::lib('qrcode/interface.php')($decode, $this['qrcode_ecc']), $this['qrcode_size'])->png($this->buffer);
-			return;
-		}
-		return 404;
+		return 304;
 	}
 }

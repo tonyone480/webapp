@@ -41,7 +41,6 @@ class webapp_echo_svg extends webapp_implementation
 class webapp_echo_html extends webapp_implementation
 {
 	use webapp_echo;
-	const xmltype = 'webapp_html';
 	public readonly webapp_html $header, $aside, $main, $footer;
 	function __construct(public readonly webapp $webapp)
 	{
@@ -73,7 +72,7 @@ class webapp_echo_html extends webapp_implementation
 	{
 		$this->xml->head->title = $title;
 	}
-	// function addcss(string $rule):DOMText
+	// function addstyle(string $rule):DOMText
 	// {
 	// 	return ($this->style ??= $this->xml->head->append('style', ['media' => 'all']))->text($rule);
 	// }
