@@ -626,8 +626,8 @@ class webapp_client_http extends webapp_client implements ArrayAccess
 			'application/xml' => class_exists('webapp_xml', FALSE)
 				? new webapp_xml((string)$this)
 				: new SimpleXMLElement((string)$this),
-			'text/html' => class_exists('webapp_document', FALSE)
-				? (($doc = new webapp_document)->loadHTML((string)$this) ? $doc->xml : (string)$this)
+			'text/html' => class_exists('webapp_implementation', FALSE)
+				? (($doc = new webapp_implementation)->loadHTML((string)$this) ? $doc->xml : (string)$this)
 				: (($doc = new DOMDocument)->loadHTML((string)$this, LIBXML_NOWARNING | LIBXML_NOERROR) ? simplexml_import_dom($doc) : (string)$this),
 			default => (string)$this
 		};

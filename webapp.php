@@ -706,6 +706,10 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	{
 		$this->response_header('Refresh', $url === NULL ? (string)$second : "{$second}; url={$url}");
 	}
+	function response_expires(int $timestamp)
+	{
+		$this->response_header('Expires', date(DateTimeInterface::RFC7231, $timestamp));
+	}
 	function response_last_modified(int $timestamp)
 	{
 		$this->response_header('Last-Modified', date(DateTimeInterface::RFC7231, $timestamp));
@@ -728,6 +732,11 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 		return $this->io->response_sendfile($filename);
 	}
 	//append function
+	function nonematch(string $etag, bool $needhash = FALSE):bool
+	{
+		$this->response_header('Etag', $hash = '"' . ($needhash ? static::hash($etag, TRUE) : $etag) . '"');
+		return $this->request_header('If-None-Match') !== $hash;
+	}
 	function allow(string|self $router, string ...$methods):bool
 	{
 		return $this->router === $router && in_array($this->method, ['get_favicon', 'get_captcha', 'get_qrcode', ...$methods], TRUE);
@@ -768,11 +777,6 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 		}
 		return TRUE;
 	}
-	function nonematch(string $etag, bool $needhash = FALSE):bool
-	{
-		$this->response_header('Etag', $hash = '"' . static::hash($etag, TRUE) . '"');
-		return $this->request_header('If-None-Match') !== $hash;
-	}
 	function get_favicon()
 	{
 		$this->response_cache_control('private, max-age=86400');
@@ -791,11 +795,16 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	{
 		if ($this['captcha_echo'])
 		{
+			$this->response_cache_control("private, max-age={$this['captcha_expire']}");
 			if ($result = static::captcha_result($random))
 			{
-				$this->response_content_type('image/jpeg');
-				webapp_image::captcha($result, ...$this['captcha_params'])->jpeg($this->buffer);
-				return;
+				if ($this->nonematch($random, TRUE))
+				{
+					$this->response_content_type('image/jpeg');
+					webapp_image::captcha($result, ...$this['captcha_params'])->jpeg($this->buffer);
+					return;
+				}
+				return 304;
 			}
 			if ($random = static::captcha_random($this['captcha_unit'], $this['captcha_expire']))
 			{
@@ -809,16 +818,17 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	}
 	function get_qrcode(string $encode)
 	{
-		if ($this->nonematch($encode, TRUE))
+		$this->response_expires(mktime(23, 59, 59));
+		if ($this['qrcode_echo'] && is_string($decode = $this->decrypt($encode)) && strlen($decode) < $this['qrcode_maxdata'])
 		{
-			if ($this['qrcode_echo'] && is_string($decode = $this->url64_decode($encode)) && strlen($decode) < $this['qrcode_maxdata'])
+			if ($this->nonematch($encode, TRUE))
 			{
 				$this->response_content_type('image/png');
 				webapp_image::qrcode(static::lib('qrcode/interface.php')($decode, $this['qrcode_ecc']), $this['qrcode_size'])->png($this->buffer);
 				return;
 			}
-			return 404;
+			return 304;
 		}
-		return 304;
+		return 404;
 	}
 }
