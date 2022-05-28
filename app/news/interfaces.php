@@ -348,14 +348,63 @@ class interfaces extends webapp
 			])->cdata($describe);
 		}
 	}
+	
+	function bill(string $uid, int $fee, string $describe, &$bill):bool
+	{
+		return $this->mysql->sync(function() use($uid, $fee, $describe, &$bill)
+		{
+			return $this->mysql->accounts('WHERE site=?i AND uid=?s', $this->site, $uid)
+						->update('balance=balance???i', $fee > 0 ? '+' : '-', abs($fee)) > 0
+				&& $this->mysql->bills->insert($bill = [
+					'hash' => $this->randhash(TRUE),
+					'site' => $this->site,
+					'time' => $this->time,
+					'fee' => $fee,
+					'account' => $uid,
+					'describe' => $describe
+				]);
+		});
+	}
+	function bill_xml(array $bill)
+	{
+		$this->xml->append('bill', [
+			'hash' => $bill['hash'],
+			'time' => $bill['time'],
+			'fee' => $bill['fee'],
+			'account' => $bill['account'],
+		])->cdata($bill['describe']);
+	}
+	function post_bill(string $signature)
+	{
+		if ($this->account($signature, $account)
+			&& is_array($bill = $this->request_content())
+			&& isset($bill['fee'], $bill['describe'])
+			&& is_string($bill['describe'])
+			&& $this->bill($account['uid'], intval($bill['fee']), $bill['describe'], $bill)) {
+			$this->bill_xml($bill);
+		}
+	}
+	function get_bills(string $signature, int $page = 1)
+	{
+		if ($this->account($signature, $account))
+		{
+			$bills = $this->mysql->bills('WHERE site=?i AND account=?s', $this->site, $account['uid'])->paging($page);
+			$this->xml->setattr($bills->paging);
+			foreach ($bills as $bill)
+			{
+				$this->bill_xml($bill);
+			}
+		}
+	}
 	function get_play(string $resource_signature)
 	{
 		if ($this->account($signature = substr($resource_signature, 12), $account))
 		{
 			$require = $this->mysql->resources('WHERE hash=?s LIMIT 1', $resource = substr($resource_signature, 0, 12))->array()['require'] ?? 0;
-			if ($require > 0 && $this->mysql->accounts('WHERE uid=?s LIMIT 1', $account['uid'])->update('balance=balance-?i', $require) === 1)
+			if ($require > 0 && $this->bill($account['uid'], -$require, "付费播放 {$resource}", $bill))
 			{
-				$this->app->xml->append('play', ['signature' => $signature, 'resource' => $resource, 'balance' => $account['balance'] - $require]);
+				$this->xml->append('play', ['signature' => $signature, 'resource' => $resource, 'balance' => $account['balance'] - $require]);
+				$this->bill_xml($bill);
 			}
 		}
 	}
@@ -379,7 +428,7 @@ class interfaces extends webapp
 			if ($this->mysql->accounts('WHERE uid=?s LIMIT 1', $account['uid'])->update('favorite=?s', $favorite = join($favorite)))
 			{
 				$this->mysql->resources('WHERE hash=?s LIMIT 1', $resource)->update($value);
-				$this->app->xml->append('favorite', ['signature' => $signature])->cdata($favorite);
+				$this->xml->append('favorite', ['signature' => $signature])->cdata($favorite);
 			}
 		}
 	}
@@ -391,7 +440,7 @@ class interfaces extends webapp
 				? join(array_unique(str_split(substr($account['history'] . $resource, -384), 12)))
 				: $resource)) {
 			$this->mysql->resources('WHERE hash=?s LIMIT 1', $resource)->update('view=view+1');
-			$this->app->xml->append('history', ['signature' => $signature])->cdata($history);
+			$this->xml->append('history', ['signature' => $signature])->cdata($history);
 		}
 	}
 	//评论

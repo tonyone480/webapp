@@ -70,6 +70,32 @@ class webapp_router_admin extends webapp_echo_html
 			$this->main->setattr(['Unauthorized', 'style' => 'font-size:2rem']);
 			return $webapp->response_status(401);
 		}
+
+		$this->xml->head->append('style', <<<'STYLE'
+ul.restag{
+	padding:0;
+	width:70rem;
+	display:flex;
+	align-content: flex-start;
+	flex-flow:wrap;
+	list-style-type:none;
+	gap:.3rem;
+}
+ul.restag>li{
+	flex:0 0 6rem;
+}
+ul.restag>li>label{
+	padding:.3rem;
+	border-radius:.3rem;
+	white-space:nowrap;
+}
+ul.restag>li>label:hover{
+	background:whitesmoke;
+}
+ul.restag>li>label:active{
+	background:gainsboro;
+}
+STYLE);
 		$this->xml->head->append('script', ['src' => '/webapp/app/news/admin.js']);
 		$nav = $this->nav([
 			['Home', '?admin'],
@@ -412,11 +438,14 @@ class webapp_router_admin extends webapp_echo_html
 		$form = new webapp_form($ctx);
 		$form->fieldset('封面图片');
 		$form->field('cover', 'file');
-		$form->fieldset('name');
+		$form->fieldset('name / actors');
 		$form->field('name', 'text', ['style' => 'width:42rem', 'required' => NULL]);
+		$form->field('actors', 'text', ['value' => '素人', 'required' => NULL]);
 		$form->fieldset('tags');
-		$form->field('tags', 'text', ['style' => 'width:42rem', 'required' => NULL]);
-		$form->fieldset('require(会员：-1、免费：0、金币)');
+		$tags = $form->echo ? $this->webapp->mysql->tags('ORDER BY level ASC,click DESC,count DESC')->column('name', 'hash') : [];
+		$form->field('tags', 'checkbox', ['options' => $tags], 
+			fn($v,$i)=>$i?join(',',$v):explode(',',$v))['class'] = 'restag';
+		$form->fieldset('require(下架：-2、会员：-1、免费：0、金币)');
 		$form->field('require', 'number', ['min' => -1, 'required' => NULL]);
 		$form->fieldset();
 		$form->button('Update Resource', 'submit');
@@ -449,11 +478,13 @@ class webapp_router_admin extends webapp_echo_html
 		$form->fieldset('资源文件');
 		$form->field('uploadfile', 'file', ['accept' => 'video/mp4', 'required' => NULL]);
 		$form->button('Cancel', 'button', ['onclick' => 'xhr.abort()']);
-		$form->fieldset('name');
+		$form->fieldset('name / actors');
 		$form->field('name', 'text', ['value' => '0000', 'style' => 'width:42rem', 'required' => NULL]);
+		$form->field('actors', 'text', ['value' => '素人', 'required' => NULL]);
 		$form->fieldset('tags');
-		$form->field('tags', 'text', ['value' => '0000', 'style' => 'width:42rem', 'required' => NULL]);
-		$form->fieldset('require(会员：-1、免费：0、金币)');
+		$tags = $form->echo ? $this->webapp->mysql->tags('ORDER BY level ASC,click DESC,count DESC')->column('name', 'hash') : [];
+		$form->field('tags', 'checkbox', ['options' => $tags])['class'] = 'restag';
+		$form->fieldset('require(下架：-2、会员：-1、免费：0、金币)');
 		$form->field('require', 'number', ['value' => 0, 'min' => -1, 'required' => NULL]);
 		$form->fieldset();
 		$form->button('Upload Resource', 'submit');
@@ -481,7 +512,7 @@ class webapp_router_admin extends webapp_echo_html
 			$table->row();
 			$table->cell()->append('a', [$res['hash'], 'href' => "?admin/resource-update,hash:{$res['hash']}"]);
 			$table->cell(date('Y-m-d', $res['time']));
-			$table->cell($res['require'] ? ($res['require'] === -1 ? '会员' : $res['require']) : '免费');
+			$table->cell([-2 => '下架', -1 => '会员', 0 => '免费'][$res['require']] ?? $res['require']);
 			$table->cell(date('G:i:s', $res['duration'] + 57600));
 			$table->cell(number_format($res['favorite']));
 			$table->cell(number_format($res['view']));

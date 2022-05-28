@@ -160,11 +160,10 @@ class webapp_mysql extends mysqli implements IteratorAggregate
 	{
 		return boolval($this('SELECT @@autocommit')->value());
 	}
-	function sync(Closure $submit, mixed ...$params):bool
+	function sync(callable $submit, ...$params):bool
 	{
-		return $this->syncable() && $this->autocommit(FALSE)
-			&& [($success = $submit(...$params) && $this->commit()) || $this->rollback(),
-				$this->autocommit(TRUE)] ? $success : FALSE;
+		return $this->autocommit(FALSE) && [($success = $submit(...$params) && $this->commit())
+			|| $this->rollback(), $this->autocommit(TRUE)] ? $success : FALSE;
 		// if ($this->autocommit(FALSE))
 		// {
 		// 	if ($submit->call($this, ...$params))
@@ -405,7 +404,7 @@ abstract class webapp_mysql_table implements IteratorAggregate, Countable, Strin
 	{
 		if (count($keys) < 3)
 		{
-			return array_column($this->select(...$keys)->all(), ...$keys);
+			return array_column($this->select($keys)->all(), ...$keys);
 		}
 		$values = [];
 		$index = end($keys);

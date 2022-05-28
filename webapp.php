@@ -795,7 +795,6 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	{
 		if ($this['captcha_echo'])
 		{
-			$this->response_cache_control("private, max-age={$this['captcha_expire']}");
 			if ($result = static::captcha_result($random))
 			{
 				if ($this->nonematch($random, TRUE))
@@ -818,7 +817,6 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	}
 	function get_qrcode(string $encode)
 	{
-		$this->response_expires(mktime(23, 59, 59));
 		if ($this['qrcode_echo'] && is_string($decode = $this->decrypt($encode)) && strlen($decode) < $this['qrcode_maxdata'])
 		{
 			if ($this->nonematch($encode, TRUE))
