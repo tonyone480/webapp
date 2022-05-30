@@ -470,6 +470,10 @@ STYLE);
 	{
 		return $this->okay("?admin/resource-upload");
 	}
+	function delete_resource(string $hash)
+	{
+		var_dump($hash);
+	}
 	function get_resource_upload()
 	{
 		$form = $this->main->form();
@@ -488,6 +492,11 @@ STYLE);
 		$form->field('require', 'number', ['value' => 0, 'min' => -1, 'required' => NULL]);
 		$form->fieldset();
 		$form->button('Upload Resource', 'submit');
+		$form->button('Upload Resource')->setattr([
+			'data-method' => 'delete',
+			'data-url' => '?admin/resource,hash:123456789012',
+			'onclick' => '$(this).send("wwww").then(function(a){console.log(a.response)})'
+		]);
 		
 	}
 	function get_resources(string $search = NULL, int $page = 1)

@@ -47,11 +47,18 @@ class webapp_echo_html extends webapp_implementation
 		//https://validator.w3.org/nu/#textarea
 		$webapp->response_content_type("text/html; charset={$webapp['app_charset']}");
 		parent::__construct();
-		$head = $this->xml->setattr(['lang' => 'en'])->append('head');
-		$head->append('meta', ['charset' => $this->document->encoding = $webapp['app_charset']]);
-		$head->append('meta', ['name' => 'viewport', 'content' => 'width=device-width,initial-scale=1']);
-		$head->append('link', ['rel' => 'icon', 'type' => 'image/svg+xml', 'href' => '?favicon']);
-		$head->append('link', ['rel' => 'stylesheet', 'type' => 'text/css', 'href' => '/webapp/res/ps/webapp.css', 'media' => 'all']);
+		$this->xml->setattr(['lang' => 'en'])->append('head');
+		$this->meta(['charset' => $webapp['app_charset']]);
+		$this->meta(['name' => 'viewport', 'content' => 'width=device-width,initial-scale=1']);
+		$this->link(['rel' => 'manifest', 'href' => '?webmanifest']);
+		$this->link(['rel' => 'icon', 'type' => 'image/svg+xml', 'href' => '?favicon']);
+		$this->link(['rel' => 'stylesheet', 'type' => 'text/css', 'href' => '/webapp/res/ps/webapp.css', 'media' => 'all']);
+
+		// $head->append('meta', ['charset' => $webapp['app_charset']]);
+		// $head->append('meta', ['name' => 'viewport', 'content' => 'width=device-width,initial-scale=1']);
+		// $head->append('link', ['rel' => 'icon', 'type' => 'image/svg+xml', 'href' => '?favicon']);
+		// $head->append('link', ['rel' => 'stylesheet', 'type' => 'text/css', 'href' => '/webapp/res/ps/webapp.css', 'media' => 'all']);
+		
 		//$head->append('script', ['type' => 'module', 'src' => '/webapp/res/js/webkit.js']);
 		//$head->append('script', ['src' => '/webapp/res/js/webapp.js']);
 		//$head->append('script')->cdata('console.log(window)');
@@ -59,6 +66,14 @@ class webapp_echo_html extends webapp_implementation
 		[$this->header, $this->aside, $this->main, $this->footer] = [
 			&$node->header, &$node->aside, &$node->main,
 			$node->append('footer', $webapp['copy_webapp'])];
+	}
+	function meta(array $attributes):webapp_html
+	{
+		return $this->xml->head->append('meta', $attributes);
+	}
+	function link(array $attributes):webapp_html
+	{
+		return $this->xml->head->append('link', $attributes);
 	}
 	// function script(string $context, string $type = ''):webapp_html
 	// {

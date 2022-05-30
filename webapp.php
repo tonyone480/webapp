@@ -777,6 +777,20 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 		}
 		return TRUE;
 	}
+	function get_webmanifest()
+	{
+		$this->app('webapp_echo_json', [
+			'background_color' => 'purple',
+			'description' => $this['copy_webapp'],
+			'display' => 'fullscreen',
+			'icons' => [
+				['src' => '?favicon', 'sizes' => "192x192", 'type' => 'image/svg+xml']
+			],
+			'name' => 'Awesome fox pictures',
+			'short_name' => 'Foxes',
+			'start_url' => '/'
+		]);
+	}
 	function get_favicon()
 	{
 		$this->response_cache_control('private, max-age=86400');
