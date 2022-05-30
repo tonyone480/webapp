@@ -790,6 +790,7 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 			'short_name' => 'Foxes',
 			'start_url' => '/'
 		]);
+		$this->response_content_type("application/manifest+json; charset={$this['app_charset']}");
 	}
 	function get_favicon()
 	{
