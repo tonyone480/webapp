@@ -168,7 +168,7 @@ class interfaces extends webapp
 
 	function get_test()
 	{
-		print_r( $this->runstatus() );
+		print_r( $this->mysql->resources->array() );
 	}
 	function get_home()
 	{
