@@ -29,9 +29,9 @@ function upres(e)
 	xhr.send(new FormData(e));
 	xhr.responseType = 'json';
 	xhr.onload = () => {
-		if (xhr.response.errors.length)
+		if (Object.keys(xhr.response.errors))
 		{
-			alert(xhr.response.errors.join("\n"));
+			alert(Object.values(xhr.response.errors).join("\n"));
 		}
 		else
 		{
