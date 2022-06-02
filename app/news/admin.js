@@ -24,6 +24,7 @@ function upres(e)
 {
 	const progress = Array.from(e.getElementsByTagName('progress'));
 	xhr.open(e.method, e.action);
+	xhr.setRequestHeader('Authorization', `Bearer ${e.dataset.auth}`);
 	xhr.upload.onprogress = event => event.lengthComputable && progress.forEach(e => e.value = event.loaded / event.total);
 	xhr.send(new FormData(e));
 	xhr.responseType = 'json';

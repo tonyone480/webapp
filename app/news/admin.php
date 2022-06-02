@@ -479,7 +479,8 @@ STYLE);
 	}
 	function get_resource_upload()
 	{
-		$this->webapp->form_resourceupload($this->main);
+		$form = $this->webapp->form_resourceupload($this->main);
+		$form->xml['data-auth'] = $this->webapp->signature($this->webapp['admin_username'], $this->webapp['admin_password'], (string)$this->webapp->site);
 	}
 	function get_resources(string $search = NULL, int $page = 1)
 	{

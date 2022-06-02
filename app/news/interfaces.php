@@ -292,9 +292,23 @@ class interfaces extends webapp
 			->update('site=?s,data=JSON_SET(data,\'$."?i"\',JSON_OBJECT("require",?i,"favorite",0,"view",0,"like",0,"name",?s))',
 			join(',', array_unique($sites)), $site, intval($value['require'] ?? 0), $value['name'] ?? '');
 	}
+	function options_resourceupload()
+	{
+		$this->response_header('Allow', 'OPTIONS, POST');
+		$this->response_header('Access-Control-Allow-Origin', '*');
+		$this->response_header('Access-Control-Allow-Headers', '*');
+		$this->response_header('Access-Control-Allow-Methods', 'POST');
+	}
 	function post_resourceupload()
 	{
 		$this->response_header('Access-Control-Allow-Origin', '*');
+
+		$this->app('webapp_echo_json', [
+
+		]);
+
+
+		return;
 		$resource = [];
 		$uploadfile = $this->request_uploadedfile('resource', 1)[0] ?? [];
 		$this->app('webapp_echo_json', [
