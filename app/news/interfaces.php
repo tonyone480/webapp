@@ -302,13 +302,6 @@ class interfaces extends webapp
 	function post_resourceupload()
 	{
 		$this->response_header('Access-Control-Allow-Origin', '*');
-
-		$this->app('webapp_echo_json', [
-
-		]);
-
-
-		return;
 		$resource = [];
 		$uploadfile = $this->request_uploadedfile('resource', 1)[0] ?? [];
 		$this->app('webapp_echo_json', [
