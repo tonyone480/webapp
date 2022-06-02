@@ -483,7 +483,8 @@ STYLE);
 	}
 	function get_resources(string $search = NULL, int $page = 1)
 	{
-		$cond = ['WHERE FIND_IN_SET(?s,site) AND sync=?s', $this->webapp->site, $this->webapp->query['sync'] ?? 'finished'];
+		$cond = ['WHERE FIND_IN_SET(?s,site) AND sync=?s', $this->webapp->site,
+			$sync = $this->webapp->query['sync'] ?? 'finished'];
 		if (is_string($search))
 		{
 			if (strlen($search) === 4 && trim($search, webapp::key) === '')
@@ -517,14 +518,11 @@ STYLE);
 		$table->header('Found %d item', $table->count());
 		$table->button('Upload Resources', ['onclick' => 'location.href="?admin/resource-upload"']);
 		$table->search(['value' => $search, 'onkeydown' => 'event.keyCode==13&&g({search:this.value?urlencode(this.value):null,page:null})']);
-		if (array_key_exists('sync', $this->webapp->query) && $this->webapp->query['sync'] === 'waiting')
-		{
-			$table->button('Finished', ['onclick' => 'g({sync:null})']);
-		}
-		else
-		{
-			$table->button('Waiting...', ['onclick' => 'g({sync:"waiting"})']);
-		}
+		$table->bar->select([
+			'finished' => '完成',
+			'waiting' => '等待',
+			'exception' => '异常'
+		])->setattr(['onchange' => 'g({sync:this.value})'])->selected($sync);
 		$table->paging($this->webapp->at(['page' => '']));
 	}
 	//账户

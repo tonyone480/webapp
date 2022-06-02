@@ -57,18 +57,26 @@ class interfaces extends webapp
 			return;
 		}
 		$ffmpeg = static::lib('ffmpeg/interface.php');
-		foreach ($this->mysql->resources('WHERE sync="waiting" AND time>1654082240') as $resource)
+		foreach ($this->mysql->resources('WHERE sync="waiting" ORDER BY time ASC') as $resource)
 		{
+			echo sprintf("{$resource['hash']}:%s\n", date('Y/m/d H:i', $resource['time']));
 			$cut = $ffmpeg("{$this['app_respredir']}/{$resource['hash']}");
 			if ($cut->m3u8($outdir = "{$this['app_resoutdir']}/{$resource['hash']}"))
 			{
 				$this->maskfile("{$outdir}/play.m3u8", "{$outdir}/play");
-				if ($cut->jpeg("{$outdir}/cover.jpg"))
-				{
+				if (is_file("{$this['app_respredir']}/{$resource['hash']}.cover")
+					? webapp_image::from("{$this['app_respredir']}/{$resource['hash']}.cover")->jpeg("{$outdir}/cover.jpg")
+					: $cut->jpeg("{$outdir}/cover.jpg")) {
 					$this->maskfile("{$outdir}/cover.jpg", "{$outdir}/cover");
 				}
 				echo exec("xcopy \"{$outdir}/*\" \"{$this['app_resdstdir']}/{$resource['hash']}/\" /E /C /I /F /Y", $output, $code), ":{$code}\n";
+				if ($code === 0)
+				{
+					$this->mysql->resources('WHERE hash=?s LIMIT 1', $resource['hash'])->update('sync="finished"');
+					continue;
+				}
 			}
+			$this->mysql->resources('WHERE hash=?s LIMIT 1', $resource['hash'])->update('sync="exception"');
 		}
 	}
 	function get_pull()
@@ -203,11 +211,11 @@ class interfaces extends webapp
 		$form = new webapp_form($ctx, "{$this['app_resdomain']}?resourceupload");
 		$form->xml['onsubmit'] = 'return upres(this)';
 		$form->progress()->setattr(['style' => 'width:100%']);
-		$form->fieldset('资源文件');
+		$form->fieldset('资源文件 / 封面图片');
 		$form->field('resource', 'file', ['accept' => 'video/mp4', 'required' => NULL]);
-		$form->button('Cancel', 'button', ['onclick' => 'xhr.abort()']);
+		$form->field('piccover', 'file', ['accept' => 'image/*']);
 		$form->fieldset('name / actors');
-		$form->field('name', 'text', ['value' => '0000', 'style' => 'width:42rem', 'required' => NULL]);
+		$form->field('name', 'text', ['style' => 'width:42rem', 'required' => NULL]);
 		$form->field('actors', 'text', ['value' => '素人', 'required' => NULL]);
 		$form->fieldset('tags');
 		$tags = $this->webapp->mysql->tags('ORDER BY level ASC,click DESC,count DESC')->column('name', 'hash');
@@ -216,6 +224,7 @@ class interfaces extends webapp
 		$form->field('require', 'number', ['value' => 0, 'min' => -1, 'required' => NULL]);
 		$form->fieldset();
 		$form->button('Upload Resource', 'submit');
+		$form->button('Cancel', 'button', ['onclick' => 'xhr.abort()']);
 		return $form;
 	}
 	function resource_create(array $data):bool
@@ -311,7 +320,7 @@ class interfaces extends webapp
 				}
 				else
 				{
-					$this->app['goto'] = '?admin/resources,sync:waiting';
+					$this->app['goto'] = "?admin/resources,sync:{$data['sync']}";
 				}
 			}
 			else
@@ -325,6 +334,10 @@ class interfaces extends webapp
 			&& $this->resource_create($resource + [
 				'hash' => $uploadfile['hash'],
 				'duration' => intval(static::lib('ffmpeg/interface.php')($filename)->duration)])) {
+			if ($piccover = $this->request_uploadedfile('piccover', 1)[0] ?? [])
+			{
+				move_uploaded_file($piccover['file'], "{$this['app_respredir']}/{$uploadfile['hash']}.cover");
+			}
 			$this->app['goto'] = '?admin/resources,sync:waiting';
 			return;
 		}
