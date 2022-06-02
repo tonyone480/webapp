@@ -567,9 +567,9 @@ abstract class webapp implements ArrayAccess, Stringable, Countable
 	{
 		return $this->request_header('User-Agent') ?? 'Unknown';
 	}
-	function request_referer():?string
+	function request_referer(string $url):string
 	{
-		return $this->request_header('Referer');
+		return $this->request_header('Referer') ?? $url;
 	}
 	function request_content_type():string
 	{

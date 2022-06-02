@@ -26,11 +26,20 @@ function upres(e)
 	xhr.open(e.method, e.action);
 	xhr.upload.onprogress = event => event.lengthComputable && progress.forEach(e => e.value = event.loaded / event.total);
 	xhr.send(new FormData(e));
-	// xhr.onload = () => {
-	// 	if (xhr.status === 200)
-	// 	{
-	// 	  resolve();
-	// 	}
-	// };
+	xhr.responseType = 'json';
+	xhr.onload = () => {
+		if (xhr.response.errors.length)
+		{
+			alert(xhr.response.errors.join("\n"));
+		}
+		else
+		{
+			if (xhr.response.goto)
+			{
+				location.href = xhr.response.goto;
+			}
+		}
+		console.log(xhr.response)
+	};
 	return false;
 }

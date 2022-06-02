@@ -49,13 +49,35 @@ class interfaces extends webapp
 			}
 		} while (--$max > 0);
 	}
+	function get_sync()
+	{
+		if (PHP_SAPI !== 'cli' || $this->request_ip() !== '127.0.0.1')
+		{
+			$this->echo('Please run at the local command line');
+			return;
+		}
+		$ffmpeg = static::lib('ffmpeg/interface.php');
+		foreach ($this->mysql->resources('WHERE sync="waiting" AND time>1654082240') as $resource)
+		{
+			$cut = $ffmpeg("{$this['app_respredir']}/{$resource['hash']}");
+			if ($cut->m3u8($outdir = "{$this['app_resoutdir']}/{$resource['hash']}"))
+			{
+				$this->maskfile("{$outdir}/play.m3u8", "{$outdir}/play");
+				if ($cut->jpeg("{$outdir}/cover.jpg"))
+				{
+					$this->maskfile("{$outdir}/cover.jpg", "{$outdir}/cover");
+				}
+				echo exec("xcopy \"{$outdir}/*\" \"{$this['app_resdstdir']}/{$resource['hash']}/\" /E /C /I /F /Y", $output, $code), ":{$code}\n";
+			}
+		}
+	}
 	function get_pull()
 	{
-		// if (PHP_SAPI !== 'cli' || $this->request_ip() !== '127.0.0.1')
-		// {
-		// 	$this->echo('Please run at the local command line');
-		// 	return;
-		// }
+		if (PHP_SAPI !== 'cli' || $this->request_ip() !== '127.0.0.1')
+		{
+			$this->echo('Please run at the local command line');
+			return;
+		}
 		foreach ($this['app_site'] as $site => $ip)
 		{
 			$this->site = $site;
@@ -140,6 +162,7 @@ class interfaces extends webapp
 		}
 		return $status;
 	}
+
 	//-----------------------------------------------------------------------------------------------------
 
 
@@ -150,23 +173,6 @@ class interfaces extends webapp
 	function get_home()
 	{
 		$this->app->xml->comment(file_get_contents(__DIR__.'/interfaces.txt'));
-	}
-	//同步资源
-	function get_pushdata(string $batch)
-	{
-		if (preg_match('/^\d{8,10}$/', $batch)
-			&& is_object($xml = $this->open(sprintf($this['saol_resources'], $batch))->content('application/xml'))) {
-			$count = 0;
-			foreach ($xml as $res)
-			{
-				if ($this->mysql->resources->insert($data = $res->getattr()))
-				{
-					++$count;
-					$this->app->xml->append('resource', $data);
-				}
-			}
-			$this->app->xml['count'] = $count;
-		}
 	}
 	//广告
 	function ad_xml(array $ad):webapp_xml
@@ -191,33 +197,159 @@ class interfaces extends webapp
 			$this->ad_xml($ad);
 		}
 	}
-
-
-
-
 	//资源
+	function form_resourceupload($ctx):webapp_form
+	{
+		$form = new webapp_form($ctx, "{$this['app_resdomain']}?resourceupload");
+		$form->xml['onsubmit'] = 'return upres(this)';
+		$form->progress()->setattr(['style' => 'width:100%']);
+		$form->fieldset('资源文件');
+		$form->field('resource', 'file', ['accept' => 'video/mp4', 'required' => NULL]);
+		$form->button('Cancel', 'button', ['onclick' => 'xhr.abort()']);
+		$form->fieldset('name / actors');
+		$form->field('name', 'text', ['value' => '0000', 'style' => 'width:42rem', 'required' => NULL]);
+		$form->field('actors', 'text', ['value' => '素人', 'required' => NULL]);
+		$form->fieldset('tags');
+		$tags = $this->webapp->mysql->tags('ORDER BY level ASC,click DESC,count DESC')->column('name', 'hash');
+		$form->field('tags', 'checkbox', ['options' => $tags], fn($v,$i)=>$i?join(',',$v):explode(',',$v))['class'] = 'restag';
+		$form->fieldset('require(下架：-2、会员：-1、免费：0、金币)');
+		$form->field('require', 'number', ['value' => 0, 'min' => -1, 'required' => NULL]);
+		$form->fieldset();
+		$form->button('Upload Resource', 'submit');
+		return $form;
+	}
+	function resource_create(array $data):bool
+	{
+		return $this->mysql->resources->insert([
+			'hash' => $data['hash'],
+			'time' => $this->time,
+			'duration' => $data['duration'],
+			'sync' => 'waiting',
+			'site' => $this->site,
+			'data' => json_encode([$this->site => [
+				'require' => intval($data['require']),
+				'favorite' => 0,
+				'view' => 0,
+				'like' => 0,
+				'name' => $data['name']
+			]], JSON_FORCE_OBJECT | JSON_UNESCAPED_UNICODE),
+			'tags' => $data['tags'],
+			'actors' => $data['actors']
+		]);
+	}
+	function resource_delete(string $hash):bool
+	{
+		if ($resource = $this->mysql->resources('WHERE FIND_IN_SET(?i,site) AND hash=?s LIMIT 1', $this->site, $hash)->array())
+		{
+			$site = explode(',', $resource['site']);
+			array_splice($site, array_search(1, $site), 1);
+			return $this->mysql->resources('WHERE hash=?s LIMIT 1', $hash)->update('site=?s,data=JSON_REMOVE(data,\'$."?i"\')', join(',', $site), $this->site);
+		}
+		return TRUE;
+	}
+	function resource_update(string $hash, array $data):bool
+	{
+		$update = ['data=JSON_SET(data,\'$."?i".require\',?i,\'$."?i".name\',?s)',
+			$this->site, $data['require'] ?? 0, $this->site, $data['name'] ?? ''];
+		if ($this->admin[2])
+		{
+			$update[0] .= ',tags=?s,actors=?s';
+			array_push($update, $data['tags'], $data['actors']);
+		}
+		return $this->mysql->resources('WHERE FIND_IN_SET(?i,site) AND hash=?s LIMIT 1', $this->site, $hash)->update(...$update);
+	}
+
+	function resource_get(string|array $resource):array
+	{
+		if (is_string($resource))
+		{
+			$resource = $this->mysql->resources('WHERE FIND_IN_SET(?i,site) AND hash=?s LIMIT 1', $this->site, $resource)->array();
+		}
+		$resource += json_decode($resource['data'], TRUE)[$this->site] ?? [
+			'require' => 0,
+			'favorite' => 0,
+			'view' => 0,
+			'like' => 0,
+			'name' => ''];
+		return $resource;
+	}
+
+	function resource_assign(array $resource, int $site, array $value = []):bool
+	{
+		$sites = $resource['site'] ? explode(',', $resource['site']) : [];
+		$value += json_decode($resource['data'], TRUE)[$site] ?? [];
+		$sites[] = $site;
+		return $this->mysql->resources('WHERE hash=?s LIMIT 1', $resource['hash'])
+			->update('site=?s,data=JSON_SET(data,\'$."?i"\',JSON_OBJECT("require",?i,"favorite",0,"view",0,"like",0,"name",?s))',
+			join(',', array_unique($sites)), $site, intval($value['require'] ?? 0), $value['name'] ?? '');
+	}
+	function post_resourceupload()
+	{
+		$resource = [];
+		$uploadfile = $this->request_uploadedfile('resource', 1)[0] ?? [];
+		$this->app('webapp_echo_json', [
+			'resource' => &$resource,
+			'uploadfile' => $uploadfile
+		]);
+		if (empty($uploadfile) || $uploadfile['mime'] !== 'video/mp4')
+		{
+			$this->app['errors'][] = '请上传有效资源！';
+			return;
+		}
+		if ($this->form_resourceupload($this)->fetch($resource) === FALSE)
+		{
+			return;
+		}
+		if ($data = $this->mysql->resources('WHERE hash=?s LIMIT 1', $uploadfile['hash'])->array())
+		{
+			if ($this->resource_assign($data, $this->site, $resource))
+			{
+				if ($data['sync'] === 'finished')
+				{
+					$this->call('saveRes', $this->resource_xml($this->resource_get($data['hash'])));
+					$this->app['goto'] = "?admin/resources,search:{$resource['hash']}";
+				}
+				else
+				{
+					$this->app['goto'] = '?admin/resources,sync:waiting';
+				}
+			}
+			else
+			{
+				$this->app['errors'][] = '资源分配更新失败！';
+			}
+			return;
+		}
+		if ($this->form_resourceupload($this)->fetch($resource)
+			&& move_uploaded_file($uploadfile['file'], $filename = "{$this['app_respredir']}/{$uploadfile['hash']}")
+			&& $this->resource_create($resource + [
+				'hash' => $uploadfile['hash'],
+				'duration' => intval(static::lib('ffmpeg/interface.php')($filename)->duration)])) {
+			$this->app['goto'] = '?admin/resources,sync:waiting';
+			return;
+		}
+		isset($filename) && is_file($filename) && unlink($filename);
+	}
 	function resource_xml(array $resource):webapp_xml
 	{
+		$data = json_decode($resource['data'], TRUE)[$this->site] ?? [];
 		$node = $this->xml->append('resource', [
 			'hash' => $resource['hash'],
 			'time' => $resource['time'],
-			'batch' => $resource['batch'],
-			'require' => $resource['require'],
 			'duration' => $resource['duration'],
-			'favorite' => $resource['favorite'],
-			'view' => $resource['view'],
-			'like' => $resource['like'],
 			'tags' => $resource['tags'],
 			'actors' => $resource['actors'],
-			//'name' => $resource['name']
+			'require' => $data['require'] ?? 0,
+			'favorite' => $data['favorite'] ?? 0,
+			'view' => $data['view'] ?? 0,
+			'like' => $data['like'] ?? 0
 		]);
-		$node->cdata($resource['name']);
+		$node->cdata($data['name']);
 		return $node;
 	}
 	function get_resources(string $tag = NULL, int $page = 1, int $size = 1000)
 	{
-		//$cond = ['WHERE FIND_IN_SET(?i,sites) AND checked=1', $this->site];
-		$cond = ['WHERE FIND_IN_SET(?i,sites)', $this->site];
+		$cond = ['WHERE FIND_IN_SET(?i,site) AND sync="finished"', $this->site];
 		if ($tag)
 		{
 			$cond[0] .= ' AND FIND_IN_SET(?s,tags)';

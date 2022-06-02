@@ -153,9 +153,10 @@ STYLE);
 	{
 		$this->main->append('h4', $text);
 	}
-	function okay(string $goto):int
+	function okay(string $goto = NULL):int
 	{
-		$this->webapp->response_location($goto);
+		$this->webapp->response_location($goto
+			?? $this->webapp->request_referer('?'));
 		return 302;
 	}
 	function post_home()
@@ -442,7 +443,7 @@ STYLE);
 		$form->field('name', 'text', ['style' => 'width:42rem', 'required' => NULL]);
 		$form->field('actors', 'text', ['value' => '素人', 'required' => NULL]);
 		$form->fieldset('tags');
-		$tags = $form->echo ? $this->webapp->mysql->tags('ORDER BY level ASC,click DESC,count DESC')->column('name', 'hash') : [];
+		$tags = $this->webapp->mysql->tags('ORDER BY level ASC,click DESC,count DESC')->column('name', 'hash');
 		$form->field('tags', 'checkbox', ['options' => $tags], 
 			fn($v,$i)=>$i?join(',',$v):explode(',',$v))['class'] = 'restag';
 		$form->fieldset('require(下架：-2、会员：-1、免费：0、金币)');
@@ -453,55 +454,36 @@ STYLE);
 	}
 	function post_resource_update(string $hash)
 	{
-		$res = $this->webapp->mysql->resources('WHERE FIND_IN_SET(?s,sites) AND hash=?s', $this->webapp->site, $hash)->array();
-		if ($res
-			&& $this->form_resource($this->webapp)->fetch($res)
-			&& $this->webapp->mysql->resources('WHERE FIND_IN_SET(?s,sites) AND hash=?s', $this->webapp->site, $hash)->update($res)
-			&& $this->webapp->call('saveRes', $this->webapp->resource_xml($res))) {
+		if ($this->form_resource($this->webapp)->fetch($resource)
+			&& $this->webapp->resource_update($hash, $resource)
+			&& $this->webapp->call('saveRes', $this->webapp->resource_xml($this->webapp->resource_get($hash)))) {
 			return $this->okay("?admin/resources,search:{$hash}");
 		}
 		$this->warn('资源更新失败！');
 	}
 	function get_resource_update(string $hash)
 	{
-		$this->form_resource($this->main)->echo($this->webapp->mysql->resources('WHERE FIND_IN_SET(?s,sites) AND hash=?s', $this->webapp->site, $hash)->array());
+		$this->form_resource($this->main)->echo($this->webapp->resource_get($hash));
 	}
 	function post_resource_upload()
 	{
 		return $this->okay("?admin/resource-upload");
 	}
-	function delete_resource(string $hash)
+	function get_resource_delete(string $hash)
 	{
-		var_dump($hash);
+		if ($this->webapp->resource_delete($hash)
+			&& $this->webapp->call('delRes', $hash)) {
+			return $this->okay();
+		}
+		$this->warn('资源删除失败！');
 	}
 	function get_resource_upload()
 	{
-		$form = $this->main->form();
-		$form->xml['onsubmit'] = 'return upres(this)';
-		$form->progress()->setattr(['style' => 'width:100%']);
-		$form->fieldset('资源文件');
-		$form->field('uploadfile', 'file', ['accept' => 'video/mp4', 'required' => NULL]);
-		$form->button('Cancel', 'button', ['onclick' => 'xhr.abort()']);
-		$form->fieldset('name / actors');
-		$form->field('name', 'text', ['value' => '0000', 'style' => 'width:42rem', 'required' => NULL]);
-		$form->field('actors', 'text', ['value' => '素人', 'required' => NULL]);
-		$form->fieldset('tags');
-		$tags = $form->echo ? $this->webapp->mysql->tags('ORDER BY level ASC,click DESC,count DESC')->column('name', 'hash') : [];
-		$form->field('tags', 'checkbox', ['options' => $tags])['class'] = 'restag';
-		$form->fieldset('require(下架：-2、会员：-1、免费：0、金币)');
-		$form->field('require', 'number', ['value' => 0, 'min' => -1, 'required' => NULL]);
-		$form->fieldset();
-		$form->button('Upload Resource', 'submit');
-		$form->button('Upload Resource')->setattr([
-			'data-method' => 'delete',
-			'data-url' => '?admin/resource,hash:123456789012',
-			'onclick' => '$(this).send("wwww").then(function(a){console.log(a.response)})'
-		]);
-		
+		$this->webapp->form_resourceupload($this->main);
 	}
 	function get_resources(string $search = NULL, int $page = 1)
 	{
-		$cond = ['WHERE FIND_IN_SET(?s,sites)', $this->webapp->site];
+		$cond = ['WHERE FIND_IN_SET(?s,site) AND sync=?s', $this->webapp->site, $this->webapp->query['sync'] ?? 'finished'];
 		if (is_string($search))
 		{
 			if (strlen($search) === 4 && trim($search, webapp::key) === '')
@@ -511,27 +493,38 @@ STYLE);
 			}
 			else
 			{
-				$cond[0] .= ' AND (hash=?s or name like ?s)';
-				array_push($cond, $search = urldecode($search), "%{$search}%");
+				$cond[0] .= ' AND (hash=?s or data->>\'$."?i".name\' like ?s)';
+				array_push($cond, $search = urldecode($search), $this->webapp->site, "%{$search}%");
 			}
 		}
 		$cond[0] .= ' ORDER BY time DESC';
 		$table = $this->main->table($this->webapp->mysql->resources(...$cond)->paging($page), function($table, $res)
 		{
 			$table->row();
+			$table->cell()->append('a', ['❌', 'href' => "?admin/resource-delete,hash:{$res['hash']}"]);
 			$table->cell()->append('a', [$res['hash'], 'href' => "?admin/resource-update,hash:{$res['hash']}"]);
 			$table->cell(date('Y-m-d', $res['time']));
-			$table->cell([-2 => '下架', -1 => '会员', 0 => '免费'][$res['require']] ?? $res['require']);
 			$table->cell(date('G:i:s', $res['duration'] + 57600));
-			$table->cell(number_format($res['favorite']));
-			$table->cell(number_format($res['view']));
-			$table->cell(number_format($res['like']));
-			$table->cell()->append('a', [$res['name'], 'href' => 'javascript:;']);
+			$data = json_decode($res['data'], TRUE)[$this->webapp->site] ?? [];
+			$table->cell([-2 => '下架', -1 => '会员', 0 => '免费'][$require = $data['require'] ?? 0] ?? $require);
+			
+			$table->cell(number_format($data['favorite']));
+			$table->cell(number_format($data['view']));
+			$table->cell(number_format($data['like']));
+			$table->cell()->append('a', [$data['name'], 'href' => 'javascript:;']);
 		});
-		$table->fieldset('hash', 'time', 'require', 'duration', 'favorite', 'view', 'like', 'name');
+		$table->fieldset('❌', 'hash', 'time', 'duration', 'require', 'favorite', 'view', 'like', 'name');
 		$table->header('Found %d item', $table->count());
 		$table->button('Upload Resources', ['onclick' => 'location.href="?admin/resource-upload"']);
 		$table->search(['value' => $search, 'onkeydown' => 'event.keyCode==13&&g({search:this.value?urlencode(this.value):null,page:null})']);
+		if (array_key_exists('sync', $this->webapp->query) && $this->webapp->query['sync'] === 'waiting')
+		{
+			$table->button('Finished', ['onclick' => 'g({sync:null})']);
+		}
+		else
+		{
+			$table->button('Waiting...', ['onclick' => 'g({sync:"waiting"})']);
+		}
 		$table->paging($this->webapp->at(['page' => '']));
 	}
 	//账户
