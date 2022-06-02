@@ -324,7 +324,7 @@ class interfaces extends webapp
 				if ($data['sync'] === 'finished')
 				{
 					$this->call('saveRes', $this->resource_xml($this->resource_get($data['hash'])));
-					$this->app['goto'] = "?admin/resources,search:{$resource['hash']}";
+					$this->app['goto'] = "?admin/resources,search:{$data['hash']}";
 				}
 				else
 				{
