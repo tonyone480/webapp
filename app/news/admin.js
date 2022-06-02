@@ -29,7 +29,7 @@ function upres(e)
 	xhr.send(new FormData(e));
 	xhr.responseType = 'json';
 	xhr.onload = () => {
-		if (Object.keys(xhr.response.errors))
+		if (Object.keys(xhr.response.errors).length)
 		{
 			alert(Object.values(xhr.response.errors).join("\n"));
 		}
