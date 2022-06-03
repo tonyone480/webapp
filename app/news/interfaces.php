@@ -256,7 +256,9 @@ class interfaces extends webapp
 				$filename = "/{$this['app_addirname']}/{$ad['hash']}";
 				if ($this->maskfile($up['file'], $this['app_resoutdir'] . $filename))
 				{
-					exec("copy /B /Y {$this['app_resoutdir']}{$filename} {$this['app_resdstdir']}{$filename}");
+					$src = strtr($this['app_resoutdir'] . $filename, '/', '\\');
+					$dst = strtr($this['app_resdstdir'] . $filename, '/', '\\');
+					exec("copy /B /Y {$src} {$dst}");
 				}
 			}
 			if ($ok && $this->call('saveAd', $this->ad_xml($ad)))
@@ -281,8 +283,8 @@ class interfaces extends webapp
 		if ($this->call('delAd', $hash)
 			&& $this->mysql->ads->delete('where site=?i and hash=?s', $this->site, $hash)) {
 			$filename = "/{$this['app_addirname']}/{$hash}";
-			is_file($this['app_resoutdir'] . $filename) && exec("del /F /Q {$this['app_resoutdir']}{$filename}");
-			is_file($this['app_resdstdir'] . $filename) && exec("del /F /Q {$this['app_resdstdir']}{$filename}");
+			exec('del /F /Q ' . strtr($this['app_resoutdir'] . $filename, '/', '\\'));
+			exec('del /F /Q ' . strtr($this['app_resdstdir'] . $filename, '/', '\\'));
 			$this->app['goto'] = '?admin/ads';
 			return;
 		}
