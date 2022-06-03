@@ -253,13 +253,7 @@ class interfaces extends webapp
 			}
 			if ($up = $this->request_uploadedfile('ad')[0] ?? [])
 			{
-				$filename = "/{$this['app_addirname']}/{$ad['hash']}";
-				if ($this->maskfile($up['file'], $this['app_resoutdir'] . $filename))
-				{
-					$src = strtr($this['app_resoutdir'] . $filename, '/', '\\');
-					$dst = strtr($this['app_resdstdir'] . $filename, '/', '\\');
-					exec("copy /B /Y \"{$src}\" \"{$dst}\"", $this->app['errors'], $this->app['code']);
-				}
+				$this->maskfile($up['file'], "{$this['app_resoutdir']}/{$this['app_addirname']}/{$ad['hash']}");
 			}
 			if ($ok && $this->call('saveAd', $this->ad_xml($ad)))
 			{
@@ -282,9 +276,7 @@ class interfaces extends webapp
 		$this->app('webapp_echo_json');
 		if ($this->call('delAd', $hash)
 			&& $this->mysql->ads->delete('where site=?i and hash=?s', $this->site, $hash)) {
-			$filename = "/{$this['app_addirname']}/{$hash}";
-			exec('del /F /Q ' . strtr($this['app_resoutdir'] . $filename, '/', '\\'));
-			exec('del /F /Q ' . strtr($this['app_resdstdir'] . $filename, '/', '\\'));
+			is_file($filename = "{$this['app_resoutdir']}/{$this['app_addirname']}/{$hash}") && unlink($filename);
 			$this->app['goto'] = '?admin/ads';
 			return;
 		}
