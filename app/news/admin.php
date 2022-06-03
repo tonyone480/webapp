@@ -479,8 +479,7 @@ STYLE);
 	}
 	function get_resource_upload()
 	{
-		$form = $this->webapp->form_resourceupload($this->main);
-		$form->xml['data-auth'] = $this->webapp->signature($this->webapp['admin_username'], $this->webapp['admin_password'], (string)$this->webapp->site);
+		$this->webapp->form_resourceupload($this->main);
 	}
 	function get_resources(string $search = NULL, int $page = 1)
 	{
@@ -586,46 +585,14 @@ STYLE);
 		$table->paging($this->webapp->at(['page' => '']));
 	}
 	//广告
-	function form_ad($ctx):webapp_form
-	{
-		$form = new webapp_form($ctx);
-
-		$form->field('pic', 'file', ['accept' => 'image/*']);
-
-		$form->fieldset('名称跳转');
-		$form->field('name', 'text', ['style' => 'width:8rem', 'placeholder' => '广告名称', 'required' => NULL]);
-		$form->field('goto', 'url', ['style' => 'width:42rem', 'placeholder' => '跳转地址', 'required' => NULL]);
-
-		$form->fieldset('有效时间段，每天展示时间段');
-		$form->field('timestart', 'datetime-local', ['value' => date('Y-m-d\T00:00'), 'required' => NULL],
-			fn($v,$i)=>$i?strtotime($v):date('Y-m-d\TH:i',$v));
-		$form->field('timeend', 'datetime-local', ['value' => date('Y-m-d\T23:59'), 'required' => NULL],
-			fn($v,$i)=>$i?strtotime($v):date('Y-m-d\TH:i',$v));
-
-		$form->fieldset('每周几显示，空为时间内展示');
-		$form->field('weekset', 'checkbox', ['options' => [
-			'星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六']],
-			fn($v,$i)=>$i?join(',',$v):explode(',',$v));
-		$form->field('seat', 'checkbox', ['options' => [
-			'位置0', '位置1', '位置2', '位置3', '位置4', '位置5', '位置7', '位置8', '位置9',]],
-			fn($v,$i)=>$i?join(',',$v):explode(',',$v));
-
-		$form->fieldset('展示方式：小于0点击次数，大于0展示次数');
-		$form->field('count', 'number', ['value' => 0, 'required' => NULL]);
-
-		$form->fieldset();
-		$form->button('Submit', 'submit');
-
-		return $form;
-	}
 	function get_ads()
 	{
-		$table = $this->main->table($this->webapp->mysql->ads('where site=?i', $this->webapp->site), function($table, $ad, $week)
+		$table = $this->main->table($this->webapp->mysql->ads('where site=?i order by time desc', $this->webapp->site), function($table, $ad, $week)
 		{
 			$table->row();
 			$table->cell()->append('a', ['❌',
-				'href' => "?admin/ad-delete,hash:{$ad['hash']}",
-				'onclick' => 'return confirm(`Delete Ad ${this.dataset.uid}`)',
+				'href' => "{$this->webapp['app_resdomain']}?deletead/{$ad['hash']}",
+				'onclick' => 'return confirm(`Delete Ad ${this.dataset.uid}`) && anchor(this)',
 				'data-uid' => $ad['name']]);
 			$table->cell()->append('a', [$ad['hash'], 'href' => "?admin/ad-update,hash:{$ad['hash']}"]);
 			$table->cell($ad['name']);
@@ -641,46 +608,13 @@ STYLE);
 		$table->header('Found ' . $this->webapp->mysql->ads->count() . ' item');
 		$table->bar->append('button', ['Create Ad', 'onclick' => 'location.href="?admin/ad-create"']);
 	}
-	function post_ad_create()
-	{
-		if ($this->form_ad($this->webapp)->fetch($ad)
-			&& $this->webapp->mysql->ads->insert($ad += [
-				'hash' => $this->webapp->randhash(),
-				'site' => $this->webapp->site,
-				'time' => $this->webapp->time,
-				'click' => 0,
-				'view' => 0])
-			&& $this->webapp->call('saveAd', $this->webapp->ad_xml($ad))) {
-			return $this->okay('?admin/ads');
-		}
-		$this->warn("广告创建失败！");
-	}
 	function get_ad_create()
 	{
-		$this->form_ad($this->main);
-	}
-	function post_ad_update(string $hash)
-	{
-		$ad = $this->webapp->mysql->ads('where site=?i and hash=?s', $this->webapp->site, $hash)->array();
-		if ($ad
-			&& $this->form_ad($this->webapp)->fetch($ad)
-			&& $this->webapp->mysql->ads('where site=?i and hash=?s', $this->webapp->site, $hash)->update($ad)
-			&& $this->webapp->call('saveAd', $this->webapp->ad_xml($ad))) {
-			return $this->okay('?admin/ads');
-		}
-		$this->warn("广告更新失败！");
+		$this->webapp->form_ad($this->main);
 	}
 	function get_ad_update(string $hash)
 	{
-		$this->form_ad($this->main)->echo($this->webapp->mysql->ads('where site=?i and hash=?s', $this->webapp->site, $hash)->array());
-	}
-	function get_ad_delete(string $hash)
-	{
-		if ($this->webapp->call('delAd', $hash)
-			&& $this->webapp->mysql->ads->delete('where site=?i and hash=?s', $this->webapp->site, $hash)) {
-			return $this->okay('?admin/ads');
-		}
-		$this->warn('广告删除失败！');
+		$this->webapp->form_ad($this->main, $hash)->echo($this->webapp->mysql->ads('where site=?i and hash=?s', $this->webapp->site, $hash)->array());
 	}
 	//Admin
 	function form_admin($ctx):webapp_form

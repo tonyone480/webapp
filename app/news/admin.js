@@ -26,7 +26,6 @@ function upres(e)
 	xhr.open(e.method, e.action);
 	xhr.setRequestHeader('Authorization', `Bearer ${e.dataset.auth}`);
 	xhr.upload.onprogress = event => event.lengthComputable && progress.forEach(e => e.value = event.loaded / event.total);
-	xhr.send(new FormData(e));
 	xhr.responseType = 'json';
 	xhr.onload = () => {
 		if (Object.keys(xhr.response.errors).length)
@@ -42,5 +41,31 @@ function upres(e)
 		}
 		console.log(xhr.response)
 	};
+	xhr.send(new FormData(e));
+	return false;
+}
+function anchor(a)
+{
+	xhr.open(a.dataset.method || 'GET', a.href);
+	if (a.dataset.auth)
+	{
+		xhr.setRequestHeader('Authorization', `Bearer ${a.dataset.auth}`);
+	}
+	xhr.responseType = 'json';
+	xhr.onload = () => {
+		if (Object.keys(xhr.response.errors).length)
+		{
+			alert(Object.values(xhr.response.errors).join("\n"));
+		}
+		else
+		{
+			if (xhr.response.goto)
+			{
+				location.href = xhr.response.goto;
+			}
+		}
+		console.log(xhr.response)
+	};
+	xhr.send(a.dataset.body);
 	return false;
 }

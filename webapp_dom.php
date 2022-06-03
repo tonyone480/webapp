@@ -347,7 +347,7 @@ class webapp_html extends webapp_xml
 	// {
 	// 	array_reduce(array_keys($values), fn($carry, $item) => "{$carry}{$values[$item]};", '')
 	// }
-	function labelinput(string $name, string $type, string $value, string $comment):static
+	function labelinput(string $name, string $type, int|float|string $value, int|float|string $comment):static
 	{
 		$node = $this->append('label');
 		$node->append('input', ['type' => $type, 'name' => $name, 'value' => $value]);

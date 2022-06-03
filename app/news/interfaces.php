@@ -187,6 +187,106 @@ class interfaces extends webapp
 		$this->app->xml->comment(file_get_contents(__DIR__.'/interfaces.txt'));
 	}
 	//广告
+	function form_ad($ctx, string $hash = NULL):webapp_form
+	{
+		$form = new webapp_form($ctx, is_string($hash)
+			? "{$this['app_resdomain']}?ad/{$hash}"
+			: "{$this['app_resdomain']}?ad");
+		$form->xml['onsubmit'] = 'return upres(this)';
+		$form->xml['data-auth'] = $this->signature($this['admin_username'], $this['admin_password'], (string)$this->site);
+
+		$form->field('ad', 'file', ['accept' => 'image/*']);
+
+		$form->fieldset('名称跳转');
+		$form->field('name', 'text', ['style' => 'width:8rem', 'placeholder' => '广告名称', 'required' => NULL]);
+		$form->field('goto', 'url', ['style' => 'width:42rem', 'placeholder' => '跳转地址', 'required' => NULL]);
+
+		$form->fieldset('有效时间段，每天展示时间段');
+		$form->field('timestart', 'datetime-local', ['value' => date('Y-m-d\T00:00'), 'required' => NULL],
+			fn($v,$i)=>$i?strtotime($v):date('Y-m-d\TH:i',$v));
+		$form->field('timeend', 'datetime-local', ['value' => date('Y-m-d\T23:59'), 'required' => NULL],
+			fn($v,$i)=>$i?strtotime($v):date('Y-m-d\TH:i',$v));
+
+		$form->fieldset('每周几显示，空为时间内展示');
+		$form->field('weekset', 'checkbox', ['options' => [
+			'星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六']],
+			fn($v,$i)=>$i?join(',',$v):explode(',',$v));
+		$form->field('seat', 'checkbox', ['options' => [
+			'位置0', '位置1', '位置2', '位置3', '位置4', '位置5', '位置7', '位置8', '位置9',]],
+			fn($v,$i)=>$i?join(',',$v):explode(',',$v));
+
+		$form->fieldset('展示方式：小于0点击次数，大于0展示次数');
+		$form->field('count', 'number', ['value' => 0, 'required' => NULL]);
+
+		$form->fieldset();
+		$form->button('Submit', 'submit');
+
+		return $form;
+	}
+	function options_ad()
+	{
+		$this->response_header('Allow', 'OPTIONS, POST');
+		$this->response_header('Access-Control-Allow-Origin', '*');
+		$this->response_header('Access-Control-Allow-Headers', '*');
+		$this->response_header('Access-Control-Allow-Methods', 'POST');
+	}
+	function post_ad(string $hash = NULL)
+	{
+		$this->response_header('Access-Control-Allow-Origin', '*');
+		$this->app('webapp_echo_json');
+		if ($this->form_ad($this->webapp)->fetch($ad))
+		{
+			if (is_string($hash))
+			{
+				$ad += $this->webapp->mysql->ads('where site=?i and hash=?s', $this->site, $hash)->array();
+				$ok = $this->mysql->ads('where site=?i and hash=?s', $this->site, $hash)->update($ad);
+			}
+			else
+			{
+				$ok = $this->mysql->ads->insert($ad += [
+					'hash' => $this->randhash(),
+					'site' => $this->site,
+					'time' => $this->time,
+					'click' => 0,
+					'view' => 0
+				]);
+			}
+			if ($up = $this->request_uploadedfile('ad')[0] ?? [])
+			{
+				$filename = "/{$this['app_addirname']}/{$ad['hash']}";
+				if ($this->maskfile($up['file'], $this['app_resoutdir'] . $filename))
+				{
+					copy($this['app_resoutdir'] . $filename, $this['app_resdstdir'] . $filename);
+				}
+			}
+			if ($ok && $this->call('saveAd', $this->ad_xml($ad)))
+			{
+				$this->app['goto'] = '?admin/ads';
+				return;
+			}
+			$this->app['errors'][] = '广告提交失败！';
+		}
+	}
+	function options_deletead()
+	{
+		$this->response_header('Allow', 'OPTIONS, GET');
+		$this->response_header('Access-Control-Allow-Origin', '*');
+		$this->response_header('Access-Control-Allow-Headers', '*');
+		$this->response_header('Access-Control-Allow-Methods', 'GET');
+	}
+	function get_deletead(string $hash)
+	{
+		$this->response_header('Access-Control-Allow-Origin', '*');
+		$this->app('webapp_echo_json');
+		if ($this->call('delAd', $hash)
+			&& $this->mysql->ads->delete('where site=?i and hash=?s', $this->site, $hash)) {
+			$filename = "/{$this['app_addirname']}/{$hash}";
+			is_file($this['app_resoutdir'] . $filename) && unlink($this['app_resoutdir'] . $filename);
+			is_file($this['app_resdstdir'] . $filename) && unlink($this['app_resdstdir'] . $filename);
+			$this->app['goto'] = '?admin/ads';
+			return;
+		}
+	}
 	function ad_xml(array $ad):webapp_xml
 	{
 		return $this->xml->append('ad', [
@@ -214,6 +314,7 @@ class interfaces extends webapp
 	{
 		$form = new webapp_form($ctx, "{$this['app_resdomain']}?resourceupload");
 		$form->xml['onsubmit'] = 'return upres(this)';
+		$form->xml['data-auth'] = $this->signature($this['admin_username'], $this['admin_password'], (string)$this->site);
 		$form->progress()->setattr(['style' => 'width:100%']);
 		$form->fieldset('资源文件 / 封面图片');
 		$form->field('resource', 'file', ['accept' => 'video/mp4', 'required' => NULL]);
