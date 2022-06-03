@@ -148,7 +148,7 @@ class ffmpeg
 	//创建文件夹
 	function mkdir(string $dirname)
 	{
-		return is_dir($dirname) || @mkdir($dirname) ? realpath($dirname) : NULL;
+		return is_dir($dirname) || @mkdir($dirname, recursive: TRUE) ? realpath($dirname) : NULL;
 	}
 	//JPEG is 2-31 with 31 being the worst quality.
 	function jpeg(string $filename, int $quality = 2):bool
