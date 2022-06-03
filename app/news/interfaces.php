@@ -59,9 +59,10 @@ class interfaces extends webapp
 		$ffmpeg = static::lib('ffmpeg/interface.php');
 		foreach ($this->mysql->resources('WHERE sync="waiting" ORDER BY time ASC') as $resource)
 		{
-			echo sprintf("{$resource['hash']}:%s\n", date('Y/m/d H:i', $resource['time']));
+			echo sprintf("{$resource['hash']}: %s\n", date('Y/m/d H:i', $resource['time']));
+			$day = date('Ymd', $resource['time']);
 			$cut = $ffmpeg("{$this['app_respredir']}/{$resource['hash']}");
-			if ($cut->m3u8($outdir = "{$this['app_resoutdir']}/{$resource['hash']}"))
+			if ($cut->m3u8($outdir = "{$this['app_resoutdir']}/{$day}/{$resource['hash']}"))
 			{
 				$this->maskfile("{$outdir}/play.m3u8", "{$outdir}/play");
 				if (is_file("{$this['app_respredir']}/{$resource['hash']}.cover")
@@ -69,10 +70,13 @@ class interfaces extends webapp
 					: $cut->jpeg("{$outdir}/cover.jpg")) {
 					$this->maskfile("{$outdir}/cover.jpg", "{$outdir}/cover");
 				}
-				echo exec("xcopy \"{$outdir}/*\" \"{$this['app_resdstdir']}/{$resource['hash']}/\" /E /C /I /F /Y", $output, $code), ":{$code}\n";
+				echo exec("xcopy \"{$outdir}/*\" \"{$this['app_resdstdir']}/{$day}/{$resource['hash']}/\" /E /C /I /F /Y", $output, $code), ":{$code}\n";
 				if ($code === 0)
 				{
 					$this->mysql->resources('WHERE hash=?s LIMIT 1', $resource['hash'])->update('sync="finished"');
+					unlink("{$this['app_respredir']}/{$resource['hash']}");
+					is_file("{$this['app_respredir']}/{$resource['hash']}.cover")
+						&& unlink("{$this['app_respredir']}/{$resource['hash']}.cover");
 					continue;
 				}
 			}
