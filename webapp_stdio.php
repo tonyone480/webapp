@@ -10,7 +10,7 @@ if (PHP_SAPI === 'cli')
 		}
 		function request_header(string $name):?string
 		{
-			return $_SERVER[$name] ?? NULL;
+			return $_SERVER[strtoupper($name)] ?? NULL;
 		}
 		function request_method():string
 		{
@@ -72,12 +72,12 @@ else
 		}
 		function request_header(string $name):?string
 		{
-			return apache_request_headers()[$name]
-				?? $_SERVER[match($alias = strtr(strtoupper($name), '-', '_'))
+			return array_change_key_case(apache_request_headers(), CASE_UPPER)[$same = strtoupper($name)]
+				?? $_SERVER[match($alias = strtr($same, '-', '_'))
 				{
 					'CONTENT_TYPE', 'CONTENT_LENGTH' => $alias,
 					default => "HTTP_{$alias}"
-				}] ?? ($alias === 'AUTHORIZATION' ? match(TRUE)
+				}] ?? ($same === 'AUTHORIZATION' ? match(TRUE)
 				{
 					array_key_exists('PHP_AUTH_DIGEST', $_SERVER)
 						=> "Digest {$_SERVER['PHP_AUTH_DIGEST']}",

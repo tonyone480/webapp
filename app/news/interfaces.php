@@ -59,9 +59,9 @@ class interfaces extends webapp
 		$ffmpeg = static::lib('ffmpeg/interface.php');
 		foreach ($this->mysql->resources('WHERE sync="waiting" ORDER BY time ASC') as $resource)
 		{
-			echo sprintf("{$resource['hash']}: %s\n", date('Y/m/d H:i', $resource['time']));
 			$day = date('Ymd', $resource['time']);
 			$cut = $ffmpeg("{$this['app_respredir']}/{$resource['hash']}");
+			echo "{$resource['hash']}: {$day}\n";
 			if ($cut->m3u8($outdir = "{$this['app_resoutdir']}/{$day}/{$resource['hash']}"))
 			{
 				$this->maskfile("{$outdir}/play.m3u8", "{$outdir}/play");
