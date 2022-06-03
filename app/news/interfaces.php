@@ -258,7 +258,7 @@ class interfaces extends webapp
 				{
 					$src = strtr($this['app_resoutdir'] . $filename, '/', '\\');
 					$dst = strtr($this['app_resdstdir'] . $filename, '/', '\\');
-					exec("copy /B /Y {$src} {$dst}");
+					exec("copy /B /Y \"{$src}\" \"{$dst}\"", $this->app['errors'], $this->app['code']);
 				}
 			}
 			if ($ok && $this->call('saveAd', $this->ad_xml($ad)))
