@@ -587,13 +587,13 @@ STYLE);
 	//广告
 	function get_ads()
 	{
-		$table = $this->main->table($this->webapp->mysql->ads('where site=?i order by time desc', $this->webapp->site), function($table, $ad, $week)
+		$table = $this->main->table($this->webapp->mysql->ads('where site=?i order by time desc', $this->webapp->site), function($table, $ad, $week, $auth)
 		{
 			$table->row();
 			$table->cell()->append('a', ['❌',
 				'href' => "{$this->webapp['app_resdomain']}?deletead/{$ad['hash']}",
 				'onclick' => 'return confirm(`Delete Ad ${this.dataset.uid}`) && anchor(this)',
-				'data-uid' => $ad['name']]);
+				'data-auth' => $auth, 'data-uid' => $ad['name']]);
 			$table->cell()->append('a', [$ad['hash'], 'href' => "?admin/ad-update,hash:{$ad['hash']}"]);
 			$table->cell($ad['name']);
 			$table->cell($ad['seat']);
@@ -603,7 +603,9 @@ STYLE);
 			$table->cell(number_format($ad['click']));
 			$table->cell(number_format($ad['view']));
 			$table->cell()->append('a', [$ad['goto'], 'href' => $ad['goto'], 'target' => 'ad']);
-		}, ['日', '一', '二', '三', '四', '五', '六']);
+		},
+		['日', '一', '二', '三', '四', '五', '六'],
+		$this->webapp->signature($this->webapp['admin_username'], $this->webapp['admin_password'], (string)$this->webapp->site));
 		$table->fieldset('❌', 'hash', 'name', 'seat', 'timestart - timeend', 'weekset', 'count', 'click', 'view', 'goto');
 		$table->header('Found ' . $this->webapp->mysql->ads->count() . ' item');
 		$table->bar->append('button', ['Create Ad', 'onclick' => 'location.href="?admin/ad-create"']);
