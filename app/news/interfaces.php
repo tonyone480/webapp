@@ -233,7 +233,7 @@ class interfaces extends webapp
 	function post_ad(string $hash = NULL)
 	{
 		$this->response_header('Access-Control-Allow-Origin', '*');
-		$this->app('webapp_echo_json');
+		$this->app('webapp_echo_json', ['code' => 0]);
 		if ($this->form_ad($this->webapp)->fetch($ad))
 		{
 			if (is_string($hash))
