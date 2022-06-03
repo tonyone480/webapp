@@ -286,6 +286,7 @@ class interfaces extends webapp
 			$this->app['goto'] = '?admin/ads';
 			return;
 		}
+		$this->app['errors'][] = '广告删除失败！';
 	}
 	function ad_xml(array $ad):webapp_xml
 	{
