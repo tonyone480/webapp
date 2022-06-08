@@ -38,7 +38,7 @@ final class webapp_pay_test implements webapp_pay
 	{
 		$result = [
 			'type' => 'text/plain',	//返回数据类型
-			'data' => 'success1'		//返回数据内容
+			'data' => 'success1'		//返回数据内容fff
 		];
 		return TRUE;
 	}
