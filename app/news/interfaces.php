@@ -1,5 +1,6 @@
 <?php
 require 'admin.php';
+require 'pay.php';
 class interfaces extends webapp
 {
 	function clientip():string

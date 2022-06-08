@@ -118,8 +118,36 @@ class news_driver extends webapp
 		} while (0);
 		return FALSE;
 	}
-
-
+	//获取可用支付渠道
+	function paychannels():array
+	{
+		$channels = [];
+		if (is_object($channel = webapp_client_http::open($this['app_payurl'])->content()))
+		{
+			foreach ($channel->pay as $pay)
+			{
+				$types = [];
+				foreach ($pay->type as $type)
+				{
+					$types[(string)$type['value']] = (string)$type['name'];
+				}
+				$channels[(string)$pay['value']] = ['name' => (string)$pay['name'], 'type' => $types];
+			}
+		}
+		return $channels;
+	}
+	//创建一个订单
+	function underorder(array $order)
+	{
+		if (is_object($result = webapp_client_http::open($this['app_payurl'], [
+			'method' => 'POST',
+			'data' => [
+				'pay_auth' => $this->signature($this['admin_username'], $this['admin_password'], (string)$this['app_sid'])
+			] + $order])->content())) {
+			print_r($result);
+		}
+		print_r($result);
+	}
 
 
 

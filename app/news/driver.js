@@ -1,4 +1,4 @@
-function unpack(data, binary = false)
+function unpack(data, binary)
 {
 	const key = new Uint8Array(data.slice(0, 8));
 	const buffer = new Uint8Array(data.slice(8));
